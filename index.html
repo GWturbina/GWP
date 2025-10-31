@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GlobalWay - Decentralized Club</title>
+    <meta name="description" content="GlobalWay decentralized club platform on opBNB" />
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#001a33" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GlobalWay" />
+    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192x192.png" />
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/variables.css" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/registration.css" />
+    <link rel="stylesheet" href="css/v2-additional.css" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+
+    <!-- 🔥 ИСПРАВЛЕНО: Улучшенный SafePal Deep-Link -->
+    <script>
+    (function() {
+      try {
+        const ua = navigator.userAgent || '';
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+        
+        // 🔥 УЛУЧШЕНО: Более надёжная детекция SafePal браузера
+        const isSafePalBrowser = 
+          ua.includes('SafePal') || 
+          ua.includes('safepal') || 
+          window.location.href.includes('safepal') ||
+          (typeof window.safepal !== 'undefined');
+        
+        const url = new URL(window.location.href);
+        
+        // ✅ УЖЕ в SafePal - не делаем deep-link
+        if (isSafePalBrowser) {
+          console.log('✅ Already in SafePal browser, skip deep-link');
+          return;
+        }
+        
+        // 🔥 ИСПРАВЛЕНО: Deep-link ТОЛЬКО если явный параметр openInWallet=1
+        // НЕ делаем автоматический редирект по ref параметру!
+        const shouldDeepLink = isMobile && url.searchParams.get('openInWallet') === '1';
+
+        if (!shouldDeepLink) {
+          console.log('ℹ️ Deep-link not triggered (openInWallet=1 required)');
+          return;
+        }
+
+        console.log('🔗 Triggering SafePal deep-link...');
+        
+        const currentUrl = window.location.href;
+        const encoded = encodeURIComponent(currentUrl);
+        const isAndroid = /Android/i.test(ua);
+        
+        // 🔥 УЛУЧШЕНО: Правильные deep-link схемы для разных платформ
+        const deepLink = isAndroid
+          ? `safepalwallet://open?url=${encoded}`
+          : `safepal://wc?uri=${encoded}`;
+
+        // 🔥 ИСПРАВЛЕНО: Увеличенная задержка для безопасности
+        setTimeout(() => {
+          console.log('🚀 Opening SafePal app...');
+          window.location.href = deepLink;
+        }, 300); // 300ms вместо 120ms
+
+        // 🔥 ИСПРАВЛЕНО: Показываем инструкцию через 3 секунды (а не 2.2)
+        setTimeout(() => {
+          try {
+            const storeUrl = isAndroid
+              ? 'https://play.google.com/store/apps/details?id=io.safepal.wallet'
+              : 'https://apps.apple.com/app/safepal-wallet/id1548297139';
+    
+            const wantsInstall = confirm(
+              'To use this DApp:\n\n' +
+              '1. Install SafePal Wallet (if not installed)\n' +
+              '2. Open this link in SafePal DApp Browser\n\n' +
+              'Press OK to open app store.'
+            );
+            
+            if (wantsInstall) {
+              window.open(storeUrl, '_blank');
+            }
+          } catch (e) {
+            console.warn('Deep-link store redirect error:', e);
+          }
+        }, 3000); // 3 секунды вместо 2.2
+        
+      } catch (e) {
+        console.warn('SafePal deep-link error:', e);
+      }
+    })();
+    </script>
+</head>
+<body>
+<!-- 🔥 УЛУЧШЕНО: Debug panel для отладки -->
+<div id="debug" style="position:fixed;top:0;left:0;background:rgba(255,0,0,0.8);color:white;padding:8px 12px;z-index:9999;font-size:11px;border-radius:0 0 8px 0;max-width:90%;word-wrap:break-word;">
+  Loading...
+</div>
+    <script>
+      // 🔥 УЛУЧШЕНО: Лучшая обработка ошибок
+      window.onerror = function(msg, url, line, col, error) {
+        const debug = document.getElementById('debug');
+        if (debug) {
+          debug.innerHTML = 
+            '❌ Error: ' + msg + 
+            '<br>📍 Line: ' + line + 
+            '<br>📄 File: ' + (url ? url.split('/').pop() : 'unknown');
+          debug.style.background = 'rgba(255,0,0,0.9)';
+        }
+        console.error('Global error:', msg, url, line, col, error);
+        return true;
+      };
+      
+      // 🔥 ИСПРАВЛЕНО: Быстрее убираем debug panel
+      setTimeout(() => {
+        const debug = document.getElementById('debug');
+        if(debug) {
+          debug.innerHTML = '✅ No errors - All good!';
+          debug.style.background = 'rgba(0,128,0,0.8)';
+        }
+        setTimeout(() => { 
+          if(debug) debug.style.display = 'none'; 
+        }, 1500); // 1.5 секунды вместо 2
+      }, 2000); // 2 секунды вместо 3
+    </script>
+    
+    <div id="app">
+        <!-- Landing Page -->
+        <div id="landing" class="page active">
+            <div class="cosmic-bg">
+                <img src="assets/images/background.jpg" alt="Earth" class="bg-image" />
+
+                <!-- Language Switcher -->
+                <div class="lang-switch">
+                    <select id="langSelect">
+                        <option value="en">EN</option>
+                        <option value="ru">RU</option>
+                        <option value="uk">UK</option>
+                    </select>
+                </div>
+
+                <!-- Floating Planets -->
+                <div class="planets-container">
+                    <div class="planet" data-planet="club">
+                        <img src="assets/planets/planet-club.png" alt="Club" />
+                        <span class="planet-label" data-translate="planets.club">Club GlobalWay</span>
+                    </div>
+                    <div class="planet" data-planet="mission">
+                        <img src="assets/planets/planet-mission.png" alt="Mission" />
+                        <span class="planet-label" data-translate="planets.mission">Our Mission</span>
+                    </div>
+                    <div class="planet" data-planet="goals">
+                        <img src="assets/planets/planet-goals.png" alt="Goals" />
+                        <span class="planet-label" data-translate="planets.goals">Club Goals</span>
+                    </div>
+                    <div class="planet" data-planet="roadmap">
+                        <img src="assets/planets/planet-roadmap.png" alt="Roadmap" />
+                        <span class="planet-label" data-translate="planets.roadmap">Roadmap</span>
+                    </div>
+                    <div class="planet" data-planet="projects">
+                        <img src="assets/planets/planet-projects.png" alt="Projects" />
+                        <span class="planet-label" data-translate="planets.projects">Our Projects</span>
+                    </div>
+                </div>
+
+                <!-- Entry Coin -->
+                <div class="entry-coin" id="openDapp">
+                    <img src="assets/planets/gwt-coin.png" alt="GWT Coin" />
+                    <span data-translate="landing.enterDapp">Enter DApp</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main DApp -->
+        <div id="dapp" class="page">
+            <!-- Header -->
+            <header class="header">
+                <div class="logo">
+                    <img src="assets/icons/logo.png" alt="GlobalWay" />
+                    <span>GlobalWay</span>
+                </div>
+                <div class="header-info">
+                    <div class="header-lang-switch">
+                        <select id="langSelectHeader">
+                            <option value="en">EN</option>
+                            <option value="ru">RU</option>
+                            <option value="uk">UK</option>
+                        </select>
+                    </div>
+                    <div class="wallet-info">
+                        <span id="walletAddress">Not connected</span>
+                        <button id="connectBtn" class="btn-connect">Connect</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Navigation -->
+            <nav class="main-nav">
+                <button class="nav-btn active" data-page="dashboard">
+                    <span data-translate="nav.dashboard">Dashboard</span>
+                </button>
+                <button class="nav-btn" data-page="partners">
+                    <span data-translate="nav.partners">Partners</span>
+                </button>
+                <button class="nav-btn" data-page="matrix">
+                    <span data-translate="nav.matrix">Matrix</span>
+                </button>
+                <button class="nav-btn" data-page="tokens">
+                    <span data-translate="nav.tokens">Tokens</span>
+                </button>
+                <button class="nav-btn" data-page="projects">
+                    <span data-translate="nav.projects">Projects</span>
+                </button>
+                <button class="nav-btn admin-only" data-page="admin" style="display:none;">
+                    <i class="icon-settings"></i>
+                    <span data-translate="nav.admin">Admin</span>
+                </button>
+            </nav>
+
+            <!-- Content -->
+            <main class="content">
+                <!-- Dashboard -->
+                <div id="dashboard" class="page-content active">
+                    <!-- Personal Cabinet -->
+                    <section class="cabinet-info">
+                        <h2 data-translate="dashboard.cabinet">🌌 Personal Cabinet</h2>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label data-translate="dashboard.address">Address</label>
+                                <span id="userAddress">0x000...000</span>
+                            </div>
+                            <div class="info-item">
+                                <label data-translate="dashboard.balance">Balance</label>
+                                <span id="userBalance">0.000 BNB</span>
+                            </div>
+                            <div class="info-item">
+                                <label data-translate="dashboard.userId">User ID</label>
+                                <span id="userId">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label data-translate="dashboard.rank">Rank</label>
+                                <span id="userRank">-</span>
+                            </div>
+                        </div>
+                        <div class="referral-section">
+                            <label data-translate="dashboard.refLink">Referral Link</label>
+                            <input type="text" id="refLink" readonly />
+                            <button id="copyRefLink" data-translate="common.copy">Copy</button>
+                        </div>
+                    </section>
+
+                    <!-- Quarterly Activity -->
+                    <section class="quarterly-activity">
+                        <h3 data-translate="dashboard.quarterly">Quarterly Activity</h3>
+                        <div class="activity-info">
+                            <div class="activity-item">
+                                <span data-translate="dashboard.quarter">Quarter:</span>
+                                <span id="currentQuarter">1</span>
+                            </div>
+                            <div class="activity-item">
+                                <span data-translate="dashboard.nextPayment">Next Payment:</span>
+                                <span id="nextPayment">-</span>
+                            </div>
+                            <div class="activity-item">
+                                <span data-translate="dashboard.cost">Cost:</span>
+                                <span id="quarterlyCost">0.075 BNB</span>
+                            </div>
+                        </div>
+                        <button id="payActivityBtn" class="btn-primary" data-translate="dashboard.payActivity">Pay Activity</button>
+                    </section>
+
+                    <!-- Level Management -->
+                    <section class="level-management">
+                        <h3 data-translate="dashboard.levelMgmt">Level Management</h3>
+                        <div class="levels-grid">
+                            <div class="levels-individual">
+                                <h4 data-translate="dashboard.individual">Individual Purchase</h4>
+                                <div class="levels-row" id="individualLevels">
+                                    <!-- Generated levels 1-12 -->
+                                </div>
+                            </div>
+                            <div class="levels-bulk">
+                                <h4 data-translate="dashboard.bulk">Bulk Purchase</h4>
+                                <div class="bulk-buttons">
+                                    <button class="bulk-btn" data-levels="4">1-4 <span class="price">0.021</span> BNB</button>
+                                    <button class="bulk-btn" data-levels="7">1-7 <span class="price">0.117</span> BNB</button>
+                                    <button class="bulk-btn" data-levels="10">1-10 <span class="price">0.885</span> BNB</button>
+                                    <button class="bulk-btn" data-levels="12">1-12 <span class="price">3.957</span> BNB</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Earnings by Rank -->
+                    <section class="earnings-rank">
+                        <h3 data-translate="dashboard.earnings">💎 Earnings by Rank</h3>
+                        <div class="earnings-list" id="earningsRank">
+                            <!-- Generated earnings -->
+                        </div>
+                    </section>
+
+                    <!-- Transaction History -->
+                    <section class="transaction-history">
+                        <h3 data-translate="dashboard.history">Transaction History</h3>
+                        <div class="history-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th data-translate="common.number">№</th>
+                                        <th data-translate="common.level">Level</th>
+                                        <th data-translate="common.amount">Amount</th>
+                                        <th data-translate="common.date">Date</th>
+                                        <th>ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTable">
+                                    <!-- Generated transactions -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Tokens Summary -->
+                    <section class="tokens-summary">
+                        <h3 data-translate="dashboard.tokens">Tokens</h3>
+                        <div class="token-info">
+                            <span data-translate="tokens.amount">Amount:</span>
+                            <span id="tokenAmount">0 GWT</span>
+                            <span data-translate="tokens.price">Price:</span>
+                            <span id="tokenPrice">$0.00</span>
+                            <button class="btn-secondary" onclick="window.uiManager.showPage('tokens')" data-translate="tokens.manage">Manage</button>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Partners Page -->
+                <div id="partners" class="page-content"></div>
+
+                <!-- Matrix Page -->
+                <div id="matrix" class="page-content"></div>
+
+                <!-- Tokens Page -->
+                <div id="tokens" class="page-content"></div>
+
+                <!-- Projects Page -->
+                <div id="projects" class="page-content"></div>
+
+                <!-- Admin Page -->
+                <div id="admin" class="page-content admin-only" style="display:none;"></div>
+            </main>
+        </div>
+    </div>
+
+<!-- Modal for Planet Info -->
+    <div id="planetModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="modalTitle"></h3>
+            <p id="modalText"></p>
+        </div>
+    </div>
+    
+    <!-- 🔥 ВАЖНО: Правильный порядок загрузки скриптов -->
+    <!-- Scripts -->
+    
+    <!-- 1. Внешние библиотеки (ПЕРВЫМИ) -->
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/web3.js"></script>
+    <script src="js/contracts.js"></script>    ← contracts-v2.js перейменований
+    <script src="js/ui.js"></script>
+    <script src="js/registration.js"></script>
+    <script src="js/admin.js"></script>         ← ОНОВЛЕНИЙ
+    <script src="js/app.js"></script>
+</body>
+</html>
