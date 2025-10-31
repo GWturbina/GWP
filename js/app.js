@@ -534,7 +534,7 @@ class Application {
     try {
       await this.loadUserData();
       await this.loadQuarterlyActivity();
-      await this.loadLevelManagement();
+      // await this.loadLevelManagement(); // TODO: fix
       await this.loadContractBalances();
       await this.loadEarningsByRank();
       await this.loadTransactionHistory();
@@ -842,14 +842,14 @@ class Application {
       }
       
       // Leader Balance
-      const leaderBalance = await contracts.getLeaderBalance(address);
+      // const leaderBalance = await contracts.getLeaderBalance(address);
       const leaderBalanceEl = document.getElementById('leaderBalance');
       if (leaderBalanceEl) {
         leaderBalanceEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(leaderBalance))} BNB`;
       }
       
       // Investment Balance
-      const investmentBalance = await contracts.getInvestmentBalance(address);
+      // const investmentBalance = await contracts.getInvestmentBalance(address);
       const investmentBalanceEl = document.getElementById('investmentBalance');
       if (investmentBalanceEl) {
         investmentBalanceEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(investmentBalance))} BNB`;
@@ -995,7 +995,7 @@ class Application {
       }
       
       // Token Price
-      const price = await contracts.getTokenPrice();
+      // const price = await contracts.getTokenPrice();
       const tokenPrice = ethers.utils.formatEther(price);
       
       const tokenPriceEl = document.getElementById('tokenPrice');
