@@ -41,93 +41,49 @@ class ContractsManager {
     console.log('📄 Initializing contracts...');
 
     try {
-      // Завантажити ABI з contracts-compact.json
-      const response = await fetch('./contracts/contracts-compact.json');
-      if (!response.ok) {
-        throw new Error('Failed to load ABI file');
-      }
+      // Завантажити окремі ABI файли
+      console.log('📥 Loading ABI files from /contracts/abis/...');
       
-      this.abis = await response.json();
-      console.log('✅ ABI loaded successfully');
+      const abiFiles = [
+        { key: 'gwtToken', name: 'GWTToken', file: 'GWTToken.json' },
+        { key: 'globalWay', name: 'GlobalWay', file: 'GlobalWay.json' },
+        { key: 'marketing', name: 'GlobalWayMarketing', file: 'GlobalWayMarketing.json' },
+        { key: 'leaderPool', name: 'GlobalWayLeaderPool', file: 'GlobalWayLeaderPool.json' },
+        { key: 'investment', name: 'GlobalWayInvestment', file: 'GlobalWayInvestment.json' },
+        { key: 'quarterly', name: 'GlobalWayQuarterly', file: 'GlobalWayQuarterly.json' },
+        { key: 'techAccounts', name: 'GlobalWayTechAccounts', file: 'GlobalWayTechAccounts.json' },
+        { key: 'bridge', name: 'GlobalWayBridge', file: 'GlobalWayBridge.json' },
+        { key: 'stats', name: 'GlobalWayStats', file: 'GlobalWayStats.json' },
+        { key: 'governance', name: 'GlobalWayGovernance', file: 'GlobalWayGovernance.json' }
+      ];
 
-      // Конвертувати compact ABI у повний формат ethers
-      const fullAbis = this.convertCompactToFullAbi(this.abis);
-
-      // Ініціалізувати кожен контракт
-      await this.initializeContract('gwtToken', 'GWTToken', fullAbis.GWTToken);
-      await this.initializeContract('globalWay', 'GlobalWay', fullAbis.GlobalWay);
-      await this.initializeContract('marketing', 'GlobalWayMarketing', fullAbis.GlobalWayMarketing);
-      await this.initializeContract('leaderPool', 'GlobalWayLeaderPool', fullAbis.GlobalWayLeaderPool);
-      await this.initializeContract('investment', 'GlobalWayInvestment', fullAbis.GlobalWayInvestment);
-      await this.initializeContract('quarterly', 'GlobalWayQuarterly', fullAbis.GlobalWayQuarterly);
-      await this.initializeContract('techAccounts', 'GlobalWayTechAccounts', fullAbis.GlobalWayTechAccounts);
-      await this.initializeContract('bridge', 'GlobalWayBridge', fullAbis.GlobalWayBridge);
-      await this.initializeContract('stats', 'GlobalWayStats', fullAbis.GlobalWayStats);
-      await this.initializeContract('governance', 'GlobalWayGovernance', fullAbis.GlobalWayGovernance);
-
-      this.initialized = true;
-      console.log('✅ All 10 contracts initialized successfully');
-
-    } catch (error) {
-      console.error('❌ Contracts initialization failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Конвертація compact ABI у повний формат для ethers.js
-   */
-  convertCompactToFullAbi(compactAbis) {
-    const fullAbis = {};
-
-    for (const [contractName, contractData] of Object.entries(compactAbis)) {
-      const fullAbi = [];
-
-      // Додати функції
-      if (contractData.functions) {
-        for (const func of contractData.functions) {
-          fullAbi.push({
-            type: 'function',
-            name: func.name,
-            inputs: func.inputs || [],
-            outputs: func.outputs ? func.outputs.map(out => {
-              if (typeof out === 'string') {
-                return { type: out, name: '' };
-              }
-              return out;
-            }) : [],
-            stateMutability: func.stateMutability || 'nonpayable'
-          });
-        }
-      }
-
-      // Додати events
-      if (contractData.events) {
-        for (const event of contractData.events) {
-          fullAbi.push({
-            type: 'event',
-            name: event.name,
-            inputs: event.inputs || [],
-            anonymous: event.anonymous || false
-          });
-        }
-      }
-
-      fullAbis[contractName] = fullAbi;
-    }
-
-    return fullAbis;
-  }
+      // Завантажити всі ABI
+      for (const contract of abiFiles) {
+        try {
+          const response = await fetch(\`./contracts/abis/\${contract.file}\`);
+          if (!response.ok) {
+            console.error(\`❌ Failed to load \${contract.file}: HTTP \${response.status}\`);
+            throw new Error(\`Failed to load \${contract.file}\`);
+          }
+          
+          const abiData = await response.json();
+          const abi = abiData.abi || abiData; // Підтримка {abi:[]} або []
+          
+          console.log(\`📋 Loaded \${contract.name} ABI (\${abi.length} items)\`);
+          
+          await this.initializeContract(contract.key, contract.name, abi);
+          
+        } catch (error) {
 
   /**
    * Ініціалізація окремого контракту
    */
   async initializeContract(key, name, abi) {
     try {
-      const address = CONFIG.CONTRACTS[name] || CONFIG.CONTRACTS[key];
+      const address = CONFIG.CONTRACTS[name] || CONFIG.CONTRACTS[name.toUpperCase()] || CONFIG.CONTRACTS[key] || CONFIG.CONTRACTS[key.toUpperCase()];
       
       if (!address) {
-        throw new Error(`Address not found for ${name}`);
+        throw new Error(`Address not found for ${name} in CONFIG.CONTRACTS`);
       }
 
       if (!ethers.utils.isAddress(address)) {
