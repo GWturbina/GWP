@@ -1,1 +1,463 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   🎨 CSS СТИЛИ ДЛЯ РАСШИРЕННЫХ ФУНКЦИЙ МАТРИЦЫ
+   ═══════════════════════════════════════════════════════════════════════════ */
 
+/* 📊 РАСШИРЕННАЯ СТАТИСТИКА */
+.matrix-stats-extended {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  color: white;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.matrix-stats-extended .stats-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid rgba(255,255,255,0.2);
+}
+
+.matrix-stats-extended .stats-header h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 15px;
+}
+
+.stat-item {
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.stat-item:hover {
+  background: rgba(255,255,255,0.2);
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.stat-item.highlight {
+  background: rgba(255,215,0,0.2);
+  border: 2px solid rgba(255,215,0,0.5);
+}
+
+.stat-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: bold;
+  margin: 5px 0;
+}
+
+.stat-label {
+  font-size: 12px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 🔍 ПОИСК В МАТРИЦЕ */
+.matrix-search-container {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.matrix-search-input {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.matrix-search-input input {
+  flex: 1;
+  padding: 12px 20px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.matrix-search-input input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+
+.matrix-search-input button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.matrix-search-input button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+}
+
+.matrix-search-results {
+  margin-top: 15px;
+  display: none;
+}
+
+.search-result-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.result-header h4 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s;
+}
+
+.btn-close:hover {
+  color: #333;
+}
+
+.result-body {
+  margin: 15px 0;
+}
+
+.result-info {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.result-info:last-child {
+  border-bottom: none;
+}
+
+.result-info .label {
+  font-weight: 600;
+  color: #666;
+}
+
+.result-info .value {
+  color: #333;
+  font-weight: 500;
+}
+
+.path-info {
+  margin: 15px 0;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-navigate {
+  padding: 6px 12px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-navigate:hover {
+  background: #764ba2;
+}
+
+.result-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.btn-view {
+  flex: 1;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-view:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+}
+
+/* 🌳 ГЛУБОКИЙ ПРОСМОТР - МОДАЛЬНОЕ ОКНО */
+.matrix-expand-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.matrix-expand-modal.show {
+  opacity: 1;
+}
+
+.matrix-expand-modal .modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(5px);
+}
+
+.matrix-expand-modal .modal-content {
+  position: relative;
+  background: white;
+  border-radius: 15px;
+  padding: 0;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.matrix-expand-modal.show .modal-content {
+  transform: scale(1);
+}
+
+.matrix-expand-modal .modal-header {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 15px 15px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.matrix-expand-modal .modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.matrix-expand-modal .modal-header .btn-close {
+  color: white;
+  font-size: 24px;
+}
+
+.matrix-expand-modal .modal-body {
+  padding: 25px;
+}
+
+.parent-node {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 10px;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.node-label {
+  font-size: 12px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.node-id {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 5px 0;
+}
+
+.node-pos {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-top: 5px;
+}
+
+.children-nodes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.child-node {
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.child-node.filled {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  cursor: pointer;
+}
+
+.child-node.filled:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.child-node.empty {
+  background: #f0f0f0;
+  color: #999;
+}
+
+.child-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.node-empty {
+  font-size: 32px;
+  margin: 10px 0;
+}
+
+.node-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.btn-mini {
+  padding: 6px 12px;
+  background: white;
+  border: 2px solid #667eea;
+  color: #667eea;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-mini:hover {
+  background: #667eea;
+  color: white;
+}
+
+/* 🔘 КНОПКА РАСШИРЕНИЯ НА ПОЗИЦИЯХ */
+.btn-expand {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.btn-expand:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+}
+
+.matrix-position {
+  position: relative;
+}
+
+/* 📱 АДАПТИВНОСТЬ */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .matrix-expand-modal .modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+  
+  .children-nodes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+  }
+  
+  .stat-icon {
+    font-size: 28px;
+  }
+}
