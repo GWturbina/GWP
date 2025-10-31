@@ -1,1 +1,588 @@
+/**
+ * Additional Styles for GlobalWay DApp
+ * Додаткові стилі для нових компонентів
+ * Додати цей файл ПІСЛЯ components.css
+ */
 
+/* ========================================
+   QR Modal
+======================================== */
+.qr-modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.qr-modal-content h3 {
+  margin: 0 0 20px 0;
+  text-align: center;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.qr-modal-content .close {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+}
+
+.qr-modal-content .close:hover {
+  color: #333;
+}
+
+#qrCodeContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+#qrcode {
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#qrcode canvas,
+#qrcode img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.qr-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.qr-actions button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.qr-actions .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.qr-actions .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.qr-actions .btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.qr-actions .btn-secondary:hover {
+  background: #e0e0e0;
+}
+
+/* Modal overlay */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 10000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.3s ease;
+}
+
+.modal.show {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   Loader Overlay
+======================================== */
+.loader-overlay {
+  display: none;
+  position: fixed;
+  z-index: 99999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.loader-overlay.show {
+  opacity: 1;
+}
+
+.loader-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 20px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loader-message {
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 15px;
+}
+
+/* ========================================
+   Connection Alert
+======================================== */
+.connection-alert {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  max-width: 500px;
+  width: 90%;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  display: none;
+  animation: slideDown 0.3s ease;
+}
+
+.connection-alert.show {
+  display: block;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateX(-50%) translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+.connection-alert .alert-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.connection-alert .alert-message {
+  text-align: center;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 16px;
+}
+
+.connection-alert .alert-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.connection-alert button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.connection-alert .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.connection-alert .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.connection-alert .close-alert {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #999;
+  cursor: pointer;
+  padding: 5px;
+  line-height: 1;
+}
+
+.connection-alert .close-alert:hover {
+  color: #333;
+}
+
+/* ========================================
+   Custom Modal (для Utils.showModal)
+======================================== */
+.custom-modal {
+  display: none;
+  position: fixed;
+  z-index: 10000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.custom-modal.show {
+  display: block;
+}
+
+.custom-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.3s ease;
+}
+
+.custom-modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, -45%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+}
+
+.custom-modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.custom-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.custom-modal-header .close-modal {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+}
+
+.custom-modal-header .close-modal:hover {
+  color: #333;
+}
+
+.custom-modal-body {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.custom-modal-body p {
+  margin: 0;
+  color: #666;
+  line-height: 1.6;
+}
+
+.custom-modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.custom-modal-footer button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* ========================================
+   Skeleton Loaders
+======================================== */
+.skeleton-row {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 20px;
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ========================================
+   Empty State
+======================================== */
+.empty-state {
+  padding: 40px 20px !important;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.empty-state:before {
+  content: "📭";
+  display: block;
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+/* ========================================
+   Nav Badge (для notification counter)
+======================================== */
+.nav-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff4444;
+  color: white;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ========================================
+   Progress Bar
+======================================== */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
+/* ========================================
+   Stat Card
+======================================== */
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #666;
+}
+
+/* ========================================
+   Responsive
+======================================== */
+@media (max-width: 768px) {
+  .qr-modal-content {
+    padding: 20px;
+  }
+
+  .connection-alert {
+    top: 70px;
+  }
+
+  .custom-modal-content {
+    width: 95%;
+  }
+
+  .qr-actions {
+    flex-direction: column;
+  }
+
+  .qr-actions button {
+    width: 100%;
+  }
+}
+
+/* ========================================
+   Dark Mode Support (optional)
+======================================== */
+@media (prefers-color-scheme: dark) {
+  .qr-modal-content,
+  .connection-alert,
+  .custom-modal-content {
+    background: #1a1a1a;
+    color: #e0e0e0;
+  }
+
+  .qr-modal-content h3,
+  .custom-modal-header h3,
+  .connection-alert .alert-message {
+    color: #e0e0e0;
+  }
+
+  .qr-actions .btn-secondary {
+    background: #2a2a2a;
+    color: #e0e0e0;
+  }
+
+  .qr-actions .btn-secondary:hover {
+    background: #3a3a3a;
+  }
+
+  .custom-modal-header,
+  .custom-modal-footer {
+    border-color: #333;
+  }
+
+  .skeleton-line {
+    background: linear-gradient(
+      90deg,
+      #2a2a2a 25%,
+      #3a3a3a 50%,
+      #2a2a2a 75%
+    );
+  }
+
+  .empty-state {
+    color: #666;
+  }
+}
