@@ -1,1 +1,332 @@
+/* ═══════════════════════════════════════════════════════════════
+   REGISTRATION MODAL STYLES
+   Красивое модальное окно регистрации в космическом стиле
+   ═══════════════════════════════════════════════════════════════ */
 
+.registration-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.registration-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.registration-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 10, 30, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.registration-modal-content {
+  background: linear-gradient(135deg, #001a33 0%, #002a4d 100%);
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 255, 255, 0.2),
+              inset 0 0 30px rgba(0, 255, 255, 0.05);
+  animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Icon */
+.registration-icon {
+  font-size: 64px;
+  text-align: center;
+  margin-bottom: 20px;
+  animation: iconBounce 0.6s ease;
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Header */
+.registration-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.registration-header h2 {
+  color: #00ffff;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+/* Body */
+.registration-body {
+  margin-bottom: 30px;
+}
+
+.sponsor-label {
+  color: #ffffff;
+  font-size: 16px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.sponsor-display {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.sponsor-input {
+  width: 100%;
+  padding: 16px 50px 16px 20px;
+  background: rgba(0, 50, 100, 0.3);
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 18px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.sponsor-input:focus {
+  outline: none;
+  border-color: #00ffff;
+  background: rgba(0, 50, 100, 0.5);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.sponsor-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+}
+
+.sponsor-input[readonly] {
+  cursor: not-allowed;
+  background: rgba(0, 100, 150, 0.3);
+  border-color: rgba(0, 255, 100, 0.4);
+}
+
+.sponsor-display.autofilled .sponsor-input {
+  color: #00ff88;
+  font-weight: 600;
+}
+
+.status-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px;
+  transition: all 0.3s ease;
+}
+
+.status-icon.validated {
+  animation: iconPulse 1.5s ease infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% { 
+    transform: translateY(-50%) scale(1); 
+    opacity: 1;
+  }
+  50% { 
+    transform: translateY(-50%) scale(1.1); 
+    opacity: 0.8;
+  }
+}
+
+.info-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  text-align: center;
+}
+
+.info-text.small {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Footer */
+.registration-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-register {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-register::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-register:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00cc88 0%, #00ffaa 100%);
+  color: #001a33;
+  box-shadow: 0 4px 20px rgba(0, 255, 170, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(0, 255, 170, 0.5);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #333 0%, #555 100%);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-icon {
+  font-size: 18px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+  .registration-modal-content {
+    padding: 30px 20px;
+    border-radius: 15px;
+  }
+  
+  .registration-icon {
+    font-size: 48px;
+  }
+  
+  .registration-header h2 {
+    font-size: 20px;
+  }
+  
+  .sponsor-input {
+    font-size: 16px;
+    padding: 14px 45px 14px 16px;
+  }
+  
+  .registration-footer {
+    flex-direction: column;
+  }
+  
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Animation for loading state */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.btn-primary:disabled .btn-icon {
+  animation: spin 1s linear infinite;
+}
+
+/* Cosmic background effect */
+.registration-modal-content::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    transparent 0%, 
+    rgba(0, 255, 255, 0.1) 50%, 
+    transparent 100%);
+  border-radius: 20px;
+  z-index: -1;
+  animation: borderGlow 3s ease infinite;
+}
+
+@keyframes borderGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Success state */
+.registration-modal-content.success {
+  border-color: rgba(0, 255, 100, 0.6);
+  animation: successPulse 0.6s ease;
+}
+
+@keyframes successPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
