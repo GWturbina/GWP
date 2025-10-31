@@ -60,21 +60,33 @@ class ContractsManager {
       // Завантажити всі ABI
       for (const contract of abiFiles) {
         try {
-          const response = await fetch(\`./contracts/abis/\${contract.file}\`);
+          const response = await fetch(`./contracts/abis/${contract.file}`);
           if (!response.ok) {
-            console.error(\`❌ Failed to load \${contract.file}: HTTP \${response.status}\`);
-            throw new Error(\`Failed to load \${contract.file}\`);
+            console.error(`❌ Failed to load ${contract.file}: HTTP ${response.status}`);
+            throw new Error(`Failed to load ${contract.file}`);
           }
           
           const abiData = await response.json();
           const abi = abiData.abi || abiData; // Підтримка {abi:[]} або []
           
-          console.log(\`📋 Loaded \${contract.name} ABI (\${abi.length} items)\`);
+          console.log(`📋 Loaded ${contract.name} ABI (${abi.length} items)`);
           
           await this.initializeContract(contract.key, contract.name, abi);
           
         } catch (error) {
+          console.error(`❌ Failed to initialize ${contract.name}:`, error);
+          throw error;
+        }
+      }
 
+      this.initialized = true;
+      console.log('✅ All 10 contracts initialized successfully');
+
+    } catch (error) {
+      console.error('❌ Contracts initialization failed:', error);
+      throw error;
+    }
+  }
   /**
    * Ініціалізація окремого контракту
    */
