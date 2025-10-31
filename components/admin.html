@@ -1,1 +1,388 @@
+<div class="admin-page">
+    <h2 data-translate="admin.title">🔧 Admin Panel</h2>
+    
+    <!-- Admin Rights Check -->
+    <section class="admin-rights">
+        <h3>Access Control</h3>
+        <div class="rights-item">
+            <label data-translate="admin.currentAccount">Current Account:</label>
+            <span id="adminCurrentAccount">-</span>
+        </div>
+        <div class="rights-item">
+            <label data-translate="admin.ownerRights">Rights Level:</label>
+            <span id="adminRightsLevel">Checking...</span>
+        </div>
+    </section>
 
+    <!-- Admin Statistics -->
+    <section class="admin-stats">
+        <h3 data-translate="admin.stats">📊 Administrator Statistics</h3>
+        <div class="admin-stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="adminTotalUsers">0</div>
+                <div class="stat-label" data-translate="admin.totalUsers">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminActiveUsers">0</div>
+                <div class="stat-label" data-translate="admin.activeUsers">Active Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminContractBalance">0 BNB</div>
+                <div class="stat-label" data-translate="admin.contractBalance">Contract Balance</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminTotalVolume">0 BNB</div>
+                <div class="stat-label" data-translate="admin.totalVolume">Total Volume</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Free Activation -->
+    <section class="free-activation">
+        <h3 data-translate="admin.freeActivation">🎁 Free User Activation</h3>
+        <div class="activation-form">
+            <div class="form-group">
+                <label data-translate="admin.userAddress">User Address:</label>
+                <input type="text" id="activationAddress" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.sponsorAddress">Sponsor Address:</label>
+                <input type="text" id="activationSponsor" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.maxLevel">Max Level:</label>
+                <select id="activationLevel">
+                    <option value="3" data-translate="admin.client">Client (1-3)</option>
+                    <option value="4" data-translate="admin.miniAdmin">Mini Admin (1-4)</option>
+                    <option value="7" data-translate="admin.admin">Admin (1-7)</option>
+                    <option value="10" data-translate="admin.superAdmin">Super Admin (1-10)</option>
+                    <option value="12" data-translate="admin.manager">Manager (1-12)</option>
+                </select>
+            </div>
+            <button id="freeActivateBtn" class="btn-primary" data-translate="admin.activate">🚀 Activate User</button>
+        </div>
+    </section>
+
+    <!-- Batch Activation -->
+    <section class="batch-activation">
+        <h3 data-translate="admin.batchActivation">⚡ Batch Team Activation</h3>
+        <div class="batch-form">
+            <div class="form-group">
+                <label data-translate="admin.teamMembers">Team Members (one per line):</label>
+                <textarea id="batchMembers" rows="5" placeholder="0x...&#10;0x...&#10;0x..."></textarea>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.sponsorAddress">Sponsor Address:</label>
+                <input type="text" id="batchSponsor" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.maxLevel">Max Level:</label>
+                <select id="batchLevel">
+                    <option value="3" data-translate="admin.client">Client (1-3)</option>
+                    <option value="4" data-translate="admin.miniAdmin">Mini Admin (1-4)</option>
+                    <option value="7" data-translate="admin.admin">Admin (1-7)</option>
+                    <option value="10" data-translate="admin.superAdmin">Super Admin (1-10)</option>
+                    <option value="12" data-translate="admin.manager">Manager (1-12)</option>
+                </select>
+            </div>
+            <button id="batchActivateBtn" class="btn-primary" data-translate="admin.batchActivate">Batch Activate Team</button>
+        </div>
+    </section>
+
+    <!-- User Management -->
+    <section class="user-management">
+        <h3 data-translate="admin.authManagement">🔐 User Management</h3>
+        
+        <!-- Block User -->
+        <div class="management-section">
+            <h4 data-translate="admin.blockUser">Block User</h4>
+            <div class="management-form">
+                <input type="text" id="blockUserAddress" placeholder="User Address" data-translate="admin.userAddress">
+                <input type="text" id="tempAddress" placeholder="Temporary Address" data-translate="admin.tempAddress">
+                <textarea id="blockReason" placeholder="Block Reason" data-translate="admin.blockReason"></textarea>
+                <button id="blockUserBtn" class="btn-danger">🚫 Block User</button>
+            </div>
+        </div>
+
+        <!-- Replace Address -->
+        <div class="management-section">
+            <h4 data-translate="admin.replaceAddress">Replace User Address</h4>
+            <div class="management-form">
+                <input type="text" id="replaceOldAddress" placeholder="Current Address" data-translate="admin.userAddress">
+                <input type="text" id="replaceNewAddress" placeholder="New Address" data-translate="admin.newAddress">
+                <textarea id="replaceReason" placeholder="Reason for replacement" data-translate="admin.reason"></textarea>
+                <button id="replaceAddressBtn" class="btn-warning">🔄 Replace Address</button>
+            </div>
+        </div>
+
+        <!-- Process Inactive -->
+        <div class="management-section">
+            <h4 data-translate="admin.processInactive">Process Inactive User</h4>
+            <div class="management-form">
+                <input type="text" id="inactiveUserAddress" placeholder="User Address" data-translate="admin.userAddress">
+                <button id="processInactiveBtn" class="btn-warning" data-translate="admin.processInactiveAccount">⚠️ Process Inactive Account</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contract Management -->
+    <section class="contract-management">
+        <h3 data-translate="admin.contractMgmt">🔧 Contract Management</h3>
+        <div class="contract-controls">
+            <div class="control-group">
+                <h4>Contract Status</h4>
+                <div class="status-controls">
+                    <button id="pauseContractBtn" class="btn-danger" data-translate="admin.pause">⏸️ Pause Contract</button>
+                    <button id="unpauseContractBtn" class="btn-success" data-translate="admin.unpause">▶️ Unpause Contract</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h4>Project Integration</h4>
+                <div class="project-controls">
+                    <input type="text" id="projectContractAddress" placeholder="Project Contract Address" data-translate="admin.projectContract">
+                    <input type="text" id="projectName" placeholder="Project Name" data-translate="admin.projectName">
+                    <div class="project-actions">
+                        <button id="connectProjectBtn" class="btn-success" data-translate="admin.connectProject">🔗 Connect Project</button>
+                        <button id="disconnectProjectBtn" class="btn-danger" data-translate="admin.disconnectProject">❌ Disconnect Project</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Board Members Management -->
+    <section class="board-management">
+        <h3 data-translate="admin.boardManagement">👔 Board Members Management</h3>
+        
+        <!-- Current Board Members -->
+        <div class="board-list">
+            <h4 data-translate="admin.currentBoard">Current Board Members</h4>
+            <div id="boardMembersList" class="board-members-list">
+                <div class="loading">Loading board members...</div>
+            </div>
+            <button id="refreshBoardBtn" class="btn-secondary">🔄 Refresh List</button>
+        </div>
+
+        <!-- Add Board Member -->
+        <div class="management-section">
+            <h4 data-translate="admin.addBoardMember">Add Board Member</h4>
+            <div class="management-form">
+                <input type="text" id="addBoardAddress" placeholder="Board Member Address (0x...)" data-translate="admin.boardAddress">
+                <textarea id="addBoardReason" placeholder="Reason for adding this board member" rows="2" data-translate="admin.addReason"></textarea>
+                <div class="info-box">
+                    <small>⚠️ Adding a board member requires voting approval. They will have rights to vote on proposals.</small>
+                </div>
+                <button id="addBoardMemberBtn" class="btn-primary" data-translate="admin.addMember">➕ Add Board Member</button>
+            </div>
+        </div>
+
+        <!-- Remove Board Member -->
+        <div class="management-section">
+            <h4 data-translate="admin.removeBoardMember">Remove Board Member</h4>
+            <div class="management-form">
+                <input type="text" id="removeBoardAddress" placeholder="Board Member Address (0x...)" data-translate="admin.boardAddress">
+                <textarea id="removeBoardReason" placeholder="Reason for removing this board member" rows="2" data-translate="admin.removeReason"></textarea>
+                <div class="warning-box">
+                    <small>⚠️ Removing a board member requires voting approval. This action cannot be undone without another vote.</small>
+                </div>
+                <button id="removeBoardMemberBtn" class="btn-danger" data-translate="admin.removeMember">➖ Remove Board Member</button>
+            </div>
+        </div>
+
+        <!-- Board Statistics -->
+        <div class="board-stats">
+            <div class="stat-item">
+                <label data-translate="admin.totalBoardMembers">Total Board Members:</label>
+                <span id="totalBoardMembers">0</span>
+            </div>
+            <div class="stat-item">
+                <label data-translate="admin.votingQuorum">Voting Quorum:</label>
+                <span id="votingQuorum">5/8 (63%)</span>
+            </div>
+        </div>
+    </section>
+    <!-- Financial Management -->
+    <section class="financial-management">
+        <h3 data-translate="admin.financial">💰 Financial Management</h3>
+        
+        <!-- Pool Withdrawals -->
+        <div class="financial-section">
+            <h4 data-translate="admin.withdrawal">Withdrawal Management</h4>
+            <div class="withdrawal-form">
+                <select id="withdrawalPool" data-translate="admin.withdrawalPool">
+                    <option value="treasury">Treasury Pool</option>
+                    <option value="ops">Operations Pool</option>
+                    <option value="dev">Development Pool</option>
+                    <option value="charity">Charity Pool</option>
+                    <option value="tokenomics">Tokenomics Pool</option>
+                </select>
+                <input type="text" id="withdrawalAddress" placeholder="Withdrawal Address" data-translate="admin.withdrawalAddress">
+                <input type="number" id="withdrawalAmount" placeholder="Amount (BNB)" step="0.001" data-translate="admin.withdrawalAmount">
+                <textarea id="withdrawalNote" placeholder="Note/Reason" data-translate="admin.withdrawalNote"></textarea>
+                <div class="voting-info">
+                    <small data-translate="admin.votingRequired">⚠️ Requires 8 votes for amounts over 5 BNB</small>
+                </div>
+                <button id="withdrawalBtn" class="btn-warning" data-translate="admin.withdraw">💸 Withdraw Funds</button>
+            </div>
+        </div>
+
+        <!-- Emergency Withdrawal -->
+        <div class="financial-section emergency">
+            <h4 data-translate="admin.emergencyWithdraw">Emergency Withdrawal</h4>
+            <div class="emergency-form">
+                <input type="text" id="emergencyFromAddress" placeholder="From Address" data-translate="admin.fromAddress">
+                <input type="text" id="emergencyToAddress" placeholder="To Address" data-translate="admin.toAddress">
+                <input type="number" id="emergencyAmount" placeholder="Amount (BNB)" step="0.001" data-translate="admin.amount">
+                <textarea id="emergencyReason" placeholder="Emergency Reason" data-translate="admin.reason"></textarea>
+                <div class="danger-warning">
+                    <strong>⚠️ DANGER ZONE - Emergency Use Only</strong>
+                </div>
+                <button id="emergencyWithdrawBtn" class="btn-danger" data-translate="admin.emergencyWithdraw">🚨 Emergency Withdraw</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ID Management -->
+    <section class="id-management">
+        <h3>👥 ID Management</h3>
+        
+        <!-- Assign ID -->
+        <div class="management-section">
+            <h4>Assign ID to User</h4>
+            <div class="management-form">
+                <input type="text" id="assignIdUserAddress" placeholder="User Address">
+                <button id="assignIdBtn" class="btn-primary">🆔 Assign ID</button>
+            </div>
+        </div>
+
+        <!-- ID Statistics -->
+        <div class="id-stats">
+            <div class="stat-item">
+                <label>Total IDs Assigned:</label>
+                <span id="totalIdsAssigned">0</span>
+            </div>
+            <div class="stat-item">
+                <label>Available IDs:</label>
+                <span id="availableIds">0</span>
+            </div>
+            <div class="stat-item">
+                <label>ID Range:</label>
+                <span id="idRange">1000000 - 9999999</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Delegation Management -->
+    <section class="delegation-management">
+        <h3 data-translate="admin.delegation">👥 Delegation Management</h3>
+        <div class="delegation-form">
+            <input type="text" id="delegateAddress" placeholder="Partner Address" data-translate="admin.delegateAddress">
+            <div class="permissions-group">
+                <label data-translate="admin.permissions">Permissions:</label>
+                <div class="permission-checkboxes">
+                    <label><input type="checkbox" value="support"> Support</label>
+                    <label><input type="checkbox" value="news"> News</label>
+                    <label><input type="checkbox" value="history"> History</label>
+                    <label><input type="checkbox" value="mailings"> Mailings</label>
+                </div>
+            </div>
+            <textarea id="delegationNote" placeholder="Delegation Note" data-translate="admin.reason"></textarea>
+            <button id="delegateRightsBtn" class="btn-primary" data-translate="admin.delegateRights">✅ Delegate Rights</button>
+        </div>
+    </section>
+
+    <!-- News Management -->
+    <section class="news-management">
+        <h3 data-translate="admin.news">📰 News Management</h3>
+        <div class="news-form">
+            <input type="text" id="newsTitle" placeholder="News Title" data-translate="admin.newsTitle">
+            <textarea id="newsText" placeholder="News Content" data-translate="admin.newsText"></textarea>
+            <input type="url" id="newsLink" placeholder="Link (optional)" data-translate="admin.newsLink">
+            <input type="file" id="newsPhoto" accept="image/*" data-translate="admin.newsPhoto">
+            <button id="publishNewsBtn" class="btn-primary" data-translate="admin.publishNews">📢 Publish News</button>
+        </div>
+    </section>
+
+    <!-- User Lookup -->
+    <section class="user-lookup">
+        <h3>🔍 User Lookup</h3>
+        <div class="lookup-form">
+            <div class="form-group">
+                <label>Search by Address or ID:</label>
+                <input type="text" id="lookupInput" placeholder="0x... or GW1234567">
+                <button id="lookupBtn" class="btn-secondary">Search</button>
+            </div>
+            <div id="lookupResults" class="lookup-results" style="display: none;">
+                <div class="result-item">
+                    <label>Address:</label>
+                    <span id="resultAddress">-</span>
+                </div>
+                <div class="result-item">
+                    <label>User ID:</label>
+                    <span id="resultUserId">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Registration Status:</label>
+                    <span id="resultRegistered">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Active Levels:</label>
+                    <span id="resultLevels">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Total Earned:</label>
+                    <span id="resultEarned">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Referrals:</label>
+                    <span id="resultReferrals">-</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Voting System -->
+    <section class="voting-system" id="votingSystem" style="display:none;">
+        <h3 data-translate="admin.voting">🗳️ Voting System</h3>
+        <div id="activeVotings" class="voting-list">
+            <!-- Generated active votings -->
+        </div>
+    </section>
+
+    <!-- Danger Zone -->
+    <section class="danger-zone">
+        <h3 data-translate="admin.dangerZone">⚠️ DANGER ZONE</h3>
+        <div class="danger-actions">
+            <button id="transferMultisigBtn" class="btn-danger disabled" data-translate="admin.transferMultisig">
+                🔥 Transfer to Multisig (IRREVERSIBLE!)
+            </button>
+            <p><small>This action cannot be undone and will transfer contract ownership to multisig wallet.</small></p>
+        </div>
+    </section>
+</div>
+
+<!-- Voting Modal -->
+<div id="votingModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 id="votingTitle">Voting Required</h3>
+        <div class="voting-details">
+            <p id="votingDescription">This action requires voting approval from board members.</p>
+            <div class="voting-status">
+                <div class="votes-for">
+                    <label>Votes For: <span id="votesFor">0</span>/8</label>
+                </div>
+                <div class="votes-against">
+                    <label>Votes Against: <span id="votesAgainst">0</span>/8</label>
+                </div>
+            </div>
+            <div class="voting-actions">
+                <button id="voteForBtn" class="btn-success">✅ Vote For</button>
+                <button id="voteAgainstBtn" class="btn-danger">❌ Vote Against</button>
+                <button id="abstainBtn" class="btn-secondary">⚪ Abstain</button>
+            </div>
+        </div>
+    </div>
+</div>
