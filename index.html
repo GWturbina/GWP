@@ -378,19 +378,44 @@
     
     <!-- 🔥 ВАЖНО: Правильный порядок загрузки скриптов -->
     <!-- Scripts -->
+    <!-- 🔥 SCRIPTS: Правильный порядок загрузки -->
     
-    <!-- 1. Внешние библиотеки (ПЕРВЫМИ) -->
+    <!-- 1️⃣ Внешние библиотеки (ПЕРВЫМИ) -->
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
-    <script src="js/config.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/i18n.js"></script>
-    <script src="js/web3.js"></script>
-    <script src="js/contracts.js"></script>    ← contracts-v2.js перейменований
-    <script src="js/ui.js"></script>
-    <script src="js/registration.js"></script>
-    <script src="js/admin.js"></script>         ← ОНОВЛЕНИЙ
-    <script src="js/app.js"></script>
+    <!-- 2️⃣ Core модули (базовые) -->
+    <script src="js/config.js"></script>         <!-- Конфигурация -->
+    <script src="js/utils.js"></script>          <!-- ✅ EXTENDED v2.1 (981 строк) -->
+    <script src="js/i18n.js"></script>           <!-- Переводы -->
+    
+    <!-- 3️⃣ Blockchain модули -->
+    <script src="js/web3.js"></script>           <!-- Web3 Provider (SafePal приоритет) -->
+    <script src="js/contracts.js"></script>      <!-- ✅ 10 контрактов интегрировано -->
+    
+    <!-- 4️⃣ UI и Application -->
+    <script src="js/ui.js"></script>             <!-- UI Manager -->
+    <script src="js/app.js"></script>            <!-- Main Application -->
+    
+    <!-- 5️⃣ Page модули (НОВЫЕ v2.1) -->
+    <script src="js/partners.js"></script>       <!-- ✅ НОВЫЙ: Partners таблица + фильтры -->
+    <script src="js/matrix.js"></script>         <!-- ✅ НОВЫЙ: Matrix визуализация 1-2-4 -->
+    <script src="js/tokens.js"></script>         <!-- ✅ НОВЫЙ: Tokens trading интерфейс -->
+    <script src="js/projects.js"></script>       <!-- ✅ НОВЫЙ: Projects галерея -->
+    
+    <!-- 6️⃣ Специальные модули -->
+    <script src="js/registration.js"></script>   <!-- Registration форма -->
+    <script src="js/admin.js"></script>          <!-- ✅ Admin panel (полная) -->
+    
+    <!-- 7️⃣ Service Worker (PWA) -->
+    <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('✅ Service Worker registered:', reg.scope))
+          .catch(err => console.log('❌ SW registration failed:', err));
+      });
+    }
+    </script>
 </body>
 </html>
