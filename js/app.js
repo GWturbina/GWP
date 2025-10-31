@@ -23,10 +23,25 @@ class Application {
       uiManager.init();
       console.log('✅ UI initialized');
       
-      // 2. Ініціалізація i18n
-      if (typeof i18n !== 'undefined') {
-        await i18n.init();
-        console.log('✅ i18n initialized');
+      // 2. Ініціалізація i18n (використовуємо правильну функцію)
+      if (typeof i18n !== 'undefined' && i18n) {
+        try {
+          // Ваш i18n.js має функцію initI18n(), а не init()
+          if (typeof i18n.initI18n === 'function') {
+            await i18n.initI18n();
+            console.log('✅ i18n initialized');
+          } else if (typeof i18n.init === 'function') {
+            await i18n.init();
+            console.log('✅ i18n initialized');
+          } else {
+            console.log('ℹ️ i18n already initialized');
+          }
+        } catch (i18nError) {
+          console.warn('⚠️ i18n initialization failed:', i18nError);
+          // Продовжуємо без i18n
+        }
+      } else {
+        console.log('ℹ️ i18n not available');
       }
       
       // 3. Ініціалізація Web3
