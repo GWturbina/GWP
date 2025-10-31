@@ -147,18 +147,16 @@ class ContractsManager {
   }
 
   /**
-   * Отримати інформацію про рівень користувача
-   */
   async getUserLevel(address, level) {
     try {
-      const levelInfo = await this.contracts.globalWay.getUserLevelInfo(address, level);
+      const isActive = await this.contracts.globalWay.isLevelActive(address, level);
       
       return {
-        isActive: levelInfo.isActive || false,
-        activationTime: levelInfo.activationTime ? levelInfo.activationTime.toNumber() : 0,
-        reactivations: levelInfo.reactivations || 0,
-        partnersCount: levelInfo.partnersCount || 0,
-        cyclesCount: levelInfo.cyclesCount || 0
+        isActive: isActive || false,
+        activationTime: 0,
+        reactivations: 0,
+        partnersCount: 0,
+        cyclesCount: 0
       };
     } catch (error) {
       console.error('getUserLevel error:', error);
@@ -168,6 +166,9 @@ class ContractsManager {
         reactivations: 0,
         partnersCount: 0,
         cyclesCount: 0
+      };
+    }
+  }
       };
     }
   }
