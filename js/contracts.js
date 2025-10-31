@@ -145,7 +145,6 @@ class ContractsManager {
       throw error;
     }
   }
-  }
 
   /**
    * Отримати інформацію про рівень користувача
