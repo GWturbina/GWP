@@ -127,21 +127,24 @@ class ContractsManager {
     try {
       const user = await this.contracts.globalWay.users(address);
       
+      // Структура: [isActive, refAddress, registrationTime, lastActivityTime, activeLevel, ???]
       return {
-        id: user.id || '',
-        sponsorId: user.sponsorId || '',
-        refAddress: user.refAddress || ethers.constants.AddressZero,
-        registrationTime: user.registrationTime ? user.registrationTime.toNumber() : 0,
-        rankLevel: user.rankLevel || 0,
-        activeLevel: user.activeLevel || 0,
-        partnersCount: user.partnersCount || 0,
-        isActive: user.isActive || false,
-        isBlocked: user.isBlocked || false
+        isActive: user[0] || false,
+        refAddress: user[1] || ethers.constants.AddressZero,
+        registrationTime: user[2] ? user[2].toNumber() : 0,
+        lastActivityTime: user[3] ? user[3].toNumber() : 0,
+        activeLevel: user[4] ? user[4].toNumber() : 0,
+        id: '',  // Немає в масиві
+        sponsorId: '',  // Немає в масиві
+        rankLevel: 0,  // Немає в масиві
+        partnersCount: 0,  // Немає в масиві
+        isBlocked: false
       };
     } catch (error) {
       console.error('getUserInfo error:', error);
       throw error;
     }
+  }
   }
 
   /**
