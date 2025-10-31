@@ -1,1 +1,194 @@
+<div class="matrix-page">
+    <h2 data-translate="matrix.title">Interactive Matrix</h2>
+    
+    <!-- Level Selector -->
+    <div class="level-selector">
+        <div class="level-buttons" id="matrixLevels">
+            <!-- Generated 1-12 level buttons -->
+        </div>
+    </div>
 
+    <!-- Search by ID -->
+    <div class="matrix-search">
+        <input type="text" id="matrixSearchInput" placeholder="Search by ID" data-translate="matrix.searchPlaceholder">
+        <button id="matrixSearchBtn" class="btn-primary" data-translate="common.search">Search</button>
+    </div>
+
+    <!-- Interactive Matrix Visualization - ПРАВИЛЬНАЯ СТРУКТУРА 1-2-4 -->
+    <section class="interactive-matrix">
+        <h3 data-translate="matrix.interactive">Interactive Matrix</h3>
+        
+        <div class="matrix-container">
+            <!-- TOP POSITION - 1 позиция -->
+            <div class="matrix-level level-0">
+                <div class="matrix-position top-position" id="topPosition" data-position="0">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">GW0000000</span>
+                        <span class="position-level">Level 1</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FIRST LINE - 2 позиции -->
+            <div class="matrix-level level-1">
+                <div class="matrix-position" id="position1" data-position="1">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+                <div class="matrix-position" id="position2" data-position="2">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECOND LINE - 4 позиции -->
+            <div class="matrix-level level-2">
+                <div class="matrix-position" id="position3" data-position="3">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+                <div class="matrix-position" id="position4" data-position="4">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+                <div class="matrix-position" id="position5" data-position="5">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+                <div class="matrix-position" id="position6" data-position="6">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matrix Legend -->
+        <div class="matrix-legend">
+            <div class="legend-item">
+                <div class="legend-color partner"></div>
+                <span data-translate="matrix.partner">Partner</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color charity"></div>
+                <span data-translate="matrix.charity">Charity</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color technical"></div>
+                <span data-translate="matrix.technical">Technical</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color available"></div>
+                <span data-translate="matrix.available">Available</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Matrix Table -->
+    <section class="matrix-table-section">
+        <h3 data-translate="matrix.structure">Matrix Structure</h3>
+        <div class="level-info">
+            <span>Current Level: <strong id="currentMatrixLevel">1</strong></span>
+            <span>Max Positions: <strong id="maxPositionsInfo">2</strong></span>
+        </div>
+        <div class="table-container">
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th data-translate="common.number">№</th>
+                        <th>ID</th>
+                        <th data-translate="common.address">Address</th>
+                        <th data-translate="partners.sponsorId">Sponsor ID</th>
+                        <th data-translate="common.date">Activation Date</th>
+                        <th data-translate="common.level">Level</th>
+                        <th data-translate="matrix.qualification">Qualification</th>
+                    </tr>
+                </thead>
+                <tbody id="matrixTableBody">
+                    <tr>
+                        <td colspan="7" class="no-data" data-translate="common.loading">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Matrix Statistics -->
+    <section class="matrix-statistics">
+        <h3 data-translate="matrix.stats">Matrix Statistics</h3>
+        <div class="matrix-stats-grid">
+            <div class="stat-card total">
+                <div class="stat-value" id="totalActivePositions">0</div>
+                <div class="stat-label" data-translate="matrix.totalActive">Total Active Positions</div>
+            </div>
+            <div class="stat-card partners">
+                <div class="stat-value" id="partnerPositions">0</div>
+                <div class="stat-label" data-translate="matrix.fromPartners">From Partners</div>
+            </div>
+            <div class="stat-card charity">
+                <div class="stat-value" id="charityPositions">0</div>
+                <div class="stat-label" data-translate="matrix.fromCharity">From Charity</div>
+            </div>
+            <div class="stat-card technical">
+                <div class="stat-value" id="technicalPositions">0</div>
+                <div class="stat-label" data-translate="matrix.fromTechnical">From Technical</div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Position Details Modal -->
+<div id="positionModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 id="positionModalTitle">Position Details</h3>
+        <div class="position-modal-details">
+            <div class="detail-row">
+                <label>ID:</label>
+                <span id="modalPositionId">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="partners.sponsorId">Sponsor ID:</label>
+                <span id="modalSponsorId">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="common.address">Address:</label>
+                <span id="modalAddress">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="common.level">Level:</label>
+                <span id="modalLevel">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="common.status">Status:</label>
+                <span id="modalStatus">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="matrix.qualification">Qualification:</label>
+                <span id="modalQualification">-</span>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button id="viewMatrixBtn" class="btn-primary" data-translate="matrix.viewMatrix">View Matrix</button>
+            <button id="closeModalBtn" class="btn-secondary" data-translate="common.close">Close</button>
+        </div>
+    </div>
+</div>
