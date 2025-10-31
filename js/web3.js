@@ -263,7 +263,7 @@ async connectSafePal() {
       }
 
       console.log('🔗 Creating ethers provider from SafePal');
-      this.provider = new ethers.providers.Web3Provider(window.ethereum, {
+      this.provider = new ethers.providers.Web3Provider(rawProvider, {
       chainId: 204,
       name: 'opBNB Mainnet'
     });
