@@ -996,11 +996,11 @@ class Application {
       
       // Token Price
       // const price = await contracts.getTokenPrice();
-      const tokenPrice = ethers.utils.formatEther(price);
+      // const tokenPrice = ethers.utils.formatEther(price);
       
       const tokenPriceEl = document.getElementById('tokenPrice');
       if (tokenPriceEl) {
-        tokenPriceEl.textContent = `$${parseFloat(tokenPrice).toFixed(6)}`;
+        // tokenPriceEl.textContent = `$${parseFloat(tokenPrice).toFixed(6)}`;
       }
       
       // Token Value
