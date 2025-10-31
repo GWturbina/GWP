@@ -263,10 +263,7 @@ async connectSafePal() {
       }
 
       console.log('🔗 Creating ethers provider from SafePal');
-      this.provider = new ethers.providers.Web3Provider(rawProvider, {
-      chainId: 204,
-      name: 'opBNB Mainnet'
-    });
+      this.provider = new ethers.providers.Web3Provider(rawProvider);
 
       console.log('📝 Requesting SafePal accounts...');
       try {
@@ -372,7 +369,8 @@ async connectSafePal() {
       }
     } catch (error) {
       console.error('❌ Network check failed:', error);
-      throw error;
+      // НЕ кидаємо помилку
+      console.warn("⚠️ Please switch to opBNB Mainnet (Chain ID: 204) in SafePal");
     }
   }
 
