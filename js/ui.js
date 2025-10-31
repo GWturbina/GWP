@@ -173,7 +173,7 @@ class UIManager {
     });
 
     // Показати потрібну сторінку
-    const targetPage = document.getElementById(`${pageName}Page`);
+    const targetPage = document.getElementById(pageName);
     if (targetPage) {
       targetPage.style.display = 'block';
       setTimeout(() => {
