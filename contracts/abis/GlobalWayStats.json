@@ -1,1 +1,614 @@
 
+{
+  "contractName": "GlobalWayStats",
+  "address": "0xFA66Fa17a8e6232edD4e675F0732dAdDCd79aA9C",
+  "network": "opBNB",
+  "chainId": 204,
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_globalWay",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_marketing",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_quarterly",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_investment",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_leaderPool",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnableInvalidOwner",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "OwnableUnauthorizedAccount",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "targetLevel",
+          "type": "uint8"
+        }
+      ],
+      "name": "calculateUpgradeCost",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalCost",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint8[]",
+          "name": "missingLevels",
+          "type": "uint8[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getGlobalStats",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalUsers",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalVolume",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentTotalInvestors",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentActiveInvestors",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentPoolBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentTotalDistributed",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "leaderPoolTotalLeaders",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "leaderPoolActiveLeaders",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "leaderPoolBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "leaderPoolTotalDistributed",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserBalances",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "referralBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "matrixBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "quarterlyBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentPending",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "leaderBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalBalance",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserFrozenFunds",
+      "outputs": [
+        {
+          "internalType": "uint8[]",
+          "name": "levels",
+          "type": "uint8[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "amounts",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "timestamps",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserFullStats",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "isRegistered",
+          "type": "bool"
+        },
+        {
+          "internalType": "address",
+          "name": "sponsor",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "maxLevel",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bool",
+          "name": "quarterlyActive",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "marketingReferralBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "marketingMatrixBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "quarterlyBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "leaderBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalPendingBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalInvested",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalInvestmentReceived",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentROI",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserQuarterlyStats",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "lastPayment",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "quarterCount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nextPaymentTime",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
+        },
+        {
+          "internalType": "address",
+          "name": "charityAccount",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "techAccount1",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "techAccount2",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "uplineBalance",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserStructureStats",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "directReferrals",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address[]",
+          "name": "referrals",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "activeLevels",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool[]",
+          "name": "levelStatus",
+          "type": "bool[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getWithdrawableAmount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalWithdrawable",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "marketingTotal",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "quarterlyTotal",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentTotal",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "leaderTotal",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "globalWay",
+      "outputs": [
+        {
+          "internalType": "contract IGlobalWay",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "investment",
+      "outputs": [
+        {
+          "internalType": "contract IInvestment",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "leaderPool",
+      "outputs": [
+        {
+          "internalType": "contract ILeaderPool",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "marketing",
+      "outputs": [
+        {
+          "internalType": "contract IMarketing",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "quarterly",
+      "outputs": [
+        {
+          "internalType": "contract IQuarterly",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_globalWay",
+          "type": "address"
+        }
+      ],
+      "name": "updateGlobalWay",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_investment",
+          "type": "address"
+        }
+      ],
+      "name": "updateInvestment",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_leaderPool",
+          "type": "address"
+        }
+      ],
+      "name": "updateLeaderPool",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_marketing",
+          "type": "address"
+        }
+      ],
+      "name": "updateMarketing",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_quarterly",
+          "type": "address"
+        }
+      ],
+      "name": "updateQuarterly",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
+    }
+  ]
+}
