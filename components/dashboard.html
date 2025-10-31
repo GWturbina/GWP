@@ -1,1 +1,219 @@
+<div class="dashboard-page">
+    <!-- Personal Cabinet -->
+    <section class="cabinet-info">
+        <h2 data-translate="dashboard.cabinet">🌌 Personal Cabinet</h2>
+        
+        <!-- Connection Status Alert -->
+        <div id="connectionAlert" class="alert" style="display:none;">
+            <div class="alert-content">
+                <span id="alertMessage"></span>
+                <button id="alertAction" class="btn-primary"></button>
+            </div>
+        </div>
 
+        <div class="info-grid">
+            <div class="info-item">
+                <label data-translate="dashboard.address">Address</label>
+                <span id="userAddress">0x000...000</span>
+            </div>
+            <div class="info-item">
+                <label data-translate="dashboard.balance">Balance</label>
+                <span id="userBalance">0.000 BNB</span>
+            </div>
+            <div class="info-item">
+                <label data-translate="dashboard.userId">User ID</label>
+                <span id="userId">-</span>
+            </div>
+            <div class="info-item">
+                <label data-translate="dashboard.rank">Rank</label>
+                <span id="userRank">-</span>
+            </div>
+        </div>
+        
+        <div class="referral-section">
+            <label data-translate="dashboard.refLink">Referral Link</label>
+            <div class="referral-input-group">
+                <input type="text" id="refLink" readonly>
+                <button id="copyRefLink" data-translate="common.copy">Copy</button>
+                <button id="generateQR" class="btn-secondary">QR</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quarterly Activity -->
+    <section class="quarterly-activity">
+        <h3 data-translate="dashboard.quarterly">Quarterly Activity</h3>
+        <div class="activity-info">
+            <div class="activity-item">
+                <span data-translate="dashboard.quarter">Quarter:</span>
+                <span id="currentQuarter">1</span>
+            </div>
+            <div class="activity-item">
+                <span data-translate="dashboard.lastPayment">Last Payment:</span>
+                <span id="lastPayment">-</span>
+            </div>
+            <div class="activity-item">
+                <span data-translate="dashboard.nextPayment">Next Payment:</span>
+                <span id="nextPayment">-</span>
+            </div>
+            <div class="activity-item">
+                <span data-translate="dashboard.cost">Cost:</span>
+                <span id="quarterlyCost">0.075 BNB</span>
+            </div>
+        </div>
+        
+        <!-- Payment Due Warning -->
+        <div id="paymentWarning" class="payment-warning" style="display:none;">
+            <i class="warning-icon">⚠️</i>
+            <span data-translate="dashboard.paymentDue">Payment Due in</span>
+            <span id="daysRemaining">10</span>
+            <span data-translate="dashboard.days">days</span>
+        </div>
+        
+        <button id="payActivityBtn" class="btn-primary" data-translate="dashboard.payActivity">Pay Activity</button>
+    </section>
+
+
+    <!-- Contract Balances & Withdrawal -->
+    <section class="contract-balances">
+        <h3 data-translate="dashboard.contractBalances">💰 Available Balances</h3>
+        <div class="balances-grid">
+            <div class="balance-item">
+                <div class="balance-header">
+                    <label data-translate="dashboard.marketingPool">Marketing Pool:</label>
+                </div>
+                <div class="balance-content">
+                    <span id="marketingBalance" class="balance-amount">0.0000 BNB</span>
+                    <button class="withdraw-btn" onclick="app.withdrawFromContract('marketing')" data-translate="dashboard.withdraw">Withdraw</button>
+                </div>
+            </div>
+            <div class="balance-item">
+                <div class="balance-header">
+                    <label data-translate="dashboard.leaderPool">Leader Pool:</label>
+                </div>
+                <div class="balance-content">
+                    <span id="leaderBalance" class="balance-amount">0.0000 BNB</span>
+                    <button class="withdraw-btn" onclick="app.withdrawFromContract('leader')" data-translate="dashboard.withdraw">Withdraw</button>
+                </div>
+            </div>
+            <div class="balance-item">
+                <div class="balance-header">
+                    <label data-translate="dashboard.investmentPool">Investment Pool:</label>
+                </div>
+                <div class="balance-content">
+                    <span id="investmentBalance" class="balance-amount">0.0000 BNB</span>
+                    <button class="withdraw-btn" onclick="app.withdrawFromContract('investment')" data-translate="dashboard.withdraw">Withdraw</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Level Management -->
+    <section class="level-management">
+        <h3 data-translate="dashboard.levelMgmt">Level Management</h3>
+        
+        <div class="auto-upgrade-info">
+            <i class="info-icon">ℹ️</i>
+            <span data-translate="dashboard.autoUpgrade">Auto-upgrade starts from level 4</span>
+        </div>
+        
+        <div class="levels-grid">
+            <div class="levels-individual">
+                <h4 data-translate="dashboard.individual">Individual Purchase</h4>
+                <div class="levels-row" id="individualLevels">
+                    <!-- Generated levels 1-12 -->
+                </div>
+            </div>
+            <div class="levels-bulk" style="display:none;">
+                 <h4 data-translate="dashboard.bulk">Bulk Purchase</h4>
+                 <div class="bulk-buttons">
+                    <button class="bulk-btn" data-levels="4" data-package="2">
+                        1-4 <span class="price" data-total="0.021">0.021</span> BNB
+                    </button>
+                    <button class="bulk-btn" data-levels="7" data-package="3">
+                        1-7 <span class="price" data-total="0.117">0.117</span> BNB
+                    </button>
+                    <button class="bulk-btn" data-levels="10" data-package="4">
+                        1-10 <span class="price" data-total="0.885">0.885</span> BNB
+                    </button>
+                    <button class="bulk-btn" data-levels="12" data-package="5">
+                        1-12 <span class="price" data-total="3.957">3.957</span> BNB
+                    </button>
+                 </div>
+             </div>
+    </section>
+    </section>
+
+    <!-- Earnings by Rank -->
+    <section class="earnings-rank">
+        <h3 data-translate="dashboard.earnings">💎 Earnings by Ranks</h3>
+        <div class="earnings-list" id="earningsRank">
+            <!-- Generated earnings -->
+        </div>
+        <div class="total-earnings">
+            <strong>
+                <span data-translate="ranks.total">Total Income</span>: 
+                <span id="totalIncome">0 BNB</span>
+            </strong>
+        </div>
+    </section>
+
+    <!-- Transaction History -->
+    <section class="transaction-history">
+        <h3 data-translate="dashboard.history">Transaction History</h3>
+        <div class="history-controls">
+            <select id="historyFilter">
+                <option value="all">All Types</option>
+                <option value="level">Level Purchase</option>
+                <option value="partner">Partner Bonus</option>
+                <option value="matrix">Matrix Bonus</option>
+                <option value="quarterly">Quarterly Activity</option>
+            </select>
+            <button id="refreshHistory" class="btn-secondary" data-translate="common.refresh">Refresh</button>
+        </div>
+        <div class="history-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th data-translate="common.number">№</th>
+                        <th data-translate="common.level">Level</th>
+                        <th data-translate="common.amount">Amount</th>
+                        <th data-translate="common.date">Date</th>
+                        <th>ID</th>
+                        <th data-translate="common.type">Type</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTable">
+                    <tr>
+                        <td colspan="6" class="no-data" data-translate="common.loading">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Tokens Summary -->
+    <section class="tokens-summary">
+        <h3 data-translate="dashboard.tokens">Tokens</h3>
+        <div class="token-info-grid">
+            <div class="token-info-item">
+                <span data-translate="tokens.amount">Amount:</span>
+                <span id="tokenAmount">0 GWT</span>
+            </div>
+            <div class="token-info-item">
+                <span data-translate="tokens.price">Price:</span>
+                <span id="tokenPrice">$0.00</span>
+            </div>
+            <div class="token-info-item">
+                <span data-translate="tokens.value">Value:</span>
+                <span id="tokenValue">$0.00</span>
+            </div>
+        </div>
+        <button class="btn-secondary" onclick="showPage('tokens')" data-translate="tokens.manage">Manage</button>
+    </section>
+
+    <!-- Tokens Summary -->
+    <section class="tokens-summary">
+        <h3 data-translate="dashboard.tokens">Tokens</h3>
+        <div class="token-info-grid">
+            <div class="token-info-item">
