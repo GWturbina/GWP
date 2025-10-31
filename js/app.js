@@ -52,10 +52,6 @@ class Application {
       if (web3Manager.connected) {
         await this.onWalletConnected();
       }
-      // 4.1 Якщо НЕ підключено - показати popup підключення
-      else {
-        await this.promptWalletConnection();
-      }
       
       // 5. Налаштування обробників подій
       this.setupEventHandlers();
@@ -70,44 +66,6 @@ class Application {
   }
 
   /**
-   * Автоматичне підключення гаманця при завантаженні
-   */
-  async promptWalletConnection() {
-    try {
-      // Перевірка чи користувач вже відхилив підключення раніше
-      const connectionDeclined = localStorage.getItem('walletConnectionDeclined');
-      
-      if (connectionDeclined === 'true') {
-        console.log('ℹ️ User previously declined wallet connection');
-        return;
-      }
-
-      console.log('🔔 Prompting wallet connection...');
-      
-      // Затримка 1 секунда щоб сторінка завантажилась
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Спроба підключення
-      try {
-        await web3Manager.connect();
-        await this.onWalletConnected();
-        console.log('✅ Wallet auto-connected successfully');
-      } catch (error) {
-        // Якщо користувач відхилив - зберігаємо це
-        if (/User rejected|User denied|Cancelled|user closed/i.test(error.message || '')) {
-          localStorage.setItem('walletConnectionDeclined', 'true');
-          console.log('ℹ️ User declined wallet connection');
-        } else {
-          console.warn('⚠️ Auto-connect failed:', error.message);
-        }
-      }
-      
-    } catch (error) {
-      console.error('❌ Prompt wallet connection failed:', error);
-    }
-  }
-
-  /**
    * Налаштування обробників подій
    */
   setupEventHandlers() {
@@ -116,9 +74,6 @@ class Application {
     if (connectBtn) {
       connectBtn.addEventListener('click', async () => {
         try {
-          // Скидаємо статус "відхилено" коли користувач натискає вручну
-          localStorage.removeItem('walletConnectionDeclined');
-          
           await web3Manager.connect();
           await this.onWalletConnected();
         } catch (error) {
@@ -189,7 +144,7 @@ class Application {
       // Перевірка чи користувач зареєстрований
       const user = await contracts.getUserInfo(web3Manager.address);
       
-      if (!user.id || user.id === '' || user.id === '0') {
+      if (!user.isActive) {
         console.log('⚠️ User not registered');
         // Показати landing з формою реєстрації
         uiManager.showPage('landing');
