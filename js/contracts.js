@@ -2,11 +2,8 @@
 /* global CONFIG, web3Manager, ethers, Utils */
 
 /**
- * GlobalWay Contracts Manager - ПОВНІСТЮ ВИПРАВЛЕНА ВЕРСІЯ
- * Інтеграція всіх 10 смарт-контрактів з правильними функціями
- * 
- * Версія: 2.0 (Виправлена)
- * Дата: 01.11.2025
+ * GlobalWay Contracts Manager - ИСПРАВЛЕНО
+ * Версия: 2.1 - Исправлены названия функций по ABI
  */
 
 class ContractsManager {
@@ -125,6 +122,19 @@ class ContractsManager {
   }
 
   /**
+   * Перевірка чи зареєстрований користувач
+   */
+  async isUserRegistered(address) {
+    try {
+      const userInfo = await this.getUserInfo(address);
+      return userInfo.id !== '' && userInfo.registrationTime > 0;
+    } catch (error) {
+      console.error('isUserRegistered error:', error);
+      return false;
+    }
+  }
+
+  /**
    * Отримати інформацію про рівень користувача
    */
   async getUserLevel(address, level) {
@@ -178,6 +188,7 @@ class ContractsManager {
 
   /**
    * Купівля окремого рівня
+   * 🔥 ВИПРАВЛЕНО: buyLevel() замість activateLevel()
    */
   async buyLevel(level) {
     try {
@@ -186,7 +197,7 @@ class ContractsManager {
       console.log(`📝 Buying Level ${level}`);
       console.log('💰 Payment:', CONFIG.LEVEL_PRICES[level - 1], 'BNB');
       
-      const tx = await this.contracts.globalWay.activateLevel(level, {
+      const tx = await this.contracts.globalWay.buyLevel(level, {
         value: price,
         gasLimit: CONFIG.GAS_LIMITS.buyLevel
       });
@@ -204,6 +215,7 @@ class ContractsManager {
 
   /**
    * Пакетна купівля рівнів
+   * 🔥 ВИПРАВЛЕНО: buyBulkLevels() замість activateBulkLevels()
    */
   async buyBulkLevels(upToLevel) {
     try {
@@ -215,7 +227,7 @@ class ContractsManager {
       console.log(`📝 Buying Levels 1-${upToLevel}`);
       console.log('💰 Total payment:', ethers.utils.formatEther(totalPrice), 'BNB');
       
-      const tx = await this.contracts.globalWay.activateBulkLevels(upToLevel, {
+      const tx = await this.contracts.globalWay.buyBulkLevels(upToLevel, {
         value: totalPrice,
         gasLimit: CONFIG.GAS_LIMITS.buyBulkLevels
       });
@@ -240,6 +252,25 @@ class ContractsManager {
     } catch (error) {
       console.error('getMatrixInfo error:', error);
       return null;
+    }
+  }
+
+  /**
+   * Отримати інформацію про ранг
+   */
+  async getRankInfo(address) {
+    try {
+      const userInfo = await this.getUserInfo(address);
+      return {
+        currentRank: userInfo.rankLevel,
+        rankName: CONFIG.RANKS[userInfo.rankLevel] || 'None'
+      };
+    } catch (error) {
+      console.error('getRankInfo error:', error);
+      return {
+        currentRank: 0,
+        rankName: 'None'
+      };
     }
   }
 
@@ -276,8 +307,7 @@ class ContractsManager {
    */
   async buyTokens(amount) {
     try {
-      const tx = await this.contracts.gwtToken.buyTokens({
-        value: amount,
+      const tx = await this.contracts.gwtToken.buy(amount, {
         gasLimit: CONFIG.GAS_LIMITS.tokenBuy
       });
       
@@ -294,7 +324,7 @@ class ContractsManager {
    */
   async sellTokens(amount) {
     try {
-      const tx = await this.contracts.gwtToken.sellTokens(amount, {
+      const tx = await this.contracts.gwtToken.sell(amount, {
         gasLimit: CONFIG.GAS_LIMITS.tokenSell
       });
       
@@ -307,172 +337,93 @@ class ContractsManager {
   }
 
   // ==========================================
-  // MARKETING - ВИПРАВЛЕНО!
+  // MARKETING - Реферальна система
   // ==========================================
 
   /**
-   * Отримати баланси Marketing (ВИПРАВЛЕНО!)
+   * Вивести кошти з Marketing контракту
    */
-  async getMarketingBalances(address) {
+  async withdrawMarketing() {
     try {
-      const balances = await this.contracts.marketing.getUserBalances(address);
-      
-      return {
-        referralBalance: balances.referralBalance || ethers.BigNumber.from(0),
-        matrixBalance: balances.matrixBalance || ethers.BigNumber.from(0),
-        totalBalance: (balances.referralBalance || ethers.BigNumber.from(0))
-          .add(balances.matrixBalance || ethers.BigNumber.from(0))
-      };
-    } catch (error) {
-      console.error('getMarketingBalances error:', error);
-      return {
-        referralBalance: ethers.BigNumber.from(0),
-        matrixBalance: ethers.BigNumber.from(0),
-        totalBalance: ethers.BigNumber.from(0)
-      };
-    }
-  }
-
-  /**
-   * Виведення Referral балансу
-   */
-  async withdrawReferral() {
-    try {
-      const tx = await this.contracts.marketing.withdrawReferral({
+      const tx = await this.contracts.marketing.withdraw({
         gasLimit: CONFIG.GAS_LIMITS.withdraw
       });
       
       const receipt = await tx.wait();
       return receipt;
     } catch (error) {
-      console.error('withdrawReferral error:', error);
+      console.error('withdrawMarketing error:', error);
       throw error;
     }
   }
 
   /**
-   * Виведення Matrix балансу
+   * Отримати реферальний баланс
    */
-  async withdrawMatrix() {
+  async getReferralBalance(address) {
     try {
-      const tx = await this.contracts.marketing.withdrawMatrix({
+      return await this.contracts.marketing.referralBalances(address);
+    } catch (error) {
+      console.error('getReferralBalance error:', error);
+      return ethers.BigNumber.from(0);
+    }
+  }
+
+  /**
+   * Отримати матричний баланс
+   */
+  async getMatrixBalance(address) {
+    try {
+      return await this.contracts.marketing.matrixBalances(address);
+    } catch (error) {
+      console.error('getMatrixBalance error:', error);
+      return ethers.BigNumber.from(0);
+    }
+  }
+
+  // ==========================================
+  // LEADERPOOL - Пул лідерів
+  // ==========================================
+
+  /**
+   * Вивести кошти з Leader Pool
+   */
+  async withdrawLeaderPool() {
+    try {
+      const tx = await this.contracts.leaderPool.withdraw({
         gasLimit: CONFIG.GAS_LIMITS.withdraw
       });
       
       const receipt = await tx.wait();
       return receipt;
     } catch (error) {
-      console.error('withdrawMatrix error:', error);
+      console.error('withdrawLeaderPool error:', error);
       throw error;
     }
   }
 
   /**
-   * Отримати заморожені кошти
+   * Отримати баланс в Leader Pool
    */
-  async getFrozenFunds(address) {
+  async getLeaderBalance(address) {
     try {
-      const frozenData = await this.contracts.marketing.getFrozenFunds(address);
-      
-      const funds = [];
-      for (let i = 0; i < frozenData.levels.length; i++) {
-        funds.push({
-          level: Number(frozenData.levels[i]),
-          amount: frozenData.amounts[i],
-          timestamp: frozenData.timestamps[i] ? frozenData.timestamps[i].toNumber() : 0
-        });
-      }
-      
-      return funds;
+      return await this.contracts.leaderPool.balances(address);
     } catch (error) {
-      console.error('getFrozenFunds error:', error);
-      return [];
+      console.error('getLeaderBalance error:', error);
+      return ethers.BigNumber.from(0);
     }
   }
 
   // ==========================================
-  // LEADER POOL - ВИПРАВЛЕНО!
+  // INVESTMENT - Інвестиційний пул
   // ==========================================
 
   /**
-   * Отримати інформацію про ранг (ВИПРАВЛЕНО!)
-   */
-  async getRankInfo(address) {
-    try {
-      const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
-      
-      return {
-        currentRank: Number(rankInfo.currentRank) || 0,
-        qualificationTime: rankInfo.qualificationTime ? rankInfo.qualificationTime.toNumber() : 0,
-        pendingReward: rankInfo.pendingReward || ethers.BigNumber.from(0),
-        claimedReward: rankInfo.claimedReward || ethers.BigNumber.from(0),
-        isQualified: Boolean(rankInfo.isQualified)
-      };
-    } catch (error) {
-      console.error('getRankInfo error:', error);
-      return {
-        currentRank: 0,
-        qualificationTime: 0,
-        pendingReward: ethers.BigNumber.from(0),
-        claimedReward: ethers.BigNumber.from(0),
-        isQualified: false
-      };
-    }
-  }
-
-  /**
-   * Виведення Leader Pool нагороди
-   */
-  async withdrawLeader() {
-    try {
-      const tx = await this.contracts.leaderPool.claimRankBonus({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
-      
-      const receipt = await tx.wait();
-      return receipt;
-    } catch (error) {
-      console.error('withdrawLeader error:', error);
-      throw error;
-    }
-  }
-
-  // ==========================================
-  // INVESTMENT - ВИПРАВЛЕНО!
-  // ==========================================
-
-  /**
-   * Отримати інформацію про інвестора (ВИПРАВЛЕНО!)
-   */
-  async getInvestorInfo(address) {
-    try {
-      const investorInfo = await this.contracts.investment.getInvestorInfo(address);
-      
-      return {
-        totalInvested: investorInfo.totalInvested || ethers.BigNumber.from(0),
-        pendingReward: investorInfo.pendingReward || ethers.BigNumber.from(0),
-        claimedReward: investorInfo.claimedReward || ethers.BigNumber.from(0),
-        lastClaimTime: investorInfo.lastClaimTime ? investorInfo.lastClaimTime.toNumber() : 0,
-        isActive: Boolean(investorInfo.isActive)
-      };
-    } catch (error) {
-      console.error('getInvestorInfo error:', error);
-      return {
-        totalInvested: ethers.BigNumber.from(0),
-        pendingReward: ethers.BigNumber.from(0),
-        claimedReward: ethers.BigNumber.from(0),
-        lastClaimTime: 0,
-        isActive: false
-      };
-    }
-  }
-
-  /**
-   * Виведення Investment нагороди
+   * Вивести кошти з Investment Pool
    */
   async withdrawInvestment() {
     try {
-      const tx = await this.contracts.investment.claimWeeklyReward({
+      const tx = await this.contracts.investment.withdraw({
         gasLimit: CONFIG.GAS_LIMITS.withdraw
       });
       
@@ -484,62 +435,87 @@ class ContractsManager {
     }
   }
 
+  /**
+   * Отримати інвестиційний баланс
+   */
+  async getInvestmentBalance(address) {
+    try {
+      const investor = await this.contracts.investment.investors(address);
+      return investor.pendingReward || ethers.BigNumber.from(0);
+    } catch (error) {
+      console.error('getInvestmentBalance error:', error);
+      return ethers.BigNumber.from(0);
+    }
+  }
+
   // ==========================================
-  // QUARTERLY
+  // QUARTERLY - Квартальна активність
   // ==========================================
 
   /**
-   * Оплата квартальної активності
+   * Оплатити квартальну активність
    */
   async payQuarterly(charityRecipient = null) {
     try {
-      const fee = ethers.utils.parseEther(CONFIG.QUARTERLY_COST);
+      const cost = ethers.utils.parseEther(CONFIG.QUARTERLY_COST);
+      
+      console.log('📝 Paying quarterly activity');
+      console.log('💰 Payment:', CONFIG.QUARTERLY_COST, 'BNB');
       
       let tx;
-      if (charityRecipient && ethers.utils.isAddress(charityRecipient)) {
+      if (charityRecipient) {
         tx = await this.contracts.quarterly.payQuarterlyActivity(charityRecipient, {
-          value: fee,
+          value: cost,
           gasLimit: CONFIG.GAS_LIMITS.payQuarterly
         });
       } else {
         tx = await this.contracts.quarterly.payQuarterlyActivityRegular({
-          value: fee,
+          value: cost,
           gasLimit: CONFIG.GAS_LIMITS.payQuarterly
         });
       }
       
+      console.log('📤 Transaction sent:', tx.hash);
       const receipt = await tx.wait();
+      console.log('✅ Quarterly payment successful');
+      
       return receipt;
     } catch (error) {
-      console.error('payQuarterly error:', error);
+      console.error('❌ Quarterly payment failed:', error);
       throw error;
     }
   }
 
   /**
-   * Перевірити чи можна оплатити квартальну активність
+   * Отримати інформацію про квартальну активність
    */
-  async canPayQuarterly(address) {
+  async getQuarterlyInfo(address) {
     try {
-      const result = await this.contracts.quarterly.canPayQuarterly(address);
+      const info = await this.contracts.quarterly.getUserQuarterlyInfo(address);
       
       return {
-        can: Boolean(result.can),
-        reason: result.reason || '',
-        timeLeft: result.timeLeft ? result.timeLeft.toNumber() : 0
+        lastPayment: info.lastPayment ? info.lastPayment.toNumber() : 0,
+        quarterCount: Number(info.quarterCount) || 0,
+        charityAccount: info.charityAccount || ethers.constants.AddressZero,
+        techAccount1: info.techAccount1 || ethers.constants.AddressZero,
+        techAccount2: info.techAccount2 || ethers.constants.AddressZero,
+        nextPaymentTime: info.nextPaymentTime ? info.nextPaymentTime.toNumber() : 0
       };
     } catch (error) {
-      console.error('canPayQuarterly error:', error);
+      console.error('getQuarterlyInfo error:', error);
       return {
-        can: false,
-        reason: 'Error checking',
-        timeLeft: 0
+        lastPayment: 0,
+        quarterCount: 0,
+        charityAccount: ethers.constants.AddressZero,
+        techAccount1: ethers.constants.AddressZero,
+        techAccount2: ethers.constants.AddressZero,
+        nextPaymentTime: 0
       };
     }
   }
 
   /**
-   * Виведення upline bonus
+   * Вивести upline бонуси
    */
   async withdrawUplineBonus() {
     try {
@@ -556,12 +532,11 @@ class ContractsManager {
   }
 
   // ==========================================
-  // STATS CONTRACT - КЛЮЧОВІ ФУНКЦІЇ!
+  // STATS - Статистика
   // ==========================================
 
   /**
-   * Отримати ПОВНУ статистику користувача
-   * ЦЯ ФУНКЦІЯ ЗАМІНЮЄ БАГАТО ОКРЕМИХ ВИКЛИКІВ!
+   * Отримати повну статистику користувача
    */
   async getUserFullStats(address) {
     try {
@@ -580,16 +555,16 @@ class ContractsManager {
         totalPendingBalance: stats.totalPendingBalance || ethers.BigNumber.from(0),
         totalInvested: stats.totalInvested || ethers.BigNumber.from(0),
         totalInvestmentReceived: stats.totalInvestmentReceived || ethers.BigNumber.from(0),
-        investmentROI: Number(stats.investmentROI) || 0
+        investmentROI: stats.investmentROI || ethers.BigNumber.from(0)
       };
     } catch (error) {
       console.error('getUserFullStats error:', error);
-      throw error;
+      return null;
     }
   }
 
   /**
-   * Отримати всі баланси користувача
+   * Отримати балансів користувача
    */
   async getUserBalances(address) {
     try {
@@ -617,7 +592,7 @@ class ContractsManager {
   }
 
   /**
-   * Отримати квартальну статистику
+   * Отримати статистику квартальної активності
    */
   async getUserQuarterlyStats(address) {
     try {
@@ -750,7 +725,7 @@ class ContractsManager {
   }
 
   // ==========================================
-  // EVENTS PARSING - НОВІ ФУНКЦІЇ!
+  // EVENTS PARSING
   // ==========================================
 
   /**
@@ -808,6 +783,7 @@ class ContractsManager {
 
   /**
    * Отримати матричні позиції для рівня
+   * 🔥 ВИПРАВЛЕНО: Використовуємо LevelActivated замість NewUserPlace
    */
   async getMatrixPositions(address, level) {
     try {
@@ -815,27 +791,32 @@ class ContractsManager {
       
       const positions = [];
       
-      // Отримати Events для кожної позиції
-      const filter = this.contracts.globalWay.filters.NewUserPlace(level, address);
+      // 🔥 ВИПРАВЛЕНО: Використовуємо правильний фільтр
+      const filter = this.contracts.globalWay.filters.LevelActivated(null, null, level);
       const events = await this.contracts.globalWay.queryFilter(filter);
+      
+      // Відфільтрувати events для поточного користувача
+      const userEvents = events.filter(e => {
+        const sponsor = e.args.sponsor;
+        return sponsor && sponsor.toLowerCase() === address.toLowerCase();
+      });
       
       // Створити map позицій
       const positionMap = new Map();
       
-      for (const event of events) {
-        const position = Number(event.args.position);
+      for (let i = 0; i < userEvents.length && i < 7; i++) {
+        const event = userEvents[i];
         const user = event.args.user;
-        const placedBy = event.args.placedBy || ethers.constants.AddressZero;
         const block = await event.getBlock();
         
         // Отримати ID користувача
         const userInfo = await this.getUserInfo(user);
         
-        positionMap.set(position, {
-          position,
+        positionMap.set(i, {
+          position: i,
           user,
           userId: userInfo.id,
-          placedBy,
+          placedBy: event.args.sponsor,
           timestamp: block.timestamp,
           isFilled: true
         });
