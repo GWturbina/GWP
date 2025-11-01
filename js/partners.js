@@ -1,76 +1,112 @@
 /* jshint esversion: 8 */
-/* global web3Manager, contracts, Utils, CONFIG, ethers */
+/* global CONFIG, web3Manager, contracts, Utils, ethers */
 
 /**
- * Partners Manager - Управління партнерами
+ * Partners Manager - ПОВНІСТЮ ПЕРЕПИСАНО
+ * Використовує Stats контракт для отримання структури
  */
+
 class PartnersManager {
   constructor() {
+    this.currentLevel = 1;
     this.partners = [];
-    this.filteredPartners = [];
-    this.currentSort = { field: 'id', order: 'asc' };
-    this.currentFilter = { level: 'all', status: 'all' };
   }
 
   async init() {
-    console.log('📊 Initializing Partners Manager...');
+    console.log('👥 Initializing Partners Manager...');
+    
+    if (!web3Manager.connected) {
+      console.log('⚠️ Wallet not connected');
+      return;
+    }
+    
     this.setupEventListeners();
     await this.loadPartners();
+    
     console.log('✅ Partners Manager initialized');
   }
 
   setupEventListeners() {
-    const levelFilter = document.getElementById('partnerLevelFilter');
-    const statusFilter = document.getElementById('partnerStatusFilter');
-    const searchInput = document.getElementById('partnerSearch');
+    const levelButtons = document.getElementById('partnerLevels');
+    if (levelButtons) {
+      levelButtons.innerHTML = '';
+      for (let i = 1; i <= 12; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'level-btn';
+        btn.dataset.level = i;
+        btn.textContent = `Level ${i}`;
+        if (i === this.currentLevel) {
+          btn.classList.add('active');
+        }
+        btn.addEventListener('click', () => this.switchLevel(i));
+        levelButtons.appendChild(btn);
+      }
+    }
+  }
 
-    if (levelFilter) levelFilter.addEventListener('change', () => this.applyFilters());
-    if (statusFilter) statusFilter.addEventListener('change', () => this.applyFilters());
-    if (searchInput) searchInput.addEventListener('input', (e) => this.searchPartners(e.target.value));
-
-    document.querySelectorAll('.sortable-header').forEach(header => {
-      header.addEventListener('click', () => this.sortPartners(header.dataset.field));
+  async switchLevel(level) {
+    this.currentLevel = level;
+    
+    document.querySelectorAll('#partnerLevels .level-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.level) === level);
     });
+    
+    this.updateLevelInfo(level);
+    await this.loadPartnersForLevel(level);
+  }
 
-    const refreshBtn = document.getElementById('refreshPartnersBtn');
-    if (refreshBtn) refreshBtn.addEventListener('click', () => this.loadPartners());
+  updateLevelInfo(level) {
+    const currentLevelNumEl = document.getElementById('currentLevelNum');
+    if (currentLevelNumEl) {
+      currentLevelNumEl.textContent = level;
+    }
+    
+    const currentLevelCostEl = document.getElementById('currentLevelCost');
+    if (currentLevelCostEl) {
+      currentLevelCostEl.textContent = `${CONFIG.LEVEL_PRICES[level - 1]} BNB`;
+    }
+    
+    const levelTotalEarnedEl = document.getElementById('levelTotalEarned');
+    if (levelTotalEarnedEl) {
+      levelTotalEarnedEl.textContent = '0 BNB';
+    }
   }
 
   async loadPartners() {
     if (!web3Manager.connected) return;
-    const address = web3Manager.address;
+    
     Utils.showLoader(true, 'Loading partners...');
-
+    
     try {
-      console.log('📊 Loading partners for:', address);
-      const userInfo = await contracts.getUserInfo(address);
-      const activeLevel = userInfo.activeLevel || 12;
+      const address = web3Manager.address;
+      
+      const structureStats = await contracts.getUserStructureStats(address);
+      
       this.partners = [];
-
-      for (let level = 1; level <= activeLevel; level++) {
-        const levelPartners = await contracts.getUserPartners(address, level);
-        for (const partnerAddress of levelPartners) {
-          const partnerInfo = await contracts.getUserInfo(partnerAddress);
-          const teamStats = await contracts.getTeamStats(partnerAddress);
-          this.partners.push({
-            address: partnerAddress,
-            id: partnerInfo.id,
-            level: level,
-            rankLevel: partnerInfo.rankLevel,
-            activeLevel: partnerInfo.activeLevel,
-            partnersCount: partnerInfo.partnersCount,
-            registrationTime: partnerInfo.registrationTime,
-            isActive: partnerInfo.isActive,
-            teamSize: teamStats.totalTeamSize || 0,
-            personalInvites: teamStats.personalInvites || 0
-          });
-        }
+      
+      for (const partnerAddress of structureStats.referrals) {
+        const partnerInfo = await contracts.getUserInfo(partnerAddress);
+        const partnerRank = await contracts.getRankInfo(partnerAddress);
+        
+        this.partners.push({
+          address: partnerAddress,
+          id: partnerInfo.id,
+          sponsorId: partnerInfo.sponsorId,
+          registrationTime: partnerInfo.registrationTime,
+          activeLevel: partnerInfo.activeLevel,
+          partnersCount: partnerInfo.partnersCount,
+          rank: partnerRank.currentRank,
+          isActive: partnerInfo.isActive
+        });
       }
-
-      console.log(`✅ Loaded ${this.partners.length} partners`);
-      this.applyFilters();
-      this.renderPartners();
-      this.updatePartnersStats();
+      
+      this.updateStatistics(structureStats);
+      await this.updateQualification();
+      await this.updateEarnings();
+      await this.loadPartnersForLevel(this.currentLevel);
+      
+      console.log('✅ Partners loaded:', this.partners.length);
+      
     } catch (error) {
       console.error('❌ Load partners error:', error);
       Utils.showNotification('Failed to load partners', 'error');
@@ -79,150 +115,126 @@ class PartnersManager {
     }
   }
 
-  renderPartners() {
-    const container = document.getElementById('partnersTableBody');
-    if (!container) return;
-
-    if (this.filteredPartners.length === 0) {
-      container.innerHTML = '<tr><td colspan="8" class="text-center empty-state">No partners found</td></tr>';
+  async loadPartnersForLevel(level) {
+    const tableBody = document.getElementById('partnersTable');
+    if (!tableBody) return;
+    
+    const levelPartners = this.partners.filter(p => p.activeLevel >= level);
+    
+    if (levelPartners.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="8" class="no-data">No partners at this level</td>
+        </tr>
+      `;
       return;
     }
-
-    container.innerHTML = this.filteredPartners.map(partner => `
-      <tr class="partner-row" data-address="${partner.address}">
-        <td>${Utils.formatUserId(partner.id)}</td>
+    
+    tableBody.innerHTML = levelPartners.map((partner, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${partner.id}</td>
         <td><a href="${Utils.getExplorerLink(partner.address)}" target="_blank">${Utils.formatAddress(partner.address)}</a></td>
-        <td>Level ${partner.level}</td>
-        <td><span class="rank-badge rank-${partner.rankLevel}">${Utils.getRankName(partner.rankLevel)}</span></td>
+        <td>${partner.sponsorId}</td>
+        <td>${Utils.formatDate(partner.registrationTime)}</td>
         <td>${partner.activeLevel}/12</td>
         <td>${partner.partnersCount}</td>
-        <td>${partner.teamSize}</td>
-        <td>${Utils.formatDateShort(partner.registrationTime)}</td>
-        <td><button class="btn-sm btn-primary" onclick="partnersManager.viewPartnerDetails('${partner.address}')">View</button></td>
+        <td><span class="rank-badge rank-${partner.rank}">${this.getRankName(partner.rank)}</span></td>
       </tr>
     `).join('');
   }
 
-  applyFilters() {
-    this.filteredPartners = this.partners.filter(partner => {
-      const levelFilter = document.getElementById('partnerLevelFilter');
-      if (levelFilter && levelFilter.value !== 'all' && partner.level !== parseInt(levelFilter.value)) return false;
-
-      const statusFilter = document.getElementById('partnerStatusFilter');
-      if (statusFilter && statusFilter.value !== 'all') {
-        if (statusFilter.value === 'active' && !partner.isActive) return false;
-        if (statusFilter.value === 'inactive' && partner.isActive) return false;
-      }
-      return true;
-    });
-    this.sortPartnersArray();
-  }
-
-  searchPartners(query) {
-    if (!query) {
-      this.applyFilters();
-      this.renderPartners();
-      return;
+  updateStatistics(structureStats) {
+    const personalInvitesEl = document.getElementById('personalInvites');
+    if (personalInvitesEl) {
+      personalInvitesEl.textContent = structureStats.directReferrals || 0;
     }
-    query = query.toLowerCase();
-    this.filteredPartners = this.partners.filter(partner => 
-      partner.address.toLowerCase().includes(query) ||
-      Utils.formatUserId(partner.id).toLowerCase().includes(query) ||
-      Utils.getRankName(partner.rankLevel).toLowerCase().includes(query)
-    );
-    this.renderPartners();
-  }
-
-  sortPartners(field) {
-    if (this.currentSort.field === field) {
-      this.currentSort.order = this.currentSort.order === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.currentSort.field = field;
-      this.currentSort.order = 'asc';
+    
+    const activePartnersEl = document.getElementById('activePartners');
+    if (activePartnersEl) {
+      const activeCount = this.partners.filter(p => p.isActive).length;
+      activePartnersEl.textContent = activeCount;
     }
-    this.sortPartnersArray();
-    this.renderPartners();
-    this.updateSortIndicators();
+    
+    const totalTeamEl = document.getElementById('totalTeam');
+    if (totalTeamEl) {
+      totalTeamEl.textContent = this.partners.length;
+    }
   }
 
-  sortPartnersArray() {
-    const field = this.currentSort.field;
-    const order = this.currentSort.order;
-    this.filteredPartners.sort((a, b) => {
-      let aVal = a[field], bVal = b[field];
-      if (typeof aVal === 'number' && typeof bVal === 'number') return order === 'asc' ? aVal - bVal : bVal - aVal;
-      aVal = String(aVal).toLowerCase();
-      bVal = String(bVal).toLowerCase();
-      if (aVal < bVal) return order === 'asc' ? -1 : 1;
-      if (aVal > bVal) return order === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }
-
-  updateSortIndicators() {
-    document.querySelectorAll('.sortable-header').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-    const currentHeader = document.querySelector(`.sortable-header[data-field="${this.currentSort.field}"]`);
-    if (currentHeader) currentHeader.classList.add(`sort-${this.currentSort.order}`);
-  }
-
-  updatePartnersStats() {
-    const totalPartners = this.partners.length;
-    const activePartners = this.partners.filter(p => p.isActive).length;
-    const totalTeamSize = this.partners.reduce((sum, p) => sum + p.teamSize, 0);
-
-    const totalEl = document.getElementById('totalPartnersCount');
-    const activeEl = document.getElementById('activePartnersCount');
-    const teamEl = document.getElementById('totalTeamSize');
-
-    if (totalEl) totalEl.textContent = totalPartners;
-    if (activeEl) activeEl.textContent = activePartners;
-    if (teamEl) teamEl.textContent = totalTeamSize;
-  }
-
-  async viewPartnerDetails(address) {
-    Utils.showLoader(true, 'Loading partner details...');
+  async updateQualification() {
     try {
-      const partnerInfo = await contracts.getUserFullInfo(address);
-      const modalContent = `
-        <div class="partner-details">
-          <div class="detail-row"><span class="label">Address:</span><span class="value"><a href="${Utils.getExplorerLink(address)}" target="_blank">${address}</a></span></div>
-          <div class="detail-row"><span class="label">User ID:</span><span class="value">${Utils.formatUserId(partnerInfo.id)}</span></div>
-          <div class="detail-row"><span class="label">Sponsor ID:</span><span class="value">${Utils.formatUserId(partnerInfo.sponsorId)}</span></div>
-          <div class="detail-row"><span class="label">Rank:</span><span class="value"><span class="rank-badge rank-${partnerInfo.rankLevel}">${Utils.getRankName(partnerInfo.rankLevel)}</span></span></div>
-          <div class="detail-row"><span class="label">Active Level:</span><span class="value">${partnerInfo.activeLevel}/12</span></div>
-          <div class="detail-row"><span class="label">Partners Count:</span><span class="value">${partnerInfo.partnersCount}</span></div>
-          <div class="detail-row"><span class="label">Team Size:</span><span class="value">${partnerInfo.teamStats?.totalTeamSize || 0}</span></div>
-          <div class="detail-row"><span class="label">Registration:</span><span class="value">${Utils.formatDate(partnerInfo.registrationTime)}</span></div>
-          <h4>Balances:</h4>
-          <div class="detail-row"><span class="label">Marketing Pool:</span><span class="value">${Utils.formatBNB(ethers.utils.formatEther(partnerInfo.balances?.marketing || 0))} BNB</span></div>
-          <div class="detail-row"><span class="label">Leader Pool:</span><span class="value">${Utils.formatBNB(ethers.utils.formatEther(partnerInfo.balances?.leader || 0))} BNB</span></div>
-          <div class="detail-row"><span class="label">Investment Pool:</span><span class="value">${Utils.formatBNB(ethers.utils.formatEther(partnerInfo.balances?.investment || 0))} BNB</span></div>
-        </div>
-      `;
-      Utils.showModal('Partner Details', modalContent);
+      const rankInfo = await contracts.getRankInfo(web3Manager.address);
+      const currentRank = rankInfo.currentRank;
+      
+      this.updateQualificationBadge('bronzeQual', currentRank >= 1);
+      this.updateQualificationBadge('silverQual', currentRank >= 2);
+      this.updateQualificationBadge('goldQual', currentRank >= 3);
+      this.updateQualificationBadge('platinumQual', currentRank >= 4);
+      
     } catch (error) {
-      console.error('View partner details error:', error);
-      Utils.showNotification('Failed to load partner details', 'error');
-    } finally {
-      Utils.hideLoader();
+      console.error('updateQualification error:', error);
     }
   }
 
-  exportToCSV() {
-    const headers = ['User ID','Address','Level','Rank','Active Level','Partners','Team Size','Registration Date'];
-    const rows = this.filteredPartners.map(p => [
-      Utils.formatUserId(p.id), p.address, p.level, Utils.getRankName(p.rankLevel),
-      p.activeLevel, p.partnersCount, p.teamSize, Utils.formatDate(p.registrationTime)
-    ]);
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `partners_${Date.now()}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    Utils.showNotification('Partners exported successfully', 'success');
+  updateQualificationBadge(elementId, isQualified) {
+    const badge = document.getElementById(elementId);
+    if (!badge) return;
+    
+    const progressBar = badge.querySelector('.progress');
+    if (progressBar) {
+      if (isQualified) {
+        progressBar.style.width = '100%';
+        badge.classList.add('qualified');
+      } else {
+        progressBar.style.width = '0%';
+        badge.classList.remove('qualified');
+      }
+    }
+  }
+
+  async updateEarnings() {
+    try {
+      const balances = await contracts.getUserBalances(web3Manager.address);
+      
+      const directBonusEl = document.getElementById('directBonus');
+      if (directBonusEl) {
+        directBonusEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(balances.referralBalance))} BNB`;
+      }
+      
+      const partnerBonusEl = document.getElementById('partnerBonus');
+      if (partnerBonusEl) {
+        const partnerBonus = balances.matrixBalance.div(2);
+        partnerBonusEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(partnerBonus))} BNB`;
+      }
+      
+      const matrixBonusEl = document.getElementById('matrixBonus');
+      if (matrixBonusEl) {
+        const matrixBonus = balances.matrixBalance.div(2);
+        matrixBonusEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(matrixBonus))} BNB`;
+      }
+      
+      const leadershipBonusEl = document.getElementById('leadershipBonus');
+      if (leadershipBonusEl) {
+        leadershipBonusEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(balances.leaderBalance))} BNB`;
+      }
+      
+      const totalEarnedEl = document.getElementById('totalEarned');
+      if (totalEarnedEl) {
+        const total = balances.referralBalance
+          .add(balances.matrixBalance)
+          .add(balances.leaderBalance);
+        totalEarnedEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(total))} BNB`;
+      }
+      
+    } catch (error) {
+      console.error('updateEarnings error:', error);
+    }
+  }
+
+  getRankName(rankLevel) {
+    const ranks = ['None', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
+    return ranks[rankLevel] || 'None';
   }
 }
 
