@@ -1,11 +1,10 @@
 /* jshint esversion: 8 */
-/* global CONFIG, web3Manager, ethers, Utils */
+/* global CONFIG, web3Manager, ethers */
 
 /**
- * GlobalWay Contracts Manager - ПОВНІСТЮ ВИПРАВЛЕНА ВЕРСІЯ
- * Інтеграція всіх 10 смарт-контрактів з правильними функціями
- * 
- * Версія: 2.0 (Виправлена)
+ * GlobalWay Contracts Manager
+ * ПОЛНОСТЬЮ ПЕРЕПИСАНО НА ОСНОВЕ РЕАЛЬНЫХ ABI
+ * Версия: 3.0
  * Дата: 01.11.2025
  */
 
@@ -16,35 +15,97 @@ class ContractsManager {
   }
 
   /**
-   * Ініціалізація всіх контрактів
+   * Инициализация всех 10 контрактов
    */
   async init() {
     if (!web3Manager.connected) {
       throw new Error('Wallet not connected');
     }
 
-    if (this.initialized) {
-      console.log('⚠️ Contracts already initialized');
-      return;
-    }
-
     console.log('📄 Initializing contracts...');
 
     try {
-      // Ініціалізувати кожен контракт з його ABI
-      await this.initializeContract('gwtToken', 'GWTToken');
-      await this.initializeContract('globalWay', 'GlobalWay');
-      await this.initializeContract('marketing', 'Marketing');
-      await this.initializeContract('leaderPool', 'LeaderPool');
-      await this.initializeContract('investment', 'Investment');
-      await this.initializeContract('quarterly', 'Quarterly');
-      await this.initializeContract('techAccounts', 'TechAccounts');
-      await this.initializeContract('bridge', 'Bridge');
-      await this.initializeContract('stats', 'Stats');
-      await this.initializeContract('governance', 'Governance');
+      // Загрузить все ABI
+      const response = await fetch('./contracts/contracts-full-compact.json');
+      if (!response.ok) {
+        throw new Error('Failed to load contracts');
+      }
+      
+      const data = await response.json();
+      const abis = data.contracts || data;
+
+      // Инициализация GWTToken
+      this.contracts.gwtToken = new ethers.Contract(
+        CONFIG.CONTRACTS.GWTToken,
+        abis.GWTToken?.abi || abis.GWTToken,
+        web3Manager.signer
+      );
+
+      // Инициализация GlobalWay (MAIN)
+      this.contracts.globalWay = new ethers.Contract(
+        CONFIG.CONTRACTS.GlobalWay,
+        abis.GlobalWay?.abi || abis.GlobalWay,
+        web3Manager.signer
+      );
+
+      // Инициализация Marketing
+      this.contracts.marketing = new ethers.Contract(
+        CONFIG.CONTRACTS.Marketing,
+        abis.GlobalWayMarketing?.abi || abis.Marketing,
+        web3Manager.signer
+      );
+
+      // Инициализация LeaderPool
+      this.contracts.leaderPool = new ethers.Contract(
+        CONFIG.CONTRACTS.LeaderPool,
+        abis.GlobalWayLeaderPool?.abi || abis.LeaderPool,
+        web3Manager.signer
+      );
+
+      // Инициализация Investment
+      this.contracts.investment = new ethers.Contract(
+        CONFIG.CONTRACTS.Investment,
+        abis.GlobalWayInvestment?.abi || abis.Investment,
+        web3Manager.signer
+      );
+
+      // Инициализация Quarterly
+      this.contracts.quarterly = new ethers.Contract(
+        CONFIG.CONTRACTS.Quarterly,
+        abis.GlobalWayQuarterly?.abi || abis.Quarterly,
+        web3Manager.signer
+      );
+
+      // Инициализация TechAccounts
+      this.contracts.techAccounts = new ethers.Contract(
+        CONFIG.CONTRACTS.TechAccounts,
+        abis.GlobalWayTechAccounts?.abi || abis.TechAccounts,
+        web3Manager.signer
+      );
+
+      // Инициализация Bridge
+      this.contracts.bridge = new ethers.Contract(
+        CONFIG.CONTRACTS.Bridge,
+        abis.GlobalWayBridge?.abi || abis.Bridge,
+        web3Manager.signer
+      );
+
+      // Инициализация Stats
+      this.contracts.stats = new ethers.Contract(
+        CONFIG.CONTRACTS.Stats,
+        abis.GlobalWayStats?.abi || abis.Stats,
+        web3Manager.signer
+      );
+
+      // Инициализация Governance
+      this.contracts.governance = new ethers.Contract(
+        CONFIG.CONTRACTS.Governance,
+        abis.GlobalWayGovernance?.abi || abis.Governance,
+        web3Manager.signer
+      );
 
       this.initialized = true;
-      console.log('✅ All 10 contracts initialized successfully');
+      console.log('✅ All 10 contracts initialized');
 
     } catch (error) {
       console.error('❌ Contracts initialization failed:', error);
@@ -52,46 +113,13 @@ class ContractsManager {
     }
   }
 
-  /**
-   * Ініціалізація окремого контракту
-   */
-  async initializeContract(key, name) {
-    try {
-      const address = CONFIG.CONTRACTS[name] || CONFIG.CONTRACTS[key];
-      
-      if (!address) {
-        throw new Error(`Address not found for ${name}`);
-      }
-
-      if (!ethers.utils.isAddress(address)) {
-        throw new Error(`Invalid address for ${name}: ${address}`);
-      }
-
-      // Завантажити ABI з JSON файлу
-      const abiPath = `./contracts/abis/GlobalWay${name === 'GlobalWay' ? '' : name}.json`;
-      const response = await fetch(abiPath);
-      const abiData = await response.json();
-
-      this.contracts[key] = new ethers.Contract(
-        address,
-        abiData.abi,
-        web3Manager.signer
-      );
-
-      console.log(`✅ ${name} initialized at ${address}`);
-
-    } catch (error) {
-      console.error(`❌ Failed to initialize ${name}:`, error);
-      throw error;
-    }
-  }
-
   // ==========================================
-  // GLOBALWAY - Головний контракт
+  // GLOBALWAY - Основной контракт
   // ==========================================
 
   /**
-   * Отримати інформацію про користувача
+   * Получить информацию о пользователе
+   * ABI: users(address) view returns (UserInfo)
    */
   async getUserInfo(address) {
     try {
@@ -106,7 +134,9 @@ class ContractsManager {
         activeLevel: Number(user.activeLevel) || 0,
         partnersCount: Number(user.partnersCount) || 0,
         isActive: Boolean(user.isActive),
-        isBlocked: Boolean(user.isBlocked)
+        isBlocked: Boolean(user.isBlocked),
+        isCharity: Boolean(user.isCharity),
+        isTechnical: Boolean(user.isTechnical)
       };
     } catch (error) {
       console.error('getUserInfo error:', error);
@@ -119,14 +149,15 @@ class ContractsManager {
         activeLevel: 0,
         partnersCount: 0,
         isActive: false,
-        isBlocked: false
+        isBlocked: false,
+        isCharity: false,
+        isTechnical: false
       };
     }
   }
 
-
   /**
-   * Перевірка чи зареєстрований користувач
+   * Проверка регистрации пользователя
    */
   async isUserRegistered(address) {
     try {
@@ -139,35 +170,21 @@ class ContractsManager {
   }
 
   /**
-   * Отримати інформацію про рівень користувача
-   * ПРИМІТКА: getUserLevelInfo не існує в ABI, використовуємо isLevelActive
+   * Проверка активности уровня
+   * ABI: isLevelActive(address user, uint8 level) view returns (bool)
    */
-  async getUserLevel(address, level) {
+  async isLevelActive(address, level) {
     try {
-      const isActive = await this.contracts.globalWay.isLevelActive(address, level);
-      
-      // Повертаємо спрощену структуру, тому що повної інформації немає в контракті
-      return {
-        isActive: Boolean(isActive),
-        activationTime: 0, // Недоступно в ABI
-        reactivations: 0, // Недоступно в ABI
-        partnersCount: 0, // Недоступно в ABI
-        cyclesCount: 0 // Недоступно в ABI
-      };
+      return await this.contracts.globalWay.isLevelActive(address, level);
     } catch (error) {
-      console.error('getUserLevel error:', error);
-      return {
-        isActive: false,
-        activationTime: 0,
-        reactivations: 0,
-        partnersCount: 0,
-        cyclesCount: 0
-      };
+      console.error('isLevelActive error:', error);
+      return false;
     }
   }
 
   /**
-   * Реєстрація нового користувача
+   * Регистрация нового пользователя
+   * ABI: register(address referrer) payable
    */
   async register(refAddress) {
     try {
@@ -178,7 +195,7 @@ class ContractsManager {
       
       const tx = await this.contracts.globalWay.register(refAddress, {
         value: price,
-        gasLimit: CONFIG.GAS_LIMITS.register
+        gasLimit: CONFIG.GAS_LIMITS.register || 500000
       });
       
       console.log('📤 Transaction sent:', tx.hash);
@@ -193,18 +210,18 @@ class ContractsManager {
   }
 
   /**
-   * Купівля окремого рівня
+   * Активация уровня (покупка)
+   * ABI: activateLevel(uint8 level) payable
    */
   async buyLevel(level) {
     try {
       const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
       
-      console.log(`📝 Buying Level ${level}`);
-      console.log('💰 Payment:', CONFIG.LEVEL_PRICES[level - 1], 'BNB');
+      console.log(`💰 Buying Level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
       
       const tx = await this.contracts.globalWay.activateLevel(level, {
         value: price,
-        gasLimit: CONFIG.GAS_LIMITS.buyLevel
+        gasLimit: CONFIG.GAS_LIMITS.buyLevel || 600000
       });
       
       console.log('📤 Transaction sent:', tx.hash);
@@ -213,27 +230,30 @@ class ContractsManager {
       
       return receipt;
     } catch (error) {
-      console.error('❌ Buy level failed:', error);
+      console.error('❌ buyLevel failed:', error);
       throw error;
     }
   }
 
   /**
-   * Пакетна купівля рівнів
+   * Пакетная активация уровней
+   * ABI: activateBulkLevels(uint8 maxLevel) payable
    */
   async buyBulkLevels(upToLevel) {
     try {
-      let totalPrice = ethers.BigNumber.from(0);
+      // Рассчитать общую стоимость
+      let totalCost = 0;
       for (let i = 0; i < upToLevel; i++) {
-        totalPrice = totalPrice.add(ethers.utils.parseEther(CONFIG.LEVEL_PRICES[i]));
+        totalCost += parseFloat(CONFIG.LEVEL_PRICES[i]);
       }
       
-      console.log(`📝 Buying Levels 1-${upToLevel}`);
-      console.log('💰 Total payment:', ethers.utils.formatEther(totalPrice), 'BNB');
+      const price = ethers.utils.parseEther(totalCost.toFixed(4));
+      
+      console.log(`💰 Buying Levels 1-${upToLevel} for ${totalCost.toFixed(4)} BNB`);
       
       const tx = await this.contracts.globalWay.activateBulkLevels(upToLevel, {
-        value: totalPrice,
-        gasLimit: CONFIG.GAS_LIMITS.buyBulkLevels
+        value: price,
+        gasLimit: CONFIG.GAS_LIMITS.buyBulkLevels || 1000000
       });
       
       console.log('📤 Transaction sent:', tx.hash);
@@ -242,58 +262,272 @@ class ContractsManager {
       
       return receipt;
     } catch (error) {
-      console.error('❌ Bulk buy failed:', error);
+      console.error('❌ buyBulkLevels failed:', error);
       throw error;
     }
   }
 
   /**
-   * Отримати інформацію про матрицю
+   * Получить адрес по User ID
+   * ABI: idToAddress(string userId) view returns (address)
    */
-  async getMatrixInfo(address, level) {
+  async getAddressByUserId(userId) {
     try {
-      return await this.contracts.globalWay.getMatrixPosition(address, level);
+      return await this.contracts.globalWay.idToAddress(userId);
     } catch (error) {
-      console.error('getMatrixInfo error:', error);
-      return null;
+      console.error('getAddressByUserId error:', error);
+      return ethers.constants.AddressZero;
     }
   }
 
-
+  // ==========================================
+  // MARKETING - Реферальные и матричные выплаты
+  // ==========================================
 
   /**
-   * Отримати інформацію про квартальну активність
+   * Получить балансы пользователя
+   * ABI: getUserBalances(address user) view returns (uint256 referral, uint256 matrix, uint256 total)
+   */
+  async getUserBalances(address) {
+    try {
+      const balances = await this.contracts.marketing.getUserBalances(address);
+      
+      return {
+        referralBalance: balances.referralBalance || balances[0],
+        matrixBalance: balances.matrixBalance || balances[1],
+        totalBalance: balances.totalBalance || balances[2]
+      };
+    } catch (error) {
+      console.error('getUserBalances error:', error);
+      return {
+        referralBalance: ethers.BigNumber.from(0),
+        matrixBalance: ethers.BigNumber.from(0),
+        totalBalance: ethers.BigNumber.from(0)
+      };
+    }
+  }
+
+  /**
+   * Вывод реферальных средств
+   * ABI: withdrawReferral()
+   */
+  async withdrawReferral() {
+    try {
+      const tx = await this.contracts.marketing.withdrawReferral({
+        gasLimit: CONFIG.GAS_LIMITS.withdraw || 300000
+      });
+      
+      const receipt = await tx.wait();
+      console.log('✅ Referral withdrawal successful');
+      return receipt;
+    } catch (error) {
+      console.error('withdrawReferral error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Вывод матричных средств
+   * ABI: withdrawMatrix()
+   */
+  async withdrawMatrix() {
+    try {
+      const tx = await this.contracts.marketing.withdrawMatrix({
+        gasLimit: CONFIG.GAS_LIMITS.withdraw || 300000
+      });
+      
+      const receipt = await tx.wait();
+      console.log('✅ Matrix withdrawal successful');
+      return receipt;
+    } catch (error) {
+      console.error('withdrawMatrix error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Вывод ВСЕХ средств из Marketing (referral + matrix)
+   */
+  async withdrawMarketing() {
+    try {
+      // Вызываем обе функции последовательно
+      await this.withdrawReferral();
+      await this.withdrawMatrix();
+      
+      console.log('✅ Marketing withdrawal complete');
+      return { success: true };
+    } catch (error) {
+      console.error('withdrawMarketing error:', error);
+      throw error;
+    }
+  }
+
+  // ==========================================
+  // LEADERPOOL - Лидерские бонусы
+  // ==========================================
+
+  /**
+   * Получить информацию о ранге
+   * ABI: getUserRankInfo(address user) view returns (RankInfo)
+   */
+  async getUserRankInfo(address) {
+    try {
+      const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
+      
+      return {
+        currentRank: Number(rankInfo.currentRank) || 0,
+        rankBalance: rankInfo.rankBalance || ethers.BigNumber.from(0),
+        totalEarned: rankInfo.totalEarned || ethers.BigNumber.from(0),
+        qualifiedPartners: Number(rankInfo.qualifiedPartners) || 0,
+        teamVolume: rankInfo.teamVolume || ethers.BigNumber.from(0)
+      };
+    } catch (error) {
+      console.error('getUserRankInfo error:', error);
+      return {
+        currentRank: 0,
+        rankBalance: ethers.BigNumber.from(0),
+        totalEarned: ethers.BigNumber.from(0),
+        qualifiedPartners: 0,
+        teamVolume: ethers.BigNumber.from(0)
+      };
+    }
+  }
+
+  /**
+   * Вывод лидерских бонусов
+   * ABI: claimRankBonus()
+   */
+  async withdrawLeaderPool() {
+    try {
+      const tx = await this.contracts.leaderPool.claimRankBonus({
+        gasLimit: CONFIG.GAS_LIMITS.withdraw || 300000
+      });
+      
+      const receipt = await tx.wait();
+      console.log('✅ Leader Pool withdrawal successful');
+      return receipt;
+    } catch (error) {
+      console.error('withdrawLeaderPool error:', error);
+      throw error;
+    }
+  }
+
+  // ==========================================
+  // INVESTMENT - Инвестиционный пул
+  // ==========================================
+
+  /**
+   * Получить информацию об инвесторе
+   * ABI: getInvestorInfo(address user) view returns (InvestorInfo)
+   */
+  async getInvestorInfo(address) {
+    try {
+      const info = await this.contracts.investment.getInvestorInfo(address);
+      
+      return {
+        totalInvested: info.totalInvested || ethers.BigNumber.from(0),
+        pendingRewards: info.pendingRewards || ethers.BigNumber.from(0),
+        claimedRewards: info.claimedRewards || ethers.BigNumber.from(0),
+        lastClaimTime: info.lastClaimTime ? info.lastClaimTime.toNumber() : 0
+      };
+    } catch (error) {
+      console.error('getInvestorInfo error:', error);
+      return {
+        totalInvested: ethers.BigNumber.from(0),
+        pendingRewards: ethers.BigNumber.from(0),
+        claimedRewards: ethers.BigNumber.from(0),
+        lastClaimTime: 0
+      };
+    }
+  }
+
+  /**
+   * ПРИМЕЧАНИЕ: claimWeeklyReward() НЕ СУЩЕСТВУЕТ в ABI
+   * Используем pendingRewards из getInvestorInfo
+   * Реальная функция вывода - это распределение админом через distributeWeeklyRewards()
+   */
+  async withdrawInvestment() {
+    try {
+      console.warn('⚠️  Investment withdrawal is automatic via admin distributeWeeklyRewards()');
+      // Показываем только информацию
+      const info = await this.getInvestorInfo(web3Manager.address);
+      return info;
+    } catch (error) {
+      console.error('withdrawInvestment error:', error);
+      throw error;
+    }
+  }
+
+  // ==========================================
+  // QUARTERLY - Квартальная активность
+  // ==========================================
+
+  /**
+   * Получить информацию о квартальной активности
+   * ABI: getUserQuarterlyInfo(address user) view returns (QuarterlyInfo)
    */
   async getQuarterlyInfo(address) {
     try {
       const info = await this.contracts.quarterly.getUserQuarterlyInfo(address);
       
       return {
-        lastPayment: info.lastPayment ? info.lastPayment.toNumber() : 0,
-        quarterCount: Number(info.quarterCount) || 0,
+        lastPaymentTime: info.lastPaymentTime ? info.lastPaymentTime.toNumber() : 0,
+        nextPaymentDue: info.nextPaymentDue ? info.nextPaymentDue.toNumber() : 0,
+        currentQuarter: Number(info.currentQuarter) || 0,
+        isPaid: Boolean(info.isPaid),
+        totalPaid: Number(info.totalPaid) || 0,
         charityAccount: info.charityAccount || ethers.constants.AddressZero,
         techAccount1: info.techAccount1 || ethers.constants.AddressZero,
-        techAccount2: info.techAccount2 || ethers.constants.AddressZero,
-        nextPaymentTime: info.nextPaymentTime ? info.nextPaymentTime.toNumber() : 0
+        techAccount2: info.techAccount2 || ethers.constants.AddressZero
       };
     } catch (error) {
       console.error('getQuarterlyInfo error:', error);
       return {
-        lastPayment: 0,
-        quarterCount: 0,
+        lastPaymentTime: 0,
+        nextPaymentDue: 0,
+        currentQuarter: 0,
+        isPaid: false,
+        totalPaid: 0,
         charityAccount: ethers.constants.AddressZero,
         techAccount1: ethers.constants.AddressZero,
-        techAccount2: ethers.constants.AddressZero,
-        nextPaymentTime: 0
+        techAccount2: ethers.constants.AddressZero
       };
     }
   }
+
+  /**
+   * Оплата квартальной активности
+   * ABI: payQuarterlyActivity() payable
+   */
+  async payQuarterly() {
+    try {
+      const fee = ethers.utils.parseEther('0.075');
+      
+      console.log('💰 Paying quarterly activity: 0.075 BNB');
+      
+      const tx = await this.contracts.quarterly.payQuarterlyActivity({
+        value: fee,
+        gasLimit: CONFIG.GAS_LIMITS.payQuarterly || 500000
+      });
+      
+      console.log('📤 Transaction sent:', tx.hash);
+      const receipt = await tx.wait();
+      console.log('✅ Quarterly payment successful');
+      
+      return receipt;
+    } catch (error) {
+      console.error('❌ payQuarterly failed:', error);
+      throw error;
+    }
+  }
+
   // ==========================================
   // GWTTOKEN - Токен
   // ==========================================
 
   /**
-   * Отримати баланс токенів
+   * Получить баланс токенов
+   * ABI: balanceOf(address account) view returns (uint256)
    */
   async getTokenBalance(address) {
     try {
@@ -305,7 +539,8 @@ class ContractsManager {
   }
 
   /**
-   * Отримати поточну ціну токену
+   * Получить цену токена
+   * ABI: currentPrice() view returns (uint256)
    */
   async getTokenPrice() {
     try {
@@ -317,16 +552,21 @@ class ContractsManager {
   }
 
   /**
-   * Купити токени
+   * Купить токены
+   * ABI: buyTokens(uint256 amount) payable
    */
   async buyTokens(amount) {
     try {
-      const tx = await this.contracts.gwtToken.buyTokens({
-        value: amount,
-        gasLimit: CONFIG.GAS_LIMITS.tokenBuy
+      const price = await this.getTokenPrice();
+      const cost = price.mul(amount);
+      
+      const tx = await this.contracts.gwtToken.buyTokens(amount, {
+        value: cost,
+        gasLimit: CONFIG.GAS_LIMITS.buyTokens || 400000
       });
       
       const receipt = await tx.wait();
+      console.log('✅ Tokens purchased');
       return receipt;
     } catch (error) {
       console.error('buyTokens error:', error);
@@ -335,15 +575,17 @@ class ContractsManager {
   }
 
   /**
-   * Продати токени
+   * Продать токены
+   * ABI: sellTokens(uint256 amount)
    */
   async sellTokens(amount) {
     try {
       const tx = await this.contracts.gwtToken.sellTokens(amount, {
-        gasLimit: CONFIG.GAS_LIMITS.tokenSell
+        gasLimit: CONFIG.GAS_LIMITS.sellTokens || 400000
       });
       
       const receipt = await tx.wait();
+      console.log('✅ Tokens sold');
       return receipt;
     } catch (error) {
       console.error('sellTokens error:', error);
@@ -352,460 +594,72 @@ class ContractsManager {
   }
 
   // ==========================================
-  // MARKETING - ВИПРАВЛЕНО!
+  // STATS - Статистика
   // ==========================================
 
   /**
-   * Отримати баланси Marketing (ВИПРАВЛЕНО!)
-   */
-  async getMarketingBalances(address) {
-    try {
-      const balances = await this.contracts.marketing.getUserBalances(address);
-      
-      return {
-        referralBalance: balances.referralBalance || ethers.BigNumber.from(0),
-        matrixBalance: balances.matrixBalance || ethers.BigNumber.from(0),
-        totalBalance: (balances.referralBalance || ethers.BigNumber.from(0))
-          .add(balances.matrixBalance || ethers.BigNumber.from(0))
-      };
-    } catch (error) {
-      console.error('getMarketingBalances error:', error);
-      return {
-        referralBalance: ethers.BigNumber.from(0),
-        matrixBalance: ethers.BigNumber.from(0),
-        totalBalance: ethers.BigNumber.from(0)
-      };
-    }
-  }
-
-  /**
-   * Виведення Referral балансу
-   */
-  async withdrawReferral() {
-    try {
-      const tx = await this.contracts.marketing.withdrawReferral({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
-      
-      const receipt = await tx.wait();
-      return receipt;
-    } catch (error) {
-      console.error('withdrawReferral error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Виведення Matrix балансу
-   */
-  async withdrawMatrix() {
-    try {
-      const tx = await this.contracts.marketing.withdrawMatrix({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
-      
-      const receipt = await tx.wait();
-      return receipt;
-    } catch (error) {
-      console.error('withdrawMatrix error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Отримати заморожені кошти
-   */
-  async getFrozenFunds(address) {
-    try {
-      const frozenData = await this.contracts.marketing.getFrozenFunds(address);
-      
-      const funds = [];
-      for (let i = 0; i < frozenData.levels.length; i++) {
-        funds.push({
-          level: Number(frozenData.levels[i]),
-          amount: frozenData.amounts[i],
-          timestamp: frozenData.timestamps[i] ? frozenData.timestamps[i].toNumber() : 0
-        });
-      }
-      
-      return funds;
-    } catch (error) {
-      console.error('getFrozenFunds error:', error);
-      return [];
-    }
-  }
-
-  // ==========================================
-  // LEADER POOL - ВИПРАВЛЕНО!
-  // ==========================================
-
-  /**
-   * Отримати інформацію про ранг (ВИПРАВЛЕНО!)
-   */
-  async getRankInfo(address) {
-    try {
-      const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
-      
-      return {
-        currentRank: Number(rankInfo.currentRank) || 0,
-        qualificationTime: rankInfo.qualificationTime ? rankInfo.qualificationTime.toNumber() : 0,
-        pendingReward: rankInfo.pendingReward || ethers.BigNumber.from(0),
-        claimedReward: rankInfo.claimedReward || ethers.BigNumber.from(0),
-        isQualified: Boolean(rankInfo.isQualified)
-      };
-    } catch (error) {
-      console.error('getRankInfo error:', error);
-      return {
-        currentRank: 0,
-        qualificationTime: 0,
-        pendingReward: ethers.BigNumber.from(0),
-        claimedReward: ethers.BigNumber.from(0),
-        isQualified: false
-      };
-    }
-  }
-
-  /**
-   * Виведення Leader Pool нагороди
-   */
-  async withdrawLeader() {
-    try {
-      const tx = await this.contracts.leaderPool.claimRankBonus({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
-      
-      const receipt = await tx.wait();
-      return receipt;
-    } catch (error) {
-      console.error('withdrawLeader error:', error);
-      throw error;
-    }
-  }
-
-  // ==========================================
-  // INVESTMENT - ВИПРАВЛЕНО!
-  // ==========================================
-
-  /**
-   * Отримати інформацію про інвестора (ВИПРАВЛЕНО!)
-   */
-  async getInvestorInfo(address) {
-    try {
-      const investorInfo = await this.contracts.investment.getInvestorInfo(address);
-      
-      return {
-        totalInvested: investorInfo.totalInvested || ethers.BigNumber.from(0),
-        pendingReward: investorInfo.pendingReward || ethers.BigNumber.from(0),
-        claimedReward: investorInfo.claimedReward || ethers.BigNumber.from(0),
-        lastClaimTime: investorInfo.lastClaimTime ? investorInfo.lastClaimTime.toNumber() : 0,
-        isActive: Boolean(investorInfo.isActive)
-      };
-    } catch (error) {
-      console.error('getInvestorInfo error:', error);
-      return {
-        totalInvested: ethers.BigNumber.from(0),
-        pendingReward: ethers.BigNumber.from(0),
-        claimedReward: ethers.BigNumber.from(0),
-        lastClaimTime: 0,
-        isActive: false
-      };
-    }
-  }
-
-  /**
-   * Виведення Investment нагороди
-   */
-  async withdrawInvestment() {
-    try {
-      const tx = await this.contracts.investment.claimWeeklyReward({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
-      
-      const receipt = await tx.wait();
-      return receipt;
-    } catch (error) {
-      console.error('withdrawInvestment error:', error);
-      throw error;
-    }
-  }
-
-
-
-  /**
-   * Вивести кошти з Marketing контракту
-   */
-  async withdrawMarketing() {
-    try {
-      const tx1 = await this.contracts.marketing.withdrawReferral({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
-      await tx1.wait();
-      
-      const tx2 = await this.contracts.marketing.withdrawMatrix({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
-      await tx2.wait();
-      
-      console.log('✅ Marketing withdrawal successful');
-      return { success: true };
-    } catch (error) {
-      console.error('withdrawMarketing error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Вивести кошти з Leader Pool
-   */
-  async withdrawLeaderPool() {
-    try {
-      const tx = await this.contracts.leaderPool.claimRankBonus({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
-      
-      const receipt = await tx.wait();
-      console.log('✅ Leader Pool withdrawal successful');
-      return receipt;
-    } catch (error) {
-      console.error('withdrawLeaderPool error:', error);
-      throw error;
-    }
-  }
-  // ==========================================
-  // QUARTERLY
-  // ==========================================
-
-  /**
-   * Оплата квартальної активності
-   */
-  async payQuarterly(charityRecipient = null) {
-    try {
-      const fee = ethers.utils.parseEther(CONFIG.QUARTERLY_COST);
-      
-      let tx;
-      if (charityRecipient && ethers.utils.isAddress(charityRecipient)) {
-        tx = await this.contracts.quarterly.payQuarterlyActivity(charityRecipient, {
-          value: fee,
-          gasLimit: CONFIG.GAS_LIMITS.payQuarterly
-        });
-      } else {
-        tx = await this.contracts.quarterly.payQuarterlyActivityRegular({
-          value: fee,
-          gasLimit: CONFIG.GAS_LIMITS.payQuarterly
-        });
-      }
-      
-      const receipt = await tx.wait();
-      return receipt;
-    } catch (error) {
-      console.error('payQuarterly error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Перевірити чи можна оплатити квартальну активність
-   */
-  async canPayQuarterly(address) {
-    try {
-      const result = await this.contracts.quarterly.canPayQuarterly(address);
-      
-      return {
-        can: Boolean(result.can),
-        reason: result.reason || '',
-        timeLeft: result.timeLeft ? result.timeLeft.toNumber() : 0
-      };
-    } catch (error) {
-      console.error('canPayQuarterly error:', error);
-      return {
-        can: false,
-        reason: 'Error checking',
-        timeLeft: 0
-      };
-    }
-  }
-
-  /**
-   * Виведення upline bonus
-   */
-  async withdrawUplineBonus() {
-    try {
-      const tx = await this.contracts.quarterly.withdrawUplineBonus({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
-      
-      const receipt = await tx.wait();
-      return receipt;
-    } catch (error) {
-      console.error('withdrawUplineBonus error:', error);
-      throw error;
-    }
-  }
-
-  // ==========================================
-  // STATS CONTRACT - КЛЮЧОВІ ФУНКЦІЇ!
-  // ==========================================
-
-  /**
-   * Отримати ПОВНУ статистику користувача
-   * ЦЯ ФУНКЦІЯ ЗАМІНЮЄ БАГАТО ОКРЕМИХ ВИКЛИКІВ!
+   * Получить полную статистику пользователя
+   * ABI: getUserFullStats(address user) view returns (UserFullStats)
    */
   async getUserFullStats(address) {
     try {
-      const stats = await this.contracts.stats.getUserFullStats(address);
-      
-      return {
-        isRegistered: Boolean(stats.isRegistered),
-        sponsor: stats.sponsor || ethers.constants.AddressZero,
-        maxLevel: Number(stats.maxLevel) || 0,
-        quarterlyActive: Boolean(stats.quarterlyActive),
-        marketingReferralBalance: stats.marketingReferralBalance || ethers.BigNumber.from(0),
-        marketingMatrixBalance: stats.marketingMatrixBalance || ethers.BigNumber.from(0),
-        quarterlyBalance: stats.quarterlyBalance || ethers.BigNumber.from(0),
-        investmentBalance: stats.investmentBalance || ethers.BigNumber.from(0),
-        leaderBalance: stats.leaderBalance || ethers.BigNumber.from(0),
-        totalPendingBalance: stats.totalPendingBalance || ethers.BigNumber.from(0),
-        totalInvested: stats.totalInvested || ethers.BigNumber.from(0),
-        totalInvestmentReceived: stats.totalInvestmentReceived || ethers.BigNumber.from(0),
-        investmentROI: Number(stats.investmentROI) || 0
-      };
+      return await this.contracts.stats.getUserFullStats(address);
     } catch (error) {
       console.error('getUserFullStats error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Отримати всі баланси користувача
-   */
-  async getUserBalances(address) {
-    try {
-      const balances = await this.contracts.stats.getUserBalances(address);
-      
-      return {
-        referralBalance: balances.referralBalance || ethers.BigNumber.from(0),
-        matrixBalance: balances.matrixBalance || ethers.BigNumber.from(0),
-        quarterlyBalance: balances.quarterlyBalance || ethers.BigNumber.from(0),
-        investmentPending: balances.investmentPending || ethers.BigNumber.from(0),
-        leaderBalance: balances.leaderBalance || ethers.BigNumber.from(0),
-        totalBalance: balances.totalBalance || ethers.BigNumber.from(0)
-      };
-    } catch (error) {
-      console.error('getUserBalances error:', error);
-      return {
-        referralBalance: ethers.BigNumber.from(0),
-        matrixBalance: ethers.BigNumber.from(0),
-        quarterlyBalance: ethers.BigNumber.from(0),
-        investmentPending: ethers.BigNumber.from(0),
-        leaderBalance: ethers.BigNumber.from(0),
-        totalBalance: ethers.BigNumber.from(0)
-      };
-    }
-  }
-
-  /**
-   * Отримати квартальну статистику
-   */
-  async getUserQuarterlyStats(address) {
-    try {
-      const stats = await this.contracts.stats.getUserQuarterlyStats(address);
-      
-      return {
-        lastPayment: stats.lastPayment ? stats.lastPayment.toNumber() : 0,
-        quarterCount: Number(stats.quarterCount) || 0,
-        nextPaymentTime: stats.nextPaymentTime ? stats.nextPaymentTime.toNumber() : 0,
-        isActive: Boolean(stats.isActive),
-        charityAccount: stats.charityAccount || ethers.constants.AddressZero,
-        techAccount1: stats.techAccount1 || ethers.constants.AddressZero,
-        techAccount2: stats.techAccount2 || ethers.constants.AddressZero,
-        uplineBalance: stats.uplineBalance || ethers.BigNumber.from(0)
-      };
-    } catch (error) {
-      console.error('getUserQuarterlyStats error:', error);
-      return {
-        lastPayment: 0,
-        quarterCount: 0,
-        nextPaymentTime: 0,
-        isActive: false,
-        charityAccount: ethers.constants.AddressZero,
-        techAccount1: ethers.constants.AddressZero,
-        techAccount2: ethers.constants.AddressZero,
-        uplineBalance: ethers.BigNumber.from(0)
-      };
-    }
-  }
-
-  /**
-   * Отримати статистику структури (ПАРТНЕРИ!)
-   */
-  async getUserStructureStats(address) {
-    try {
-      const stats = await this.contracts.stats.getUserStructureStats(address);
-      
-      return {
-        directReferrals: Number(stats.directReferrals) || 0,
-        referrals: stats.referrals || [],
-        activeLevels: Number(stats.activeLevels) || 0,
-        levelStatus: stats.levelStatus || []
-      };
-    } catch (error) {
-      console.error('getUserStructureStats error:', error);
-      return {
-        directReferrals: 0,
-        referrals: [],
-        activeLevels: 0,
-        levelStatus: []
-      };
-    }
-  }
-
-  /**
-   * Отримати глобальну статистику
-   */
-  async getGlobalStats() {
-    try {
-      const stats = await this.contracts.stats.getGlobalStats();
-      
-      return {
-        totalUsers: Number(stats.totalUsers) || 0,
-        totalVolume: stats.totalVolume || ethers.BigNumber.from(0),
-        investmentTotalInvestors: Number(stats.investmentTotalInvestors) || 0,
-        investmentActiveInvestors: Number(stats.investmentActiveInvestors) || 0,
-        investmentPoolBalance: stats.investmentPoolBalance || ethers.BigNumber.from(0),
-        investmentTotalDistributed: stats.investmentTotalDistributed || ethers.BigNumber.from(0),
-        leaderPoolTotalLeaders: Number(stats.leaderPoolTotalLeaders) || 0,
-        leaderPoolActiveLeaders: Number(stats.leaderPoolActiveLeaders) || 0,
-        leaderPoolBalance: stats.leaderPoolBalance || ethers.BigNumber.from(0),
-        leaderPoolTotalDistributed: stats.leaderPoolTotalDistributed || ethers.BigNumber.from(0)
-      };
-    } catch (error) {
-      console.error('getGlobalStats error:', error);
-      throw error;
-    }
-  }
-
-  // ==========================================
-  // BRIDGE - Проекти
-  // ==========================================
-
-  /**
-   * Перевірити доступ до проекту
-   */
-  async checkUserAccess(projectId, userAddress) {
-    try {
-      return await this.contracts.bridge.checkUserAccess(projectId, userAddress);
-    } catch (error) {
-      console.error('checkUserAccess error:', error);
       return null;
     }
   }
 
   /**
-   * Отримати статус доступу користувача
+   * Получить структуру команды
+   * ABI: getUserStructureStats(address user) view returns (StructureStats)
    */
-  async getUserAccessStatus(address) {
+  async getUserStructureStats(address) {
     try {
-      return await this.contracts.bridge.getUserAccessStatus(address);
+      return await this.contracts.stats.getUserStructureStats(address);
+    } catch (error) {
+      console.error('getUserStructureStats error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Получить глобальную статистику
+   * ABI: getGlobalStats() view returns (GlobalStats)
+   */
+  async getGlobalStats() {
+    try {
+      return await this.contracts.stats.getGlobalStats();
+    } catch (error) {
+      console.error('getGlobalStats error:', error);
+      return null;
+    }
+  }
+
+  // ==========================================
+  // BRIDGE - Проекты
+  // ==========================================
+
+  /**
+   * Проверить доступ к проекту
+   * ABI: checkUserAccess(address user, string projectId) view returns (bool)
+   */
+  async checkUserAccess(projectId) {
+    try {
+      return await this.contracts.bridge.checkUserAccess(web3Manager.address, projectId);
+    } catch (error) {
+      console.error('checkUserAccess error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Получить статус доступа
+   * ABI: getUserAccessStatus(address user, string projectId) view returns (AccessStatus)
+   */
+  async getUserAccessStatus(projectId) {
+    try {
+      return await this.contracts.bridge.getUserAccessStatus(web3Manager.address, projectId);
     } catch (error) {
       console.error('getUserAccessStatus error:', error);
       return null;
@@ -813,7 +667,8 @@ class ContractsManager {
   }
 
   /**
-   * Отримати всі проекти
+   * Получить все проекты
+   * ABI: getAllProjects() view returns (Project[])
    */
   async getAllProjects() {
     try {
@@ -825,7 +680,8 @@ class ContractsManager {
   }
 
   /**
-   * Отримати проект
+   * Получить проект по ID
+   * ABI: getProject(string projectId) view returns (Project)
    */
   async getProject(projectId) {
     try {
@@ -835,166 +691,7 @@ class ContractsManager {
       return null;
     }
   }
-
-  // ==========================================
-  // EVENTS PARSING - НОВІ ФУНКЦІЇ!
-  // ==========================================
-
-  /**
-   * Отримати історію активацій рівнів
-   */
-  async getLevelActivationsHistory(address) {
-    try {
-      const filter = this.contracts.globalWay.filters.LevelActivated(address);
-      const events = await this.contracts.globalWay.queryFilter(filter);
-      
-      const history = [];
-      for (const event of events) {
-        const block = await event.getBlock();
-        history.push({
-          level: Number(event.args.level),
-          timestamp: block.timestamp,
-          blockNumber: event.blockNumber,
-          txHash: event.transactionHash
-        });
-      }
-      
-      return history.sort((a, b) => b.timestamp - a.timestamp);
-    } catch (error) {
-      console.error('getLevelActivationsHistory error:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Отримати історію квартальних платежів
-   */
-  async getQuarterlyPaymentsHistory(address) {
-    try {
-      const filter = this.contracts.quarterly.filters.QuarterlyPaid(address);
-      const events = await this.contracts.quarterly.queryFilter(filter);
-      
-      const history = [];
-      for (const event of events) {
-        const block = await event.getBlock();
-        history.push({
-          quarter: Number(event.args.quarter),
-          amount: event.args.amount,
-          timestamp: block.timestamp,
-          blockNumber: event.blockNumber,
-          txHash: event.transactionHash
-        });
-      }
-      
-      return history.sort((a, b) => b.timestamp - a.timestamp);
-    } catch (error) {
-      console.error('getQuarterlyPaymentsHistory error:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Отримати матричні позиції для рівня
-   */
-  async getMatrixPositions(address, level) {
-    try {
-      const matrixInfo = await this.contracts.globalWay.getMatrixPosition(address, level);
-      
-      const positions = [];
-      
-      // Отримати Events для кожної позиції
-      const filter = this.contracts.globalWay.filters.NewUserPlace(level, address);
-      const events = await this.contracts.globalWay.queryFilter(filter);
-      
-      // Створити map позицій
-      const positionMap = new Map();
-      
-      for (const event of events) {
-        const position = Number(event.args.position);
-        const user = event.args.user;
-        const placedBy = event.args.placedBy || ethers.constants.AddressZero;
-        const block = await event.getBlock();
-        
-        // Отримати ID користувача
-        const userInfo = await this.getUserInfo(user);
-        
-        positionMap.set(position, {
-          position,
-          user,
-          userId: userInfo.id,
-          placedBy,
-          timestamp: block.timestamp,
-          isFilled: true
-        });
-      }
-      
-      // Заповнити всі 7 позицій
-      for (let i = 0; i < 7; i++) {
-        if (positionMap.has(i)) {
-          positions.push(positionMap.get(i));
-        } else {
-          positions.push({
-            position: i,
-            user: ethers.constants.AddressZero,
-            userId: '',
-            placedBy: ethers.constants.AddressZero,
-            timestamp: 0,
-            isFilled: false
-          });
-        }
-      }
-      
-      return {
-        matrixInfo,
-        positions
-      };
-    } catch (error) {
-      console.error('getMatrixPositions error:', error);
-      return {
-        matrixInfo: null,
-        positions: []
-      };
-    }
-  }
-
-  // ==========================================
-  // ADMIN FUNCTIONS
-  // ==========================================
-
-  /**
-   * Безкоштовна реєстрація
-   */
-  async freeRegister(address, sponsorAddress) {
-    try {
-      const tx = await this.contracts.globalWay.freeRegister(address, sponsorAddress, {
-        gasLimit: CONFIG.GAS_LIMITS.adminAction
-      });
-      
-      const receipt = await tx.wait();
-      return receipt;
-    } catch (error) {
-      console.error('freeRegister error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Заблокувати користувача
-   */
-  async blockUser(address, reason) {
-    try {
-      const tx = await this.contracts.globalWay.blockUser(address, reason, {
-        gasLimit: CONFIG.GAS_LIMITS.adminAction
-      });
-      
-      const receipt = await tx.wait();
-      return receipt;
-    } catch (error) {
-      console.error('blockUser error:', error);
-      throw error;
-    }
-  }
 }
 
-// Створити глобальний екземпляр
+// Глобальный экземпляр
 const contracts = new ContractsManager();
