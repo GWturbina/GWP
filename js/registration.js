@@ -119,12 +119,26 @@ function closeRegistrationModal() {
 
 // 🔥 УЛУЧШЕННАЯ ФУНКЦИЯ: Регистрация
 async function register() {
-  const sponsorInput = document.getElementById('sponsorInput');
+  let sponsorInput = document.getElementById('sponsorInput');
   const registerBtn = document.getElementById('registerBtn');
   
+  // Если input не найден - создать модальное окно
   if (!sponsorInput) {
-    console.error('Sponsor input not found');
-    return;
+    console.warn('⚠️ Sponsor input not found, creating modal...');
+    
+    // Создать модальное окно если его нет
+    if (!document.getElementById('registrationModal')) {
+      createRegistrationModal();
+    }
+    
+    // Попробовать найти снова после создания
+    sponsorInput = document.getElementById('sponsorInput');
+    
+    if (!sponsorInput) {
+      console.error('❌ Failed to create registration form');
+      Utils.showNotification('Registration form not available', 'error');
+      return;
+    }
   }
   
   const sponsorId = sponsorInput.value.trim();
