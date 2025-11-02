@@ -119,26 +119,12 @@ function closeRegistrationModal() {
 
 // 🔥 УЛУЧШЕННАЯ ФУНКЦИЯ: Регистрация
 async function register() {
-  let sponsorInput = document.getElementById('sponsorInput');
+  const sponsorInput = document.getElementById('sponsorInput');
   const registerBtn = document.getElementById('registerBtn');
   
-  // Если input не найден - создать модальное окно
   if (!sponsorInput) {
-    console.warn('⚠️ Sponsor input not found, creating modal...');
-    
-    // Создать модальное окно если его нет
-    if (!document.getElementById('registrationModal')) {
-      createRegistrationModal();
-    }
-    
-    // Попробовать найти снова после создания
-    sponsorInput = document.getElementById('sponsorInput');
-    
-    if (!sponsorInput) {
-      console.error('❌ Failed to create registration form');
-      Utils.showNotification('Registration form not available', 'error');
-      return;
-    }
+    console.error('Sponsor input not found');
+    return;
   }
   
   const sponsorId = sponsorInput.value.trim();
@@ -197,8 +183,8 @@ async function register() {
       }
       
       // Перейти в dashboard
-      if (typeof showPage === 'function') {
-        showPage('dashboard');
+      if (typeof uiManager !== 'undefined' && uiManager.showPage) {
+        uiManager.showPage('dashboard');
       }
       if (app && app.loadDashboard) {
         await app.loadDashboard();
@@ -303,8 +289,8 @@ async function register() {
     }
     
     // Перейти в dashboard
-    if (typeof showPage === 'function') {
-      showPage('dashboard');
+    if (typeof uiManager !== 'undefined' && uiManager.showPage) {
+      uiManager.showPage('dashboard');
     }
     
     // Загрузить dashboard
