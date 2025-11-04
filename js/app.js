@@ -75,13 +75,20 @@ class Application {
     if (openDappBtn) {
       openDappBtn.addEventListener('click', () => {
         console.log('🚀 Opening DApp...');
-        if (window.uiManager) {
-          uiManager.showPage('dapp');
-          // Скрыть landing, показать dapp
-          const landing = document.getElementById('landing');
-          const dapp = document.getElementById('dapp');
-          if (landing) landing.classList.remove('active');
-          if (dapp) dapp.classList.add('active');
+        
+        // Переключаем главные страницы (landing <-> dapp)
+        const landing = document.getElementById('landing');
+        const dapp = document.getElementById('dapp');
+        
+        if (landing && dapp) {
+          landing.classList.remove('active');
+          dapp.classList.add('active');
+          console.log('✅ Switched to DApp page');
+          
+          // Показываем dashboard внутри dapp
+          if (window.uiManager) {
+            uiManager.showPage('dashboard');
+          }
         }
       });
     }
