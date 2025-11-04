@@ -9,7 +9,7 @@
 class PartnersManager {
   constructor() {
     this.currentLevel = 1;
-    this.partners = [];
+    // 🔥 ИСПРАВЛЕНО: Убрали this.partners, теперь загружаем партнёров динамически по уровням
   }
 
   async init() {
@@ -78,34 +78,18 @@ class PartnersManager {
     Utils.showLoader(true, 'Loading partners...');
     
     try {
+      // 🔥 ИСПРАВЛЕНО: Загружаем только статистику, партнёров загрузим по уровням
       const address = web3Manager.address;
-      
       const structureStats = await contracts.getUserStructureStats(address);
-      
-      this.partners = [];
-      
-      for (const partnerAddress of structureStats.referrals) {
-        const partnerInfo = await contracts.getUserInfo(partnerAddress);
-        const partnerRank = await contracts.getRankInfo(partnerAddress);
-        
-        this.partners.push({
-          address: partnerAddress,
-          id: partnerInfo.id,
-          sponsorId: partnerInfo.sponsorId,
-          registrationTime: partnerInfo.registrationTime,
-          activeLevel: partnerInfo.activeLevel,
-          partnersCount: partnerInfo.partnersCount,
-          rank: partnerRank.currentRank,
-          isActive: partnerInfo.isActive
-        });
-      }
       
       this.updateStatistics(structureStats);
       await this.updateQualification();
       await this.updateEarnings();
+      
+      // Загружаем партнёров для текущего уровня глубины
       await this.loadPartnersForLevel(this.currentLevel);
       
-      console.log('✅ Partners loaded:', this.partners.length);
+      console.log('✅ Partners data loaded');
       
     } catch (error) {
       console.error('❌ Load partners error:', error);
@@ -115,50 +99,142 @@ class PartnersManager {
     }
   }
 
+  /**
+   * Загрузить партнёров для конкретного уровня глубины
+   * 🔥 ИСПРАВЛЕНО: Рекурсивная загрузка по глубине структуры
+   * Уровень 1: прямые рефералы
+   * Уровень 2: рефералы рефералов
+   * Уровень N: рефералы на глубине N
+   */
   async loadPartnersForLevel(level) {
     const tableBody = document.getElementById('partnersTable');
     if (!tableBody) return;
     
-    const levelPartners = this.partners.filter(p => p.activeLevel >= level);
+    tableBody.innerHTML = '<tr><td colspan="8" class="loading">Loading partners...</td></tr>';
     
-    if (levelPartners.length === 0) {
+    try {
+      const address = web3Manager.address;
+      
+      // Получаем партнёров на указанной глубине
+      const partners = await this.getPartnersAtDepth(address, level);
+      
+      console.log(`📊 Partners at level ${level}:`, partners.length);
+      
+      if (partners.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="8" class="no-data">No partners at level ${level}</td>
+          </tr>
+        `;
+        return;
+      }
+      
+      // Загружаем информацию о каждом партнёре
+      const partnersData = [];
+      for (const partnerAddress of partners) {
+        try {
+          const partnerInfo = await contracts.getUserInfo(partnerAddress);
+          partnersData.push({
+            address: partnerAddress,
+            id: partnerInfo.id || `GW${partnerAddress.slice(2, 9)}`,
+            sponsorId: partnerInfo.sponsorId || '-',
+            registrationTime: partnerInfo.registrationTime,
+            activeLevel: partnerInfo.activeLevel,
+            partnersCount: partnerInfo.partnersCount,
+            rankLevel: partnerInfo.rankLevel,
+            isActive: partnerInfo.isActive
+          });
+        } catch (error) {
+          console.error(`Error loading partner ${partnerAddress}:`, error);
+        }
+      }
+      
+      // Отображаем в таблице
+      tableBody.innerHTML = partnersData.map((partner, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${partner.id}</td>
+          <td><a href="${CONFIG.NETWORK.explorer}/address/${partner.address}" target="_blank" rel="noopener">${Utils.formatAddress(partner.address)}</a></td>
+          <td>${partner.sponsorId}</td>
+          <td>${Utils.formatDate(partner.registrationTime)}</td>
+          <td>${partner.activeLevel}/12</td>
+          <td>${partner.partnersCount}</td>
+          <td><span class="rank-badge rank-${partner.rankLevel}">${this.getRankName(partner.activeLevel)}</span></td>
+        </tr>
+      `).join('');
+      
+    } catch (error) {
+      console.error('❌ loadPartnersForLevel error:', error);
       tableBody.innerHTML = `
         <tr>
-          <td colspan="8" class="no-data">No partners at this level</td>
+          <td colspan="8" class="error">Error loading partners: ${error.message}</td>
         </tr>
       `;
-      return;
+    }
+  }
+  
+  /**
+   * Рекурсивно получить партнёров на определённой глубине
+   * @param {string} address - Адрес пользователя
+   * @param {number} depth - Глубина (1 = прямые, 2 = второй уровень и т.д.)
+   * @returns {Promise<string[]>} Массив адресов партнёров на указанной глубине
+   */
+  async getPartnersAtDepth(address, depth) {
+    if (depth === 1) {
+      // Прямые рефералы
+      try {
+        const referrals = await contracts.getDirectReferrals(address);
+        return referrals || [];
+      } catch (error) {
+        console.error('Error getting direct referrals:', error);
+        return [];
+      }
     }
     
-    tableBody.innerHTML = levelPartners.map((partner, index) => `
-      <tr>
-        <td>${index + 1}</td>
-        <td>${partner.id}</td>
-        <td><a href="${Utils.getExplorerLink(partner.address)}" target="_blank">${Utils.formatAddress(partner.address)}</a></td>
-        <td>${partner.sponsorId}</td>
-        <td>${Utils.formatDate(partner.registrationTime)}</td>
-        <td>${partner.activeLevel}/12</td>
-        <td>${partner.partnersCount}</td>
-        <td><span class="rank-badge rank-${partner.rank}">${this.getRankName(partner.rank)}</span></td>
-      </tr>
-    `).join('');
+    // Для глубины > 1: рекурсивно получаем партнёров
+    try {
+      // Получаем партнёров на глубине depth-1
+      const previousLevelPartners = await this.getPartnersAtDepth(address, depth - 1);
+      
+      // Для каждого партнёра с предыдущего уровня получаем их прямых рефералов
+      const allPartners = [];
+      for (const partnerAddress of previousLevelPartners) {
+        try {
+          const referrals = await contracts.getDirectReferrals(partnerAddress);
+          if (referrals && referrals.length > 0) {
+            allPartners.push(...referrals);
+          }
+        } catch (error) {
+          console.error(`Error getting referrals for ${partnerAddress}:`, error);
+        }
+      }
+      
+      // Убираем дубликаты (если партнёр встречается несколько раз)
+      return [...new Set(allPartners)];
+      
+    } catch (error) {
+      console.error(`Error getting partners at depth ${depth}:`, error);
+      return [];
+    }
   }
 
   updateStatistics(structureStats) {
+    // Личные приглашения (прямые рефералы)
     const personalInvitesEl = document.getElementById('personalInvites');
     if (personalInvitesEl) {
-      personalInvitesEl.textContent = structureStats.directReferrals || 0;
+      personalInvitesEl.textContent = structureStats.personalInvites || 0;
     }
     
+    // Активные партнёры
     const activePartnersEl = document.getElementById('activePartners');
     if (activePartnersEl) {
-      const activeCount = this.partners.filter(p => p.isActive).length;
-      activePartnersEl.textContent = activeCount;
+      activePartnersEl.textContent = structureStats.activePartners || 0;
     }
     
+    // Общая команда
     const totalTeamEl = document.getElementById('totalTeam');
     if (totalTeamEl) {
-      totalTeamEl.textContent = this.partners.length;
+      totalTeamEl.textContent = structureStats.totalTeam || 0;
     }
   }
 
@@ -197,34 +273,40 @@ class PartnersManager {
     try {
       const balances = await contracts.getUserBalances(web3Manager.address);
       
+      // 🔥 ИСПРАВЛЕНО: Используем правильные имена балансов из contracts.getUserBalances()
+      // balances уже возвращает отформатированные строки, не BigNumber
+      
+      // Direct Bonus = referral balance
       const directBonusEl = document.getElementById('directBonus');
       if (directBonusEl) {
-        directBonusEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(balances.referralBalance))} BNB`;
+        directBonusEl.textContent = `${Utils.formatBNB(balances.referral)} BNB`;
       }
       
+      // Partner Bonus = половина matrix balance
       const partnerBonusEl = document.getElementById('partnerBonus');
       if (partnerBonusEl) {
-        const partnerBonus = balances.matrixBalance.div(2);
-        partnerBonusEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(partnerBonus))} BNB`;
+        const partnerBonus = parseFloat(balances.matrix) / 2;
+        partnerBonusEl.textContent = `${Utils.formatBNB(partnerBonus)} BNB`;
       }
       
+      // Matrix Bonus = половина matrix balance
       const matrixBonusEl = document.getElementById('matrixBonus');
       if (matrixBonusEl) {
-        const matrixBonus = balances.matrixBalance.div(2);
-        matrixBonusEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(matrixBonus))} BNB`;
+        const matrixBonus = parseFloat(balances.matrix) / 2;
+        matrixBonusEl.textContent = `${Utils.formatBNB(matrixBonus)} BNB`;
       }
       
+      // Leadership Bonus = leaderPool balance
       const leadershipBonusEl = document.getElementById('leadershipBonus');
       if (leadershipBonusEl) {
-        leadershipBonusEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(balances.leaderBalance))} BNB`;
+        leadershipBonusEl.textContent = `${Utils.formatBNB(balances.leaderPool)} BNB`;
       }
       
+      // Total Earned
       const totalEarnedEl = document.getElementById('totalEarned');
       if (totalEarnedEl) {
-        const total = balances.referralBalance
-          .add(balances.matrixBalance)
-          .add(balances.leaderBalance);
-        totalEarnedEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(total))} BNB`;
+        const total = parseFloat(balances.referral) + parseFloat(balances.matrix) + parseFloat(balances.leaderPool);
+        totalEarnedEl.textContent = `${Utils.formatBNB(total)} BNB`;
       }
       
     } catch (error) {
@@ -232,9 +314,17 @@ class PartnersManager {
     }
   }
 
-  getRankName(rankLevel) {
-    const ranks = ['None', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
-    return ranks[rankLevel] || 'None';
+  /**
+   * Получить название ранга по количеству активных уровней
+   * 🔥 ИСПРАВЛЕНО: Определяем ранг по activeLevel
+   */
+  getRankName(activeLevel) {
+    if (!activeLevel || activeLevel === 0) return 'None';
+    if (activeLevel >= 1 && activeLevel <= 3) return 'Bronze';
+    if (activeLevel >= 4 && activeLevel <= 7) return 'Silver';
+    if (activeLevel >= 8 && activeLevel <= 10) return 'Gold';
+    if (activeLevel >= 11 && activeLevel <= 12) return 'Platinum';
+    return 'None';
   }
 }
 
