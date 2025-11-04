@@ -23,17 +23,19 @@ class ContractsManager {
     
     try {
       // Список всех контрактов и их файлов
+      // 🔥 ИСПРАВЛЕНО: Используем абсолютные пути для совместимости с SafePal
+      const baseUrl = window.location.origin;
       const contractFiles = {
-        GlobalWay: './contracts/abis/GlobalWay.json',
-        GWTToken: './contracts/abis/GWTToken.json',
-        Marketing: './contracts/abis/GlobalWayMarketing.json',
-        LeaderPool: './contracts/abis/GlobalWayLeaderPool.json',
-        Investment: './contracts/abis/GlobalWayInvestment.json',
-        Quarterly: './contracts/abis/GlobalWayQuarterly.json',
-        TechAccounts: './contracts/abis/GlobalWayTechAccounts.json',
-        Bridge: './contracts/abis/GlobalWayBridge.json',
-        Stats: './contracts/abis/GlobalWayStats.json',
-        Governance: './contracts/abis/GlobalWayGovernance.json'
+        GlobalWay: `${baseUrl}/contracts/abis/GlobalWay.json`,
+        GWTToken: `${baseUrl}/contracts/abis/GWTToken.json`,
+        Marketing: `${baseUrl}/contracts/abis/GlobalWayMarketing.json`,
+        LeaderPool: `${baseUrl}/contracts/abis/GlobalWayLeaderPool.json`,
+        Investment: `${baseUrl}/contracts/abis/GlobalWayInvestment.json`,
+        Quarterly: `${baseUrl}/contracts/abis/GlobalWayQuarterly.json`,
+        TechAccounts: `${baseUrl}/contracts/abis/GlobalWayTechAccounts.json`,
+        Bridge: `${baseUrl}/contracts/abis/GlobalWayBridge.json`,
+        Stats: `${baseUrl}/contracts/abis/GlobalWayStats.json`,
+        Governance: `${baseUrl}/contracts/abis/GlobalWayGovernance.json`
       };
       
       // Загружаем все файлы параллельно
@@ -293,9 +295,9 @@ class ContractsManager {
       console.log('  Sponsor:', sponsorAddress);
       console.log('  Payment:', CONFIG.LEVEL_PRICES[0], 'BNB');
       
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit
       const tx = await this.contracts.globalWay.register(sponsorAddress, {
-        value: price,
-        gasLimit: CONFIG.GAS_LIMITS.register
+        value: price
       });
       
       console.log('📤 Transaction sent:', tx.hash);
@@ -319,9 +321,9 @@ class ContractsManager {
       console.log(`📝 Activating Level ${level}...`);
       console.log('  Payment:', CONFIG.LEVEL_PRICES[level - 1], 'BNB');
       
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit для SafePal - пусть кошелек оценит
       const tx = await this.contracts.globalWay.activateLevel(level, {
-        value: price,
-        gasLimit: CONFIG.GAS_LIMITS.activateLevel
+        value: price
       });
       
       console.log('📤 Transaction sent:', tx.hash);
@@ -346,9 +348,9 @@ class ContractsManager {
       console.log(`📝 Activating Levels 1-${upToLevel}...`);
       console.log('  Total Payment:', ethers.utils.formatEther(totalPrice), 'BNB');
       
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit для SafePal - пусть кошелек оценит
       const tx = await this.contracts.globalWay.activateBulkLevels(upToLevel, {
-        value: totalPrice,
-        gasLimit: CONFIG.GAS_LIMITS.activateBulkLevels
+        value: totalPrice
       });
       
       console.log('📤 Transaction sent:', tx.hash);
@@ -551,9 +553,8 @@ class ContractsManager {
     try {
       console.log('💰 Withdrawing referral balance...');
       
-      const tx = await this.contracts.marketing.withdrawReferral({
-        gasLimit: CONFIG.GAS_LIMITS.withdrawReferral
-      });
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit
+      const tx = await this.contracts.marketing.withdrawReferral();
       
       console.log('📤 Transaction sent:', tx.hash);
       const receipt = await tx.wait();
@@ -573,9 +574,8 @@ class ContractsManager {
     try {
       console.log('💰 Withdrawing matrix balance...');
       
-      const tx = await this.contracts.marketing.withdrawMatrix({
-        gasLimit: CONFIG.GAS_LIMITS.withdrawMatrix
-      });
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit
+      const tx = await this.contracts.marketing.withdrawMatrix();
       
       console.log('📤 Transaction sent:', tx.hash);
       const receipt = await tx.wait();
@@ -647,9 +647,8 @@ class ContractsManager {
     try {
       console.log('💰 Claiming rank bonus...');
       
-      const tx = await this.contracts.leaderPool.claimRankBonus({
-        gasLimit: CONFIG.GAS_LIMITS.claimRankBonus
-      });
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit
+      const tx = await this.contracts.leaderPool.claimRankBonus();
       
       console.log('📤 Transaction sent:', tx.hash);
       const receipt = await tx.wait();
@@ -702,9 +701,9 @@ class ContractsManager {
       console.log('💳 Paying quarterly activity...');
       console.log('  Fee:', CONFIG.QUARTERLY.FEE, 'BNB');
       
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit
       const tx = await this.contracts.quarterly.payQuarterlyActivity({
-        value: fee,
-        gasLimit: CONFIG.GAS_LIMITS.payQuarterly
+        value: fee
       });
       
       console.log('📤 Transaction sent:', tx.hash);
@@ -753,9 +752,8 @@ class ContractsManager {
     try {
       console.log('💰 Claiming weekly investment reward...');
       
-      const tx = await this.contracts.investment.withdraw({
-        gasLimit: CONFIG.GAS_LIMITS.withdraw
-      });
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit
+      const tx = await this.contracts.investment.withdraw();
       
       console.log('📤 Transaction sent:', tx.hash);
       const receipt = await tx.wait();
@@ -808,9 +806,9 @@ class ContractsManager {
       
       const value = ethers.utils.parseEther(amountBNB.toString());
       
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit
       const tx = await this.contracts.token.buyTokens({
-        value: value,
-        gasLimit: CONFIG.GAS_LIMITS.buyTokens
+        value: value
       });
       
       console.log('📤 Transaction sent:', tx.hash);
@@ -834,9 +832,8 @@ class ContractsManager {
       
       const amount = ethers.utils.parseEther(amountGWT.toString());
       
-      const tx = await this.contracts.token.sellTokens(amount, {
-        gasLimit: CONFIG.GAS_LIMITS.sellTokens
-      });
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit
+      const tx = await this.contracts.token.sellTokens(amount);
       
       console.log('📤 Transaction sent:', tx.hash);
       const receipt = await tx.wait();
@@ -1053,6 +1050,133 @@ class ContractsManager {
   }
 
   /**
+   * Получить все позиции матрицы для пользователя
+   * 🔥 НОВАЯ ФУНКЦИЯ: Правильная загрузка матрицы относительно пользователя
+   * Показывает 2^N позиций для уровня N (без ограничения на 20 строк)
+   */
+  async getMatrixPositions(address, level) {
+    try {
+      console.log(`📊 Loading matrix positions for level ${level}...`);
+      
+      // Получаем базовую информацию о позиции пользователя
+      const userPosition = await this.getMatrixPosition(address, level);
+      const userInfo = await this.getUserInfo(address);
+      
+      // Массив для хранения всех позиций
+      const positions = [];
+      
+      // Позиция 0: сам пользователь
+      positions.push({
+        position: 0,
+        user: address,
+        userId: userInfo.id || `GW${address.slice(2, 9)}`,
+        placedBy: userPosition.parent || ethers.constants.AddressZero,
+        isFilled: true,
+        timestamp: userInfo.registrationTime,
+        children: userPosition.children || []
+      });
+      
+      // Определяем количество позиций для этого уровня
+      // Уровень 1: 2 позиции, Уровень 2: 4 позиции, Уровень N: 2^N позиций
+      const maxPositions = Math.pow(2, level);
+      
+      // Загружаем позиции детей рекурсивно
+      await this.loadMatrixChildren(address, level, 0, positions, maxPositions);
+      
+      console.log(`✅ Loaded ${positions.length} positions for level ${level}`);
+      
+      return {
+        level,
+        positions,
+        userAddress: address,
+        totalPositions: positions.length,
+        filledPositions: positions.filter(p => p.isFilled).length
+      };
+      
+    } catch (error) {
+      console.error('getMatrixPositions error:', error);
+      return {
+        level,
+        positions: [],
+        userAddress: address,
+        totalPositions: 0,
+        filledPositions: 0
+      };
+    }
+  }
+  
+  /**
+   * Рекурсивная загрузка детей в матрице
+   */
+  async loadMatrixChildren(rootAddress, level, currentPosition, positions, maxPositions) {
+    // Проверяем, не превысили ли мы максимум позиций
+    if (positions.length >= maxPositions + 1) return; // +1 для корневой позиции
+    
+    // Получаем позицию для текущего индекса
+    const existingPosition = positions.find(p => p.position === currentPosition);
+    if (!existingPosition || !existingPosition.children || existingPosition.children.length === 0) {
+      return;
+    }
+    
+    // Для каждого ребёнка
+    for (let i = 0; i < existingPosition.children.length && i < 2; i++) {
+      const childAddress = existingPosition.children[i];
+      const childPositionIndex = currentPosition * 2 + i + 1;
+      
+      try {
+        // Проверяем, заполнена ли позиция
+        if (childAddress && childAddress !== ethers.constants.AddressZero) {
+          const childInfo = await this.getUserInfo(childAddress);
+          const childLevelInfo = await this.getUserLevel(childAddress, level);
+          
+          positions.push({
+            position: childPositionIndex,
+            user: childAddress,
+            userId: childInfo.id || `GW${childAddress.slice(2, 9)}`,
+            placedBy: existingPosition.user,
+            isFilled: childLevelInfo.isActive,
+            timestamp: childLevelInfo.activationTime,
+            children: []
+          });
+          
+          // Получаем детей этой позиции для дальнейшей рекурсии
+          const childPosition = await this.getMatrixPosition(childAddress, level);
+          if (childPosition.children && childPosition.children.length > 0) {
+            const lastAdded = positions[positions.length - 1];
+            lastAdded.children = childPosition.children;
+            
+            // Рекурсивно загружаем детей этой позиции
+            await this.loadMatrixChildren(rootAddress, level, childPositionIndex, positions, maxPositions);
+          }
+        } else {
+          // Пустая позиция
+          positions.push({
+            position: childPositionIndex,
+            user: ethers.constants.AddressZero,
+            userId: null,
+            placedBy: existingPosition.user,
+            isFilled: false,
+            timestamp: 0,
+            children: []
+          });
+        }
+      } catch (error) {
+        console.error(`Error loading position ${childPositionIndex}:`, error);
+        // Добавляем пустую позицию в случае ошибки
+        positions.push({
+          position: childPositionIndex,
+          user: ethers.constants.AddressZero,
+          userId: null,
+          placedBy: existingPosition.user,
+          isFilled: false,
+          timestamp: 0,
+          children: []
+        });
+      }
+    }
+  }
+
+  /**
    * Поиск пользователя в матрице по ID
    */
   async searchInMatrix(userId) {
@@ -1191,9 +1315,8 @@ class ContractsManager {
       console.log('  User:', userAddress);
       console.log('  Sponsor:', sponsorAddress);
       
-      const tx = await this.contracts.globalWay.freeRegister(userAddress, sponsorAddress, {
-        gasLimit: CONFIG.GAS_LIMITS.register
-      });
+      // 🔥 ИСПРАВЛЕНО: Убрали жесткий gasLimit
+      const tx = await this.contracts.globalWay.freeRegister(userAddress, sponsorAddress);
       
       console.log('📤 Transaction sent:', tx.hash);
       const receipt = await tx.wait();
