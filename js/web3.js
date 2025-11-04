@@ -1,11 +1,7 @@
 /* jshint esversion: 8 */
-/* global CONFIG, ethers */
-
-/**
- * Web3Manager - SafePal Priority Implementation
- * Version: 2.0 - Production Ready
- * КРИТИЧНО: SafePal ТОЛЬКО! MetaMask ЗАПРЕЩЁН!
- */
+/* global CONFIG, Promise, ethers */
+// 🔥 ИСПРАВЛЕННЫЙ Web3Manager для SafePal Mobile
+// Оптимизированные задержки, упрощённая логика, лучшая совместимость
 
 class Web3Manager {
   constructor() {
@@ -13,604 +9,485 @@ class Web3Manager {
     this.signer = null;
     this.address = null;
     this.connected = false;
-    this.network = null;
-    
-    // Определение устройства
     this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    this.isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    this.isAndroid = /Android/i.test(navigator.userAgent);
-    
-    // Определение SafePal браузера
     this.isSafePalBrowser = this.detectSafePalBrowser();
-    
-    console.log('🔧 Web3Manager initialized');
-    console.log('📱 Device:', this.isMobile ? 'Mobile' : 'Desktop');
-    console.log('🦊 SafePal Browser:', this.isSafePalBrowser);
   }
 
-  /**
-   * Определение SafePal браузера
-   * Проверяет несколько признаков для надёжности
-   */
+  // 🔥 УЛУЧШЕННАЯ детекция SafePal
   detectSafePalBrowser() {
     try {
       const ua = navigator.userAgent || '';
       
-      // Проверка 1: User-Agent содержит 'SafePal'
+      console.log('🔍 Detecting SafePal browser...');
+      console.log('User-Agent:', ua);
+      
       if (ua.includes('SafePal') || ua.includes('safepal')) {
         console.log('✅ SafePal detected via User-Agent');
         return true;
       }
       
-      // Проверка 2: URL содержит 'safepal'
-      if (window.location.href.includes('safepal')) {
+      if (window.location.href && window.location.href.includes('safepal')) {
         console.log('✅ SafePal detected via URL');
         return true;
       }
       
-      // Проверка 3: window.safepal объект существует
-      if (typeof window.safepal !== 'undefined') {
+      if (window.safepal) {
         console.log('✅ SafePal detected via window.safepal');
         return true;
       }
       
-      // Проверка 4: window.ethereum имеет флаги SafePal
-      if (window.ethereum) {
-        if (window.ethereum.isSafePal || window.ethereum.isSafePalWallet) {
-          console.log('✅ SafePal detected via window.ethereum flags');
-          return true;
-        }
+      if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
+        console.log('✅ SafePal detected via window.ethereum flags');
+        return true;
       }
       
-      // Проверка 5: providers массив содержит SafePal
       if (window.ethereum && Array.isArray(window.ethereum.providers)) {
-        for (const provider of window.ethereum.providers) {
-          if (provider.isSafePal || provider.isSafePalWallet || provider.isSafePalProvider) {
-            console.log('✅ SafePal detected via ethereum.providers array');
+        for (const p of window.ethereum.providers) {
+          if (p && (p.isSafePal || p.isSafePalWallet || p.isSafePalProvider)) {
+            console.log('✅ SafePal detected via ethereum.providers');
             return true;
           }
         }
       }
       
-      console.log('ℹ️ SafePal NOT detected');
-      return false;
+      console.log('⚠️ SafePal NOT detected');
       
-    } catch (error) {
-      console.warn('⚠️ SafePal detection error:', error);
-      return false;
+    } catch (e) {
+      console.warn('SafePal detect error', e);
+    }
+    return false;
+  }
+
+  async init() {
+    console.log('🔌 Initializing Web3Manager...');
+    console.log('📱 Device:', this.isMobile ? 'Mobile' : 'Desktop');
+    console.log('🦊 SafePal Browser:', this.isSafePalBrowser);
+
+    // 🔥 ИСПРАВЛЕНО: Увеличена задержка для SafePal мобильного браузера
+    if (this.isSafePalBrowser) {
+      console.log('⏳ Waiting for SafePal injection...');
+      await this.waitForSafePal(10000); // 🔥 10 секунд для стабильности на мобильных
+      if (this.hasSafePalProvider()) {
+        console.log('✅ SafePal provider detected during init');
+        await this.autoConnect();
+        return;
+      }
+    }
+
+    // 🔥 ДОБАВЛЕНО: Fallback если provider ещё не готов
+     else if (this.isSafePalBrowser && !this.connected) {
+       console.log('⚠️ SafePal provider not ready, trying autoConnect anyway...');
+       await this.autoConnect();
+     }
+
+    // Auto-connect если сохранён кошелёк
+    const savedAddress = localStorage.getItem('walletAddress');
+    const walletConnected = localStorage.getItem('walletConnected');
+
+    if (savedAddress && walletConnected === 'true') {
+      console.log('🔄 Found saved wallet, attempting auto-connect...');
+      await this.autoConnect();
     }
   }
 
-  /**
-   * Инициализация Web3Manager
-   * Вызывается при загрузке приложения
-   */
-  async init() {
-    console.log('🔌 Initializing Web3Manager...');
-    
+  // 🔥 ИСПРАВЛЕНО: Упрощённый метод подключения
+async connect() {
     try {
-      // Если в SafePal браузере - ждём injection
-      if (this.isSafePalBrowser) {
-        console.log('⏳ Waiting for SafePal provider injection...');
-        await this.waitForSafePal(CONFIG.TIMEOUTS.safePalInjection);
+      console.log('🔌 Starting wallet connection...');
+      console.log('📱 Device:', this.isMobile ? 'Mobile' : 'Desktop');
+      console.log('🦊 SafePal Browser:', this.isSafePalBrowser);
+      
+      // 🔥 ИСПРАВЛЕНО: Минимальная задержка
+      const initialDelay = this.isMobile ? 1000 : 500; // 🔥 Уменьшено!
+      console.log(`⏳ Initial delay: ${initialDelay}ms`);
+      await new Promise(resolve => setTimeout(resolve, initialDelay));
+      
+      // 🔥 ИСПРАВЛЕНО: Увеличена задержка для SafePal мобильного браузера
+      console.log('🔍 Waiting for SafePal provider...');
+      const safePalFound = await this.waitForSafePal(10000); // 🔥 10 секунд для стабильности
+      console.log('🔍 SafePal provider found:', safePalFound);
+      
+      // Priority 1: SafePal provider
+      if (this.hasSafePalProvider()) {
+        console.log('✅ SafePal provider detected, connecting...');
+        await this.connectSafePal();
         
-        // Попытка автоподключения
-        const savedAddress = localStorage.getItem('walletAddress');
-        const wasConnected = localStorage.getItem('walletConnected') === 'true';
+        if (!this.signer || !this.address) {
+          console.error('❌ SafePal connected but signer/address missing');
+          throw new Error('SafePal connection incomplete. Please try again.');
+        }
         
-        if (savedAddress && wasConnected) {
-          console.log('🔄 Attempting auto-connect to saved wallet...');
+        // 🔥 ИСПРАВЛЕНО: Быстрая проверка для мобильных
+        if (this.isMobile) {
+          console.log('📱 Mobile SafePal - verifying connection...');
+          await new Promise(resolve => setTimeout(resolve, 300)); // 🔥 300ms вместо 500ms
+          
           try {
-            await this.autoConnect();
-          } catch (error) {
-            console.warn('⚠️ Auto-connect failed:', error.message);
-            // Не критично, пользователь переподключится вручную
+            const testAddress = await this.signer.getAddress();
+            if (!testAddress || testAddress !== this.address) {
+              throw new Error('Address verification failed');
+            }
+          } catch (verifyError) {
+            console.error('❌ Address verification failed:', verifyError);
+            throw new Error('Mobile wallet verification failed. Please reconnect.');
           }
         }
       }
-      
-      console.log('✅ Web3Manager initialized');
-    } catch (error) {
-      console.error('❌ Web3Manager initialization error:', error);
-    }
-  }
-
-  /**
-   * Автоподключение к сохранённому кошельку
-   */
-  async autoConnect() {
-    try {
-      const provider = this.getSafePalProvider();
-      if (!provider) {
-        throw new Error('SafePal provider not found');
-      }
-      
-      // Попытка получить аккаунты без запроса разрешения
-      const accounts = await provider.request({ 
-        method: 'eth_accounts' 
-      });
-      
-      if (accounts && accounts.length > 0) {
-        console.log('✅ Auto-connect: accounts found');
-        await this.setupProvider(provider, accounts[0]);
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.warn('⚠️ Auto-connect failed:', error.message);
-      return false;
-    }
-  }
-
-  /**
-   * Основная функция подключения кошелька
-   * КРИТИЧНО: Только SafePal!
-   */
-  async connect() {
-    console.log('🔌 Starting wallet connection...');
-    console.log('📱 Device Type:', this.isMobile ? 'Mobile' : 'Desktop');
-    console.log('🦊 SafePal Browser:', this.isSafePalBrowser);
-    
-    try {
-      // ПРІОРИТЕТ 1: SafePal Browser
-      if (this.isSafePalBrowser) {
-        console.log('✅ SafePal browser detected, connecting...');
-        
-        // Дополнительная задержка для стабильности на мобильных
-        if (this.isMobile) {
-          console.log('⏳ Mobile delay for stability...');
-          await this.delay(2000);
-        }
-        
-        // Ожидание injection
-        console.log('⏳ Waiting for SafePal provider...');
-        const providerReady = await this.waitForSafePal(CONFIG.TIMEOUTS.safePalInjection);
-        
-        if (!providerReady) {
-          throw new Error('SafePal provider not ready. Please refresh the page.');
-        }
-        
-        // Подключение через SafePal
-        await this.connectSafePal();
-        return;
-      }
-      
-      // ПРІОРИТЕТ 2: Mobile Device (не SafePal браузер)
-      if (this.isMobile && !this.isSafePalBrowser) {
-        console.log('📱 Mobile device detected (not SafePal browser)');
+      // Priority 2: Mobile deep link
+      else if (this.isMobile && !this.isSafePalBrowser) {
+        console.log('📱 Mobile but not SafePal browser. Triggering deep-link...');
         
         const userConfirmed = confirm(
-          '🦊 To connect your wallet:\n\n' +
-          '1. SafePal app will open\n' +
-          '2. Navigate to DApp Browser\n' +
-          '3. Open this website\n' +
-          '4. Click Connect again\n\n' +
-          'Press OK to open SafePal app'
+          'To connect your wallet:\n\n1. SafePal app will open\n2. Approve connection\n3. Return to this page\n4. Click Connect again\n\nPress OK to continue'
         );
         
         if (!userConfirmed) {
           throw new Error('Connection cancelled by user');
         }
         
-        // Открыть SafePal через deep-link
         await this.openSafePalApp();
+        throw new Error('Please complete connection in SafePal app and return. Then click Connect again.');
+      }
+      // Priority 3: Fallback
+      else {
+        const message = this.isMobile 
+          ? '❌ SafePal app not detected!\n\nPlease install SafePal Wallet and open this link in the app.'
+          : '❌ SafePal wallet not detected!\n\nDesktop: Install SafePal extension\nMobile: Open in SafePal Wallet app';
         
-        throw new Error(
-          'Please complete connection in SafePal app.\n\n' +
-          'Steps:\n' +
-          '1. Open DApp Browser in SafePal\n' +
-          '2. Navigate to this website\n' +
-          '3. Click Connect Wallet'
-        );
+        throw new Error(message);
       }
       
-      // ПРІОРИТЕТ 3: Desktop
-      console.log('💻 Desktop device detected');
-      throw new Error(
-        '🦊 Please open this DApp in SafePal Browser\n\n' +
-        'Instructions:\n' +
-        '1. Open SafePal app on your phone\n' +
-        '2. Go to DApp Browser\n' +
-        '3. Enter URL: ' + window.location.href + '\n\n' +
-        'Or scan QR code with SafePal'
-      );
-      
-    } catch (error) {
-      console.error('❌ Connection failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Подключение через SafePal provider
-   */
-  async connectSafePal() {
-    console.log('🔗 Connecting to SafePal...');
-    
-    try {
-      // Получить SafePal provider
-      const provider = this.getSafePalProvider();
-      
-      if (!provider) {
-        throw new Error('SafePal provider not found. Please refresh the page.');
+      // 🔥 ИСПРАВЛЕНО: Быстрая финальная проверка
+      if (!this.provider || !this.signer || !this.address) {
+        console.error('❌ Connection state incomplete:', {
+          provider: !!this.provider,
+          signer: !!this.signer, 
+          address: !!this.address
+        });
+        throw new Error('Wallet connection incomplete. Please refresh and try again.');
       }
       
-      console.log('✅ SafePal provider found');
+      // Проверка сети
+      await this.checkNetwork();
       
-      // Запросить доступ к аккаунтам
-      console.log('📤 Requesting account access...');
-      const accounts = await provider.request({
-        method: 'eth_requestAccounts'
-      });
+      // Сохранение подключения
+      await this.saveConnection();
       
-      if (!accounts || accounts.length === 0) {
-        throw new Error('No accounts found. Please try again.');
+      // Финальная проверка адреса
+      const finalAddress = await this.signer.getAddress();
+      if (finalAddress !== this.address) {
+        throw new Error('Address mismatch after connection');
       }
       
-      console.log('✅ Accounts received:', accounts.length);
-      
-      // Настроить provider
-      await this.setupProvider(provider, accounts[0]);
-      
-      console.log('✅ SafePal connected successfully!');
-      console.log('📍 Address:', this.address);
-      
-    } catch (error) {
-      console.error('❌ SafePal connection failed:', error);
-      
-      if (error.code === 4001) {
-        throw new Error('Connection rejected by user');
-      }
-      
-      throw error;
-    }
-  }
-
-  /**
-   * Настройка provider после подключения
-   */
-  async setupProvider(provider, address) {
-    try {
-      // Создать ethers provider
-      this.provider = new ethers.providers.Web3Provider(provider);
-      this.signer = this.provider.getSigner();
-      this.address = ethers.utils.getAddress(address); // Нормализация адреса
       this.connected = true;
       
-      // Получить информацию о сети
-      this.network = await this.provider.getNetwork();
-      console.log('🌐 Network:', this.network.name, 'ChainId:', this.network.chainId);
-      
-      // Проверка правильной сети
-      if (this.network.chainId !== CONFIG.NETWORK.chainId) {
-        console.warn('⚠️ Wrong network detected, switching...');
-        await this.switchNetwork();
-      }
-      
-      // Сохранить в localStorage
-      localStorage.setItem('walletAddress', this.address);
-      localStorage.setItem('walletConnected', 'true');
-      
-      // Настроить слушатели событий
-      this.setupEventListeners(provider);
-      
-      console.log('✅ Provider setup complete');
+      console.log('✅ Successfully connected:', this.address);
+      return this.address;
       
     } catch (error) {
-      console.error('❌ Provider setup failed:', error);
+      console.error('❌ Connection error:', error);
+      
+      // Сброс состояния при ошибке
+      this.connected = false;
+      this.signer = null;
+      this.address = null;
+      
+      if (!/User rejected|User denied|Cancelled|user closed/i.test(error.message || '')) {
+        const errorMsg = error.message || 'Connection failed. Please try again.';
+        
+        if (error.message.includes('SafePal') || error.message.includes('wallet') || error.message.includes('connection')) {
+          alert(errorMsg);
+        }
+      }
+      
       throw error;
     }
   }
 
-  /**
-   * Настройка слушателей событий кошелька
-   */
-  setupEventListeners(provider) {
-    // Смена аккаунта
-    provider.on('accountsChanged', async (accounts) => {
-      console.log('🔄 Accounts changed:', accounts);
-      
-      if (!accounts || accounts.length === 0) {
-        console.log('🔌 No accounts, disconnecting...');
-        this.disconnect();
-        
-        // Перезагрузка страницы
-        window.location.reload();
-      } else {
-        console.log('🔄 Switching to new account...');
-        this.address = ethers.utils.getAddress(accounts[0]);
-        localStorage.setItem('walletAddress', this.address);
-        
-        // Обновление UI
-        if (window.app && typeof window.app.onAccountChanged === 'function') {
-          await window.app.onAccountChanged(this.address);
-        } else {
-          // Fallback: перезагрузка
-          window.location.reload();
-        }
-      }
-    });
-    
-    // Смена сети
-    provider.on('chainChanged', (chainId) => {
-      console.log('🌐 Chain changed:', chainId);
-      // Всегда перезагружаем при смене сети
-      window.location.reload();
-    });
-    
-    // Отключение
-    provider.on('disconnect', (error) => {
-      console.log('🔌 Provider disconnected:', error);
-      this.disconnect();
-      window.location.reload();
-    });
-  }
-
-  /**
-   * Получить SafePal provider
-   * Проверяет несколько источников
-   */
-  getSafePalProvider() {
-    console.log('🔍 Searching for SafePal provider...');
-    
-    // Попытка 1: Прямой window.ethereum с флагами SafePal
-    if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
-      console.log('✅ Found via window.ethereum (direct)');
-      return window.ethereum;
-    }
-    
-    // Попытка 2: Поиск в providers массиве
-    if (window.ethereum && Array.isArray(window.ethereum.providers)) {
-      for (const provider of window.ethereum.providers) {
-        if (provider.isSafePal || provider.isSafePalWallet || provider.isSafePalProvider) {
-          console.log('✅ Found via window.ethereum.providers');
-          return provider;
-        }
-      }
-    }
-    
-    // Попытка 3: window.safepal
-    if (window.safepal) {
-      console.log('✅ Found via window.safepal');
-      return window.safepal;
-    }
-    
-    // Попытка 4: Если в SafePal браузере, используем window.ethereum
-    if (this.isSafePalBrowser && window.ethereum) {
-      console.log('✅ Found via window.ethereum (SafePal browser)');
-      return window.ethereum;
-    }
-    
-    console.log('❌ SafePal provider not found');
-    return null;
-  }
-
-  /**
-   * Ожидание injection SafePal provider
-   */
-  async waitForSafePal(timeout = 10000) {
-    console.log('⏳ Waiting for SafePal provider injection...');
-    
+  // 🔥 ИСПРАВЛЕНО: Увеличена задержка по умолчанию для SafePal
+  async waitForSafePal(maxWaitTime = 10000) { // 🔥 10 секунд по умолчанию для мобильных устройств
     const start = Date.now();
-    const checkInterval = 100; // Проверка каждые 100ms
+    const interval = 100; // 🔥 100ms интервал проверки
     
-    return new Promise((resolve) => {
-      const check = () => {
-        const elapsed = Date.now() - start;
-        
-        // Проверка наличия provider
-        const provider = this.getSafePalProvider();
-        if (provider) {
-          console.log(`✅ SafePal provider found after ${elapsed}ms`);
-          resolve(true);
-          return;
-        }
-        
-        // Таймаут
-        if (elapsed >= timeout) {
-          console.log(`⏱️ SafePal provider timeout after ${elapsed}ms`);
-          resolve(false);
-          return;
-        }
-        
-        // Следующая проверка
-        setTimeout(check, checkInterval);
-      };
+    while (Date.now() - start < maxWaitTime) {
+      if (this.hasSafePalProvider()) {
+        console.log('✅ SafePal provider found after', Date.now() - start, 'ms');
+        return true;
+      }
       
-      check();
-    });
+      if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+        if (window.ethereum.providers.some(p => p && (p.isSafePal || p.isSafePalWallet))) {
+          console.log('✅ SafePal found in ethereum.providers');
+          return true;
+        }
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+    
+    console.warn('⚠️ SafePal not found after', maxWaitTime, 'ms');
+    return false;
   }
 
-  /**
-   * Открыть SafePal приложение через deep-link
-   */
-  async openSafePalApp() {
-    console.log('📱 Opening SafePal app...');
-    
+  hasSafePalProvider() {
     try {
-      const currentUrl = window.location.href;
-      const encodedUrl = encodeURIComponent(currentUrl);
-      
-      // Deep-link схемы для разных платформ
-      const deepLink = this.isAndroid
-        ? `safepalwallet://open?url=${encodedUrl}`
-        : `safepal://wc?uri=${encodedUrl}`;
-      
-      console.log('🔗 Deep-link:', deepLink);
-      
-      // Попытка открыть приложение
-      window.location.href = deepLink;
-      
-      // Через 3 секунды показать инструкцию
-      setTimeout(() => {
-        const storeUrl = this.isAndroid
-          ? 'https://play.google.com/store/apps/details?id=io.safepal.wallet'
-          : 'https://apps.apple.com/app/safepal-wallet/id1548297139';
-        
-        const wantsToInstall = confirm(
-          '📱 SafePal Wallet Required\n\n' +
-          'To use this DApp:\n\n' +
-          '1. Install SafePal Wallet (if not installed)\n' +
-          '2. Open DApp Browser in SafePal\n' +
-          '3. Navigate to this website\n\n' +
-          'Press OK to open app store'
-        );
-        
-        if (wantsToInstall) {
-          window.open(storeUrl, '_blank');
+      if (window.safepal) return true;
+      if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) return true;
+      if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+        return window.ethereum.providers.some(p => p && (p.isSafePal || p.isSafePalWallet || p.isSafePalProvider));
+      }
+    } catch (e) {
+      // ignore
+    }
+    return false;
+  }
+
+  // 🔥 УПРОЩЁННОЕ подключение SafePal
+async connectSafePal() {
+    try {
+      let rawProvider = null;
+
+      if (window.safepal) {
+        console.log('✅ Using window.safepal');
+        rawProvider = window.safepal;
+      } else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+        console.log('🔍 Searching SafePal in ethereum.providers');
+        rawProvider = window.ethereum.providers.find(p => p && (p.isSafePal || p.isSafePalWallet || p.isSafePalProvider));
+      } else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
+        console.log('✅ Using window.ethereum (SafePal flags detected)');
+        rawProvider = window.ethereum;
+      }
+
+      if (!rawProvider) {
+        throw new Error('SafePal provider not found');
+      }
+
+      console.log('🔗 Creating ethers provider from SafePal');
+      this.provider = new ethers.providers.Web3Provider(window.ethereum, {
+      chainId: 204,
+      name: 'opBNB Mainnet'
+    });
+
+      console.log('📝 Requesting SafePal accounts...');
+      try {
+        await this.provider.send('eth_requestAccounts', []);
+      } catch (reqErr) {
+        console.warn('eth_requestAccounts failed, trying fallback', reqErr);
+        if (rawProvider.request) {
+          await rawProvider.request({ method: 'eth_requestAccounts' });
+        } else {
+          throw reqErr;
         }
-      }, 3000);
+      }
+
+      this.signer = this.provider.getSigner();
+      this.address = await this.signer.getAddress();
       
+      // 🔥 ИСПРАВЛЕНО: Минимальная задержка
+      await new Promise(resolve => setTimeout(resolve, 300)); // 🔥 300ms вместо 500ms
+
+      console.log('✅ SafePal connected:', this.address);
     } catch (error) {
-      console.error('❌ Failed to open SafePal app:', error);
-      throw new Error('Failed to open SafePal app. Please install SafePal Wallet.');
+      console.error('❌ SafePal connection failed:', error);
+      throw error;
     }
   }
 
-  /**
-   * Переключение на opBNB сеть
-   */
-  async switchNetwork() {
-    console.log('🌐 Switching to opBNB network...');
+  async openSafePalApp() {
+    const currentUrl = window.location.href;
+    const deepLink = `safepal://wc?uri=${encodeURIComponent(currentUrl)}`;
     
+    console.log('🔗 Opening SafePal app via deep link');
+    window.location.href = deepLink;
+    
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+
+  async autoConnect() {
     try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: CONFIG.NETWORK.chainIdHex }]
-      });
+      console.log('🔄 Auto-connecting...');
       
-      console.log('✅ Network switched successfully');
-      
-      // Обновить информацию о сети
-      this.network = await this.provider.getNetwork();
-      
-    } catch (switchError) {
-      // Если сеть не добавлена (код 4902)
-      if (switchError.code === 4902) {
-        console.log('⚠️ Network not added, adding now...');
+      // 🔥 ИСПРАВЛЕНО: Увеличена задержка для SafePal
+      if (this.isSafePalBrowser) {
+        await this.waitForSafePal(10000); // 🔥 10 секунд для стабильности на мобильных
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 300)); // 🔥 300ms для остальных
+      }
+
+      let provider = null;
+
+      if (this.hasSafePalProvider()) {
+        if (window.safepal) provider = new ethers.providers.Web3Provider(window.safepal);
+        else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+          const p = window.ethereum.providers.find(p => p && (p.isSafePal || p.isSafePalWallet));
+          if (p) provider = new ethers.providers.Web3Provider(p);
+        } else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+        }
+        console.log('🔄 Auto-connect using SafePal provider');
+      } else if (window.ethereum && !window.ethereum.isMetaMask) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        console.log('🔄 Auto-connect using ethereum provider');
+      }
+
+      if (!provider) {
+        console.log('⚠️ No provider available for auto-connect');
+        return;
+      }
+
+      const accounts = await provider.listAccounts();
+
+      if (accounts && accounts.length > 0) {
+        this.provider = provider;
+        this.signer = provider.getSigner();
+        this.address = accounts[0];
+        this.connected = true;
+        await this.checkNetwork();
+        console.log('✅ Auto-connected:', this.address);
+      } else {
+        console.log('ℹ️ Auto-connect: no accounts available yet');
+      }
+    } catch (error) {
+      console.error('❌ Auto-connect failed:', error);
+    }
+  }
+
+  async checkNetwork() {
+    try {
+      if (!this.provider) throw new Error('No provider to check network');
+      const network = await this.provider.getNetwork();
+      console.log('🌐 Network:', network.chainId, network.name);
+
+      if (typeof CONFIG === 'undefined' || !CONFIG.NETWORK) {
+        console.warn('CONFIG.NETWORK not found — skipping network checks');
+        return;
+      }
+
+      const desiredChainId = Number(CONFIG.NETWORK.chainId);
+      if (network.chainId !== desiredChainId) {
+        console.log('⚠️ Wrong network, switching to opBNB...');
+        await this.switchNetwork();
+      } else {
+        console.log('✅ Already on opBNB network');
+      }
+    } catch (error) {
+      console.error('❌ Network check failed:', error);
+      throw error;
+    }
+  }
+
+  async switchNetwork() {
+    try {
+      if (!this.provider) throw new Error('No provider to switch network');
+
+      const chainIdHex = CONFIG.NETWORK.chainIdHex || '0x' + Number(CONFIG.NETWORK.chainId).toString(16);
+
+      await this.provider.send('wallet_switchEthereumChain', [{ chainId: chainIdHex }]);
+      console.log('✅ Network switch requested');
+    } catch (error) {
+      if (error && error.code === 4902) {
+        console.log('➕ Chain not found, adding network...');
         await this.addNetwork();
       } else {
-        console.error('❌ Failed to switch network:', switchError);
-        throw switchError;
+        console.error('❌ Switch failed:', error);
+        throw new Error('Please switch to opBNB manually in your wallet');
       }
     }
   }
 
-  /**
-   * Добавление opBNB сети в кошелёк
-   */
   async addNetwork() {
-    console.log('➕ Adding opBNB network...');
-    
     try {
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [{
-          chainId: CONFIG.NETWORK.chainIdHex,
-          chainName: CONFIG.NETWORK.name,
-          nativeCurrency: CONFIG.NETWORK.currency,
-          rpcUrls: [CONFIG.NETWORK.rpcUrl],
-          blockExplorerUrls: [CONFIG.NETWORK.explorer]
-        }]
-      });
-      
-      console.log('✅ Network added successfully');
-      
-      // Обновить информацию о сети
-      this.network = await this.provider.getNetwork();
-      
+      if (!this.provider) throw new Error('No provider to add network');
+
+      const chainIdHex = CONFIG.NETWORK.chainIdHex || '0x' + Number(CONFIG.NETWORK.chainId).toString(16);
+
+      await this.provider.send('wallet_addEthereumChain', [{
+        chainId: chainIdHex,
+        chainName: CONFIG.NETWORK.name,
+        nativeCurrency: CONFIG.NETWORK.currency,
+        rpcUrls: [CONFIG.NETWORK.rpcUrl],
+        blockExplorerUrls: [CONFIG.NETWORK.explorer]
+      }]);
+      console.log('✅ Network added to wallet');
     } catch (error) {
-      console.error('❌ Failed to add network:', error);
-      throw new Error('Failed to add opBNB network. Please add it manually in SafePal settings.');
+      console.error('❌ Add network failed:', error);
+      throw new Error('Please add opBNB network manually in your wallet');
     }
   }
 
-  /**
-   * Отключение кошелька
-   */
-  disconnect() {
-    console.log('🔌 Disconnecting wallet...');
-    
+  async saveConnection() {
+    try {
+      if (this.address) {
+        localStorage.setItem('walletAddress', this.address);
+        localStorage.setItem('walletConnected', 'true');
+        console.log('💾 Connection saved to localStorage');
+      }
+    } catch (e) {
+      console.warn('Failed to save connection', e);
+    }
+  }
+
+  async disconnect() {
     this.provider = null;
     this.signer = null;
     this.address = null;
     this.connected = false;
-    this.network = null;
-    
-    // Очистить localStorage
-    localStorage.removeItem('walletAddress');
-    localStorage.removeItem('walletConnected');
-    
-    console.log('✅ Wallet disconnected');
+
+    try {
+      localStorage.removeItem('walletAddress');
+      localStorage.removeItem('walletConnected');
+    } catch (e) {
+      // ignore
+    }
+
+    console.log('🔌 Disconnected & local state cleared');
   }
 
-  /**
-   * Проверка владельца
-   */
-  isOwner() {
-    if (!this.address) return false;
-    return this.address.toLowerCase() === CONFIG.ADMIN.owner.toLowerCase();
+  async getBalance() {
+    if (!this.connected || !this.provider || !this.address) return '0';
+    try {
+      const bal = await this.provider.getBalance(this.address);
+      return ethers.utils.formatEther(bal);
+    } catch (error) {
+      console.error('❌ Balance fetch error', error);
+      return '0';
+    }
   }
 
-  /**
-   * Проверка основателя
-   */
-  isFounder() {
-    if (!this.address) return false;
-    const addr = this.address.toLowerCase();
-    return CONFIG.ADMIN.founders.some(f => f.toLowerCase() === addr);
+  getContract(name, abi) {
+    if (!this.signer) {
+      throw new Error('Wallet not connected');
+    }
+    if (!CONFIG.CONTRACTS || !CONFIG.CONTRACTS[name]) {
+      throw new Error(`Contract ${name} address not found in CONFIG.CONTRACTS`);
+    }
+    return new ethers.Contract(CONFIG.CONTRACTS[name], abi, this.signer);
   }
 
-  /**
-   * Проверка администратора
-   */
   isAdmin() {
-    return this.isOwner() || this.isFounder();
+    if (!this.address || !CONFIG.ADMIN) return false;
+    const addr = this.address.toLowerCase();
+    if (CONFIG.ADMIN.owner && addr === CONFIG.ADMIN.owner.toLowerCase()) return true;
+    if (Array.isArray(CONFIG.ADMIN.founders) && CONFIG.ADMIN.founders.some(f => f.toLowerCase() === addr)) return true;
+    if (Array.isArray(CONFIG.ADMIN.board) && CONFIG.ADMIN.board.some(b => b.toLowerCase() === addr)) return true;
+    return false;
   }
 
-  /**
-   * Вспомогательная функция задержки
-   */
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  isOwner() {
+    if (!this.address || !CONFIG.ADMIN) return false;
+    const result = CONFIG.ADMIN.owner && this.address.toLowerCase() === CONFIG.ADMIN.owner.toLowerCase();
+    console.log('🔍 isOwner check:', this.address, '→', result);
+    return result;
   }
 
-  /**
-   * Получить баланс BNB
-   */
-  async getBalance(address = null) {
-    if (!this.provider) {
-      throw new Error('Provider not initialized');
-    }
-    
-    const addr = address || this.address;
-    if (!addr) {
-      throw new Error('No address provided');
-    }
-    
-    const balance = await this.provider.getBalance(addr);
-    return ethers.utils.formatEther(balance);
-  }
-
-  /**
-   * Получить информацию о сети
-   */
-  getNetworkInfo() {
-    return {
-      connected: this.connected,
-      address: this.address,
-      chainId: this.network?.chainId,
-      chainName: this.network?.name,
-      isCorrectNetwork: this.network?.chainId === CONFIG.NETWORK.chainId
-    };
+  isFounder() {
+    if (!this.address || !CONFIG.ADMIN) return false;
+    const addr = this.address.toLowerCase();
+    const result = this.isOwner() || (Array.isArray(CONFIG.ADMIN.founders) && CONFIG.ADMIN.founders.some(f => f.toLowerCase() === addr));
+    console.log('🔍 isFounder check:', this.address, '→', result);
+    console.log('📋 Founders list:', CONFIG.ADMIN.founders);
+    return result;
   }
 }
 
-// Создать глобальный экземпляр
 const web3Manager = new Web3Manager();
-
-// Экспорт
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = Web3Manager;
-}
