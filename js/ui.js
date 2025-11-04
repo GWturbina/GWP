@@ -1,851 +1,805 @@
 /* jshint esversion: 8 */
-/* global web3Manager, contracts, Utils, CONFIG */
+/* global CONFIG, ethers */
 
 /**
- * UI Manager - Управління інтерфейсом - FIXED
- * Відповідає за навігацію, завантаження сторінок, оновлення UI
+ * Utils - Utility Functions
+ * Version: 2.0
+ */
+
+class Utils {
+  /**
+   * Форматирование адреса (0x123...789)
+   */
+  static formatAddress(address) {
+    if (!address || address.length < 10) {
+      return '0x000...000';
+    }
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  }
+
+  /**
+   * Форматирование BNB с фиксированным количеством знаков
+   */
+  static formatBNB(amount, decimals = 4) {
+    const num = parseFloat(amount);
+    if (isNaN(num)) return '0.0000';
+    return num.toFixed(decimals);
+  }
+
+  /**
+   * Форматирование даты
+   */
+  static formatDate(timestamp) {
+    if (!timestamp || timestamp === 0) {
+      return '-';
+    }
+    
+    const date = new Date(timestamp * 1000);
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
+  }
+
+  /**
+   * Форматирование только даты
+   */
+  static formatDateOnly(timestamp) {
+    if (!timestamp || timestamp === 0) {
+      return '-';
+    }
+    
+    const date = new Date(timestamp * 1000);
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${day}.${month}.${year}`;
+  }
+
+  /**
+   * Валидация адреса
+   */
+  static validateAddress(address) {
+    if (!address) return false;
+    return CONFIG.VALIDATION.ADDRESS_REGEX.test(address);
+  }
+
+  /**
+   * Валидация User ID
+   */
+  static validateUserId(userId) {
+    if (!userId) return false;
+    return CONFIG.VALIDATION.USER_ID_REGEX.test(userId);
+  }
+
+  /**
+   * Копирование в буфер обмена
+   */
+  static async copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        this.showNotification('Copied to clipboard!', 'success');
+      } else {
+        // Fallback для старых браузеров
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        this.showNotification('Copied to clipboard!', 'success');
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      this.showNotification('Failed to copy', 'error');
+    }
+  }
+
+  /**
+   * Показать уведомление
+   */
+  static showNotification(message, type = 'info') {
+    // Удалить старое уведомление если есть
+    const existing = document.getElementById('notification');
+    if (existing) {
+      existing.remove();
+    }
+    
+    // Создать новое
+    const notification = document.createElement('div');
+    notification.id = 'notification';
+    notification.className = `notification ${type}`;
+    
+    // Иконка в зависимости от типа
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+    if (type === 'warning') icon = '⚠️';
+    
+    notification.innerHTML = `
+      <span class="notification-icon">${icon}</span>
+      <span class="notification-message">${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Анимация появления
+    setTimeout(() => {
+      notification.classList.add('show');
+    }, 10);
+    
+    // Автоматическое скрытие
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => {
+        notification.remove();
+      }, 300);
+    }, CONFIG.UI.notificationDuration);
+  }
+
+  /**
+   * Показать/скрыть лоадер
+   */
+  static showLoader(show) {
+    let loader = document.getElementById('globalLoader');
+    
+    if (!loader) {
+      loader = this.createLoader();
+    }
+    
+    if (show) {
+      loader.style.display = 'flex';
+      // Блокировка скролла
+      document.body.style.overflow = 'hidden';
+    } else {
+      loader.style.display = 'none';
+      // Разблокировка скролла
+      document.body.style.overflow = '';
+    }
+  }
+
+  /**
+   * Создать лоадер
+   */
+  static createLoader() {
+    const loader = document.createElement('div');
+    loader.id = 'globalLoader';
+    loader.className = 'loader-overlay';
+    loader.innerHTML = `
+      <div class="loader-content">
+        <div class="spinner"></div>
+        <p>Processing transaction...</p>
+      </div>
+    `;
+    document.body.appendChild(loader);
+    return loader;
+  }
+
+  /**
+   * Открыть модальное окно
+   */
+  static openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  /**
+   * Закрыть модальное окно
+   */
+  static closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  }
+
+  /**
+   * Форматирование большого числа (1000 → 1K, 1000000 → 1M)
+   */
+  static formatLargeNumber(num) {
+    const number = parseFloat(num);
+    
+    if (number >= 1000000) {
+      return (number / 1000000).toFixed(2) + 'M';
+    }
+    
+    if (number >= 1000) {
+      return (number / 1000).toFixed(2) + 'K';
+    }
+    
+    return number.toFixed(2);
+  }
+
+  /**
+   * Подсветка текста при копировании
+   */
+  static highlightCopied(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    element.classList.add('copied-highlight');
+    
+    setTimeout(() => {
+      element.classList.remove('copied-highlight');
+    }, 1000);
+  }
+
+  /**
+   * Debounce функция
+   */
+  static debounce(func, delay = 500) {
+    let timeoutId;
+    return function (...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+  }
+
+  /**
+   * Проверка мобильного устройства
+   */
+  static isMobile() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  }
+
+  /**
+   * Плавная прокрутка к элементу
+   */
+  static scrollToElement(elementId, offset = 0) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const elementPosition = element.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - offset;
+    
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    });
+  }
+
+  /**
+   * Проверка видимости элемента на экране
+   */
+  static isElementInViewport(element) {
+    const rect = element.getBoundingClientRect();
+    return (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+  }
+
+  /**
+   * Генерация случайного цвета
+   */
+  static randomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
+
+  /**
+   * Задержка (Promise)
+   */
+  static delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Форматирование процентов
+   */
+  static formatPercent(value, decimals = 2) {
+    const num = parseFloat(value);
+    if (isNaN(num)) return '0%';
+    return num.toFixed(decimals) + '%';
+  }
+
+  /**
+   * Обрезка текста с многоточием
+   */
+  static truncateText(text, maxLength) {
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  }
+
+  /**
+   * Получить параметр из URL
+   */
+  static getUrlParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+  }
+
+  /**
+   * Установить параметр в URL
+   */
+  static setUrlParameter(name, value) {
+    const url = new URL(window.location);
+    url.searchParams.set(name, value);
+    window.history.pushState({}, '', url);
+  }
+
+  /**
+   * Очистить параметр из URL
+   */
+  static clearUrlParameter(name) {
+    const url = new URL(window.location);
+    url.searchParams.delete(name);
+    window.history.pushState({}, '', url);
+  }
+}
+
+/**
+ * UIManager - User Interface Manager
+ * Управление навигацией, модальными окнами, темами
  */
 
 class UIManager {
   constructor() {
     this.currentPage = 'landing';
-    this.initialized = false;
-    this.userData = null;
+    this.modals = {};
+    this.theme = localStorage.getItem('theme') || 'dark';
   }
 
   /**
-   * Ініціалізація UI менеджера
+   * Инициализация UI Manager
    */
   init() {
     console.log('🎨 Initializing UI Manager...');
     
-    // 🔥 ДОБАВЛЕНО: Налаштування кнопки входу в DApp
-    this.setupDAppEntry();
-    
-    // Налаштування навігації
     this.setupNavigation();
-    
-    // Налаштування мобільного меню
+    this.setupModals();
+    this.setupTheme();
     this.setupMobileMenu();
     
-    // Налаштування language switcher
-    this.setupLanguageSwitcher();
-    
-    // Перевірка збереженої сторінки
-    const savedPage = Utils.getStorage('currentPage');
-    if (savedPage) {
-      this.currentPage = savedPage;
-    }
-    
-    this.initialized = true;
     console.log('✅ UI Manager initialized');
   }
 
   /**
-   * 🔥 ДОБАВЛЕНО: Налаштування кнопки входу в DApp
-   */
-  setupDAppEntry() {
-    const openDappBtn = document.getElementById('openDapp');
-    if (openDappBtn) {
-      openDappBtn.addEventListener('click', async () => {
-        console.log('🚀 Enter DApp clicked!');
-        
-        try {
-          // Перевірка підключення кошелька
-          if (!web3Manager || !web3Manager.connected) {
-            console.log('⚠️ Wallet not connected, connecting...');
-            
-            if (typeof app !== 'undefined' && app.connectWallet) {
-              await app.connectWallet();
-              
-              // Після підключення перевірити знову
-              if (!web3Manager.connected) {
-                return;
-              }
-            } else {
-              Utils.showNotification('Please connect wallet first', 'warning');
-              return;
-            }
-          }
-          
-          // Перевірка реєстрації
-          if (typeof app !== 'undefined' && !app.isRegistered) {
-            console.log('⚠️ User not registered');
-            
-            // Показати модал реєстрації
-            if (typeof showRegistrationModal === 'function') {
-              showRegistrationModal();
-            } else {
-              Utils.showNotification('Please register first', 'warning');
-            }
-            return;
-          }
-          
-          // Все ОК - показати Dashboard
-          console.log('✅ Opening Dashboard...');
-          this.showPage('dashboard');
-          
-        } catch (error) {
-          console.error('❌ Enter DApp error:', error);
-          Utils.showNotification('Error: ' + error.message, 'error');
-        }
-      });
-      
-      console.log('✅ Enter DApp button connected');
-    } else {
-      console.warn('⚠️ openDapp button not found');
-    }
-  }
-
-  /**
-   * Налаштування навігації
+   * Настройка навигации
    */
   setupNavigation() {
-    // Desktop navigation
-    const navLinks = document.querySelectorAll('.nav-link[data-page]');
-    navLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const page = link.dataset.page;
-        this.showPage(page);
-      });
-    });
-
-    // Mobile navigation
-    const mobileLinks = document.querySelectorAll('.mobile-nav-link[data-page]');
-    mobileLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const page = link.dataset.page;
-        this.showPage(page);
-        this.closeMobileMenu();
-      });
-    });
-
-    // Logo click - повернутися на головну
-    const logo = document.querySelector('.logo');
-    if (logo) {
-      logo.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetPage = web3Manager.connected ? 'dashboard' : 'landing';
-        this.showPage(targetPage);
-      });
-    }
-  }
-
-  /**
-   * Налаштування мобільного меню
-   */
-  setupMobileMenu() {
-    const menuToggle = document.querySelector('.mobile-menu-toggle');
-    const mobileNav = document.querySelector('.mobile-nav');
-    const overlay = document.querySelector('.mobile-nav-overlay');
-
-    if (menuToggle) {
-      menuToggle.addEventListener('click', () => {
-        this.toggleMobileMenu();
-      });
-    }
-
-    if (overlay) {
-      overlay.addEventListener('click', () => {
-        this.closeMobileMenu();
-      });
-    }
-  }
-
-  /**
-   * Відкрити/закрити мобільне меню
-   */
-  toggleMobileMenu() {
-    const mobileNav = document.querySelector('.mobile-nav');
-    const overlay = document.querySelector('.mobile-nav-overlay');
+    const navButtons = document.querySelectorAll('.nav-btn');
     
-    if (mobileNav && overlay) {
-      mobileNav.classList.toggle('active');
-      overlay.classList.toggle('active');
-      document.body.classList.toggle('menu-open');
-    }
-  }
-
-  /**
-   * Закрити мобільне меню
-   */
-  closeMobileMenu() {
-    const mobileNav = document.querySelector('.mobile-nav');
-    const overlay = document.querySelector('.mobile-nav-overlay');
-    
-    if (mobileNav && overlay) {
-      mobileNav.classList.remove('active');
-      overlay.classList.remove('active');
-      document.body.classList.remove('menu-open');
-    }
-  }
-
-  /**
-   * Налаштування перемикача мови
-   */
-  setupLanguageSwitcher() {
-    const langButtons = document.querySelectorAll('[data-lang]');
-    
-    langButtons.forEach(btn => {
+    navButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        const lang = btn.dataset.lang;
-        this.changeLanguage(lang);
+        const page = btn.dataset.page;
+        if (page) {
+          this.showPage(page);
+        }
+      });
+    });
+    
+    // Навигация в footer
+    const footerLinks = document.querySelectorAll('.footer-nav a');
+    footerLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        const page = link.dataset.page;
+        if (page) {
+          e.preventDefault();
+          this.showPage(page);
+        }
       });
     });
   }
 
   /**
-   * Зміна мови
-   */
-  async changeLanguage(lang) {
-    try {
-      if (typeof i18n !== 'undefined') {
-        await i18n.changeLanguage(lang);
-        Utils.showNotification('Language changed', 'success');
-      }
-    } catch (error) {
-      console.error('Language change error:', error);
-    }
-  }
-
-  /**
-   * 🔥 ИСПРАВЛЕНО: Показати сторінку
-   * @param {string} pageName - Назва сторінки (landing, dashboard, partners, matrix, tokens, projects, admin)
+   * Показать страницу
    */
   async showPage(pageName) {
     console.log('📄 Showing page:', pageName);
-
-    // Перевірка доступу
-    if (!this.checkPageAccess(pageName)) {
-      Utils.showNotification('Please connect wallet and register', 'warning');
-      this.showPage('landing');
-      return;
+    
+    // 🔥 ИСПРАВЛЕНО: Загружаем компонент перед показом (если не dashboard)
+    if (pageName !== 'dashboard') {
+      await this.loadComponent(pageName);
     }
-
-    // 🔥 ИСПРАВЛЕНО: Спеціальна логіка для landing/dapp переключення
-    const landing = document.getElementById('landing');
-    const dapp = document.getElementById('dapp');
-
-    if (pageName === 'landing') {
-      // Показати Landing, сховати DApp
-      if (landing) {
-        landing.classList.add('active');
-        landing.style.display = 'block';
-      }
-      if (dapp) {
-        dapp.classList.remove('active');
-        dapp.style.display = 'none';
-      }
-    } else {
-      // Показати DApp, сховати Landing
-      if (landing) {
-        landing.classList.remove('active');
-        landing.style.display = 'none';
-      }
-      if (dapp) {
-        dapp.classList.add('active');
-        dapp.style.display = 'block';
-      }
-
-      // Приховати всі page-content
-      const pageContents = document.querySelectorAll('.page-content');
-      pageContents.forEach(page => {
-        page.classList.remove('active');
-        page.style.display = 'none';
-      });
-
-      // Показати потрібний page-content
-      const targetPage = document.getElementById(pageName);
-      if (targetPage) {
-        targetPage.style.display = 'block';
-        setTimeout(() => {
-          targetPage.classList.add('active');
-        }, 10);
-      } else {
-        console.error('❌ Page not found:', pageName);
-      }
-    }
-
-    // Оновити активний пункт меню
-    this.updateActiveNavigation(pageName);
-
-    // Зберегти поточну сторінку
-    this.currentPage = pageName;
-    Utils.setStorage('currentPage', pageName);
-
-    // Завантажити дані для сторінки
-    await this.loadPageData(pageName);
-
-    // Scroll to top
-    window.scrollTo(0, 0);
-  }
-
-  /**
-   * Перевірка доступу до сторінки
-   */
-  checkPageAccess(pageName) {
-    // Landing завжди доступний
-    if (pageName === 'landing') return true;
-
-    // Інші сторінки потребують підключеного кошелька
-    if (!web3Manager.connected) return false;
-
-    // Admin потребує прав
-    if (pageName === 'admin') {
-      // Перевірка чи адреса в списку адмінів
-      const address = web3Manager.address.toLowerCase();
-      const isOwner = address === CONFIG.ADMIN.owner.toLowerCase();
-      const isFounder = CONFIG.ADMIN.founders.some(f => f.toLowerCase() === address);
-      const isBoard = CONFIG.ADMIN.board.some(b => b.toLowerCase() === address);
+    
+    // Скрыть все страницы
+    const pages = document.querySelectorAll('.page-content');
+    pages.forEach(page => {
+      page.style.display = 'none';
+    });
+    
+    // Показать выбранную
+    const targetPage = document.getElementById(pageName);
+    if (targetPage) {
+      targetPage.style.display = 'block';
+      this.currentPage = pageName;
       
-      return isOwner || isFounder || isBoard;
+      // Прокрутка наверх
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Обновить активную кнопку
+      this.updateActiveNavButton(pageName);
+      
+      // Загрузить данные страницы если app доступен
+      if (window.app && typeof window.app.loadPageData === 'function') {
+        window.app.loadPageData(pageName);
+      }
     }
-
-    return true;
   }
 
   /**
-   * Оновити активну навігацію
+   * Обновить активную кнопку навигации
    */
-  updateActiveNavigation(pageName) {
-    // Desktop navigation
-    const navLinks = document.querySelectorAll('.nav-link[data-page]');
-    navLinks.forEach(link => {
-      if (link.dataset.page === pageName) {
-        link.classList.add('active');
-      } else {
-        link.classList.remove('active');
-      }
-    });
-
-    // Mobile navigation
-    const mobileLinks = document.querySelectorAll('.mobile-nav-link[data-page]');
-    mobileLinks.forEach(link => {
-      if (link.dataset.page === pageName) {
-        link.classList.add('active');
-      } else {
-        link.classList.remove('active');
+  updateActiveNavButton(pageName) {
+    const navButtons = document.querySelectorAll('.nav-btn');
+    navButtons.forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.dataset.page === pageName) {
+        btn.classList.add('active');
       }
     });
   }
-  /**
-   * Завантажити дані для сторінки
-   */
-  async loadPageData(pageName) {
-    if (!web3Manager.connected) return;
 
+  /**
+   * Настройка модальных окон
+   */
+  setupModals() {
+    // Найти все модальные окна
+    const modals = document.querySelectorAll('.modal');
+    
+    modals.forEach(modal => {
+      const modalId = modal.id;
+      this.modals[modalId] = modal;
+      
+      // Кнопка закрытия (X)
+      const closeBtn = modal.querySelector('.close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          this.closeModal(modalId);
+        });
+      }
+      
+      // Закрытие по клику вне модала
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          this.closeModal(modalId);
+        }
+      });
+    });
+    
+    // Закрытие по Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeAllModals();
+      }
+    });
+  }
+
+  /**
+   * Открыть модальное окно
+   */
+  openModal(modalId) {
+    const modal = this.modals[modalId] || document.getElementById(modalId);
+    if (modal) {
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+      
+      // Анимация
+      setTimeout(() => {
+        modal.classList.add('show');
+      }, 10);
+    }
+  }
+
+  /**
+   * Закрыть модальное окно
+   */
+  closeModal(modalId) {
+    const modal = this.modals[modalId] || document.getElementById(modalId);
+    if (modal) {
+      modal.classList.remove('show');
+      
+      setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }, 300);
+    }
+  }
+
+  /**
+   * Закрыть все модальные окна
+   */
+  closeAllModals() {
+    Object.keys(this.modals).forEach(modalId => {
+      this.closeModal(modalId);
+    });
+  }
+
+  /**
+   * Настройка темы
+   */
+  setupTheme() {
+    // Применить сохранённую тему
+    document.body.classList.add(`theme-${this.theme}`);
+    
+    // Кнопка переключения темы
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => {
+        this.toggleTheme();
+      });
+    }
+  }
+
+  /**
+   * Переключение темы
+   */
+  toggleTheme() {
+    const currentTheme = this.theme;
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    document.body.classList.remove(`theme-${currentTheme}`);
+    document.body.classList.add(`theme-${newTheme}`);
+    
+    this.theme = newTheme;
+    localStorage.setItem('theme', newTheme);
+    
+    console.log('🎨 Theme changed to:', newTheme);
+  }
+
+  /**
+   * Настройка мобильного меню
+   */
+  setupMobileMenu() {
+    const menuToggle = document.getElementById('mobileMenuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    
+    if (menuToggle && mobileMenu) {
+      menuToggle.addEventListener('click', () => {
+        mobileMenu.classList.toggle('show');
+      });
+      
+      // Закрытие при клике на пункт меню
+      const menuItems = mobileMenu.querySelectorAll('.nav-btn');
+      menuItems.forEach(item => {
+        item.addEventListener('click', () => {
+          mobileMenu.classList.remove('show');
+        });
+      });
+      
+      // Закрытие при клике вне меню
+      document.addEventListener('click', (e) => {
+        if (!mobileMenu.contains(e.target) && !menuToggle.contains(e.target)) {
+          mobileMenu.classList.remove('show');
+        }
+      });
+    }
+  }
+
+  /**
+   * Показать/скрыть раздел
+   */
+  toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      const isVisible = section.style.display !== 'none';
+      section.style.display = isVisible ? 'none' : 'block';
+    }
+  }
+
+  /**
+   * Показать табу
+   */
+  showTab(tabGroupId, tabId) {
+    const tabGroup = document.getElementById(tabGroupId);
+    if (!tabGroup) return;
+    
+    // Скрыть все табы
+    const tabs = tabGroup.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.style.display = 'none';
+    });
+    
+    // Убрать активный класс у кнопок
+    const tabButtons = tabGroup.querySelectorAll('.tab-btn');
+    tabButtons.forEach(btn => {
+      btn.classList.remove('active');
+    });
+    
+    // Показать выбранный таб
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) {
+      targetTab.style.display = 'block';
+    }
+    
+    // Добавить активный класс кнопке
+    const activeButton = tabGroup.querySelector(`[data-tab="${tabId}"]`);
+    if (activeButton) {
+      activeButton.classList.add('active');
+    }
+  }
+
+  /**
+   * Обновить прогресс-бар
+   */
+  updateProgressBar(elementId, percent) {
+    const progressBar = document.getElementById(elementId);
+    if (progressBar) {
+      const progress = Math.min(100, Math.max(0, percent));
+      progressBar.style.width = progress + '%';
+      progressBar.setAttribute('aria-valuenow', progress);
+    }
+  }
+
+  /**
+   * Показать тултип
+   */
+  showTooltip(elementId, message) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+    tooltip.textContent = message;
+    
+    element.appendChild(tooltip);
+    
+    setTimeout(() => {
+      tooltip.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+      tooltip.classList.remove('show');
+      setTimeout(() => {
+        tooltip.remove();
+      }, 300);
+    }, 2000);
+  }
+
+  /**
+   * Анимация счётчика
+   */
+  animateCounter(elementId, targetValue, duration = 1000) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const startValue = parseFloat(element.textContent) || 0;
+    const increment = (targetValue - startValue) / (duration / 16);
+    let currentValue = startValue;
+    
+    const timer = setInterval(() => {
+      currentValue += increment;
+      
+      if ((increment > 0 && currentValue >= targetValue) ||
+          (increment < 0 && currentValue <= targetValue)) {
+        currentValue = targetValue;
+        clearInterval(timer);
+      }
+      
+      element.textContent = currentValue.toFixed(2);
+    }, 16);
+  }
+
+  /**
+   * Динамическая загрузка компонента из папки components/
+   * 🔥 НОВОЕ: Загружает HTML компоненты по требованию
+   */
+  async loadComponent(componentName) {
+    const container = document.getElementById(componentName);
+    if (!container) {
+      console.warn(`Container #${componentName} not found`);
+      return false;
+    }
+    
+    // Если компонент уже загружен (есть контент), пропускаем
+    if (container.innerHTML.trim().length > 0 && !container.dataset.forceReload) {
+      console.log(`✅ Component ${componentName} already loaded`);
+      return true;
+    }
+    
     try {
-      switch (pageName) {
-        case 'dashboard':
-          if (typeof app !== 'undefined' && app.loadDashboard) {
-            await app.loadDashboard();
-          }
-          break;
-          
+      console.log(`📥 Loading component: ${componentName}.html...`);
+      
+      const response = await fetch(`components/${componentName}.html`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const html = await response.text();
+      container.innerHTML = html;
+      
+      console.log(`✅ Component ${componentName} loaded successfully`);
+      
+      // Инициализируем специфичную логику компонента
+      await this.initializeComponent(componentName);
+      
+      return true;
+      
+    } catch (error) {
+      console.error(`❌ Failed to load component ${componentName}:`, error);
+      container.innerHTML = `
+        <div class="error-message">
+          <h3>⚠️ Failed to load ${componentName}</h3>
+          <p>${error.message}</p>
+          <button onclick="uiManager.loadComponent('${componentName}')">Retry</button>
+        </div>
+      `;
+      return false;
+    }
+  }
+  
+  /**
+   * Инициализация компонента после загрузки
+   * 🔥 НОВОЕ: Вызывает соответствующие init() методы
+   */
+  async initializeComponent(componentName) {
+    try {
+      switch(componentName) {
         case 'partners':
-          if (typeof app !== 'undefined' && app.loadPartners) {
-            await app.loadPartners();
+          if (window.partnersManager && typeof window.partnersManager.init === 'function') {
+            await window.partnersManager.init();
           }
           break;
           
         case 'matrix':
-          if (typeof app !== 'undefined' && app.loadMatrix) {
-            await app.loadMatrix();
+          if (window.matrixManager && typeof window.matrixManager.init === 'function') {
+            await window.matrixManager.init();
           }
           break;
           
         case 'tokens':
-          if (typeof app !== 'undefined' && app.loadTokens) {
-            await app.loadTokens();
+          if (window.tokensManager && typeof window.tokensManager.init === 'function') {
+            await window.tokensManager.init();
           }
           break;
           
         case 'projects':
-          if (typeof app !== 'undefined' && app.loadProjects) {
-            await app.loadProjects();
+          if (window.projectsManager && typeof window.projectsManager.init === 'function') {
+            await window.projectsManager.init();
           }
           break;
           
         case 'admin':
-          if (typeof adminManager !== 'undefined' && adminManager.loadAdminPage) {
-            await adminManager.loadAdminPage();
+          if (window.adminManager && typeof window.adminManager.init === 'function') {
+            await window.adminManager.init();
           }
           break;
       }
+      
+      console.log(`✅ Component ${componentName} initialized`);
     } catch (error) {
-      console.error('Load page data error:', error);
+      console.error(`❌ Failed to initialize ${componentName}:`, error);
     }
   }
 
   /**
-   * Завантажити дані користувача
+   * Получить текущую страницу
    */
-  async loadUserData() {
-    if (!web3Manager.connected || !contracts.initialized) {
-      console.log('⚠️ Cannot load user data - wallet not connected or contracts not initialized');
-      return;
-    }
-
-    try {
-      const address = web3Manager.address;
-      
-      console.log('📊 Loading user data for:', address);
-
-      // Базова інформація
-      const balance = await web3Manager.provider.getBalance(address);
-      const userInfo = await contracts.getUserInfo(address);
-
-      this.userData = {
-        address: address,
-        balance: ethers.utils.formatEther(balance),
-        userId: userInfo.id || '',
-        sponsorId: userInfo.sponsorId || '',
-        refAddress: userInfo.refAddress || ethers.constants.AddressZero,
-        registrationTime: userInfo.registrationTime || 0,
-        rankLevel: userInfo.rankLevel || 0,
-        activeLevel: userInfo.activeLevel || 0,
-        partnersCount: userInfo.partnersCount || 0,
-        isRegistered: userInfo.id && userInfo.id !== '' && userInfo.id !== '0'
-      };
-
-      console.log('✅ User data loaded:', this.userData);
-
-      // Оновити UI
-      await this.updateUI();
-
-    } catch (error) {
-      console.error('❌ Load user data failed:', error);
-    }
-  }
-
-  /**
-   * Оновити UI елементи
-   */
-  async updateUI() {
-    if (!this.userData) return;
-
-    try {
-      // User Address
-      const addressElements = document.querySelectorAll('.user-address');
-      addressElements.forEach(el => {
-        el.textContent = Utils.formatAddress(this.userData.address);
-      });
-
-      // User Balance
-      const balanceElements = document.querySelectorAll('.user-balance');
-      balanceElements.forEach(el => {
-        el.textContent = `${Utils.formatBNB(this.userData.balance)} BNB`;
-      });
-
-      // User ID
-      const userIdElements = document.querySelectorAll('.user-id');
-      userIdElements.forEach(el => {
-        el.textContent = Utils.formatUserId(this.userData.userId);
-      });
-
-      // User Rank
-      const rankElements = document.querySelectorAll('.user-rank');
-      rankElements.forEach(el => {
-        el.textContent = Utils.getRankName(this.userData.rankLevel);
-      });
-
-      // Active Level
-      const levelElements = document.querySelectorAll('.active-level');
-      levelElements.forEach(el => {
-        el.textContent = this.userData.activeLevel;
-      });
-
-      // Partners Count
-      const partnersElements = document.querySelectorAll('.partners-count');
-      partnersElements.forEach(el => {
-        el.textContent = this.userData.partnersCount;
-      });
-
-      // Referral Link
-      if (this.userData.userId && this.userData.userId !== '') {
-        const refLink = `${window.location.origin}?ref=${this.userData.userId}`;
-        const refLinkElements = document.querySelectorAll('.ref-link');
-        refLinkElements.forEach(el => {
-          if (el.tagName === 'INPUT') {
-            el.value = refLink;
-          } else {
-            el.textContent = refLink;
-          }
-        });
-      }
-
-      console.log('✅ UI updated');
-
-    } catch (error) {
-      console.error('Update UI error:', error);
-    }
-  }
-
-  /**
-   * Показати/приховати header навігацію
-   */
-  toggleHeader(show) {
-    const header = document.querySelector('.header');
-    if (header) {
-      if (show) {
-        header.style.display = 'block';
-      } else {
-        header.style.display = 'none';
-      }
-    }
-  }
-
-  /**
-   * Показати/приховати footer
-   */
-  toggleFooter(show) {
-    const footer = document.querySelector('.footer');
-    if (footer) {
-      if (show) {
-        footer.style.display = 'block';
-      } else {
-        footer.style.display = 'none';
-      }
-    }
-  }
-
-  /**
-   * Режим landing (приховати навігацію)
-   */
-  setLandingMode() {
-    this.toggleHeader(false);
-    this.showPage('landing');
-  }
-
-  /**
-   * Режим dashboard (показати навігацію)
-   */
-  setDashboardMode() {
-    this.toggleHeader(true);
-    this.showPage('dashboard');
-  }
-
-  /**
-   * Оновити статус підключення в UI
-   */
-  updateConnectionStatus(connected) {
-    const connectBtn = document.getElementById('connectWallet');
-    
-    if (connectBtn) {
-      if (connected && web3Manager.address) {
-        connectBtn.textContent = Utils.formatAddress(web3Manager.address);
-        connectBtn.classList.add('connected');
-      } else {
-        connectBtn.textContent = 'Connect Wallet';
-        connectBtn.classList.remove('connected');
-      }
-    }
-
-    // Показати/приховати елементи в залежності від підключення
-    const connectedOnly = document.querySelectorAll('.connected-only');
-    const disconnectedOnly = document.querySelectorAll('.disconnected-only');
-
-    connectedOnly.forEach(el => {
-      el.style.display = connected ? 'block' : 'none';
-    });
-
-    disconnectedOnly.forEach(el => {
-      el.style.display = connected ? 'none' : 'block';
-    });
-  }
-
-  /**
-   * Показати помилку мережі
-   */
-  showNetworkError() {
-    Utils.showNotification(
-      `Wrong network. Please switch to ${CONFIG.NETWORK.name}`,
-      'error',
-      5000
-    );
-
-    // Показати кнопку переключення мережі
-    const switchBtn = document.getElementById('switchNetworkBtn');
-    if (switchBtn) {
-      switchBtn.style.display = 'block';
-    }
-  }
-
-  /**
-   * Приховати помилку мережі
-   */
-  hideNetworkError() {
-    const switchBtn = document.getElementById('switchNetworkBtn');
-    if (switchBtn) {
-      switchBtn.style.display = 'none';
-    }
-  }
-
-  /**
-   * Показати skeleton loader для таблиць
-   */
-  showTableSkeleton(tableId, rows = 5) {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-
-    const tbody = table.querySelector('tbody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    for (let i = 0; i < rows; i++) {
-      const tr = document.createElement('tr');
-      tr.className = 'skeleton-row';
-      
-      const colCount = table.querySelectorAll('thead th').length;
-      
-      for (let j = 0; j < colCount; j++) {
-        const td = document.createElement('td');
-        td.innerHTML = '<div class="skeleton-line"></div>';
-        tr.appendChild(td);
-      }
-      
-      tbody.appendChild(tr);
-    }
-  }
-
-  /**
-   * Показати порожній стан таблиці
-   */
-  showTableEmpty(tableId, message = 'No data available') {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-
-    const tbody = table.querySelector('tbody');
-    if (!tbody) return;
-
-    const colCount = table.querySelectorAll('thead th').length;
-
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="${colCount}" class="text-center empty-state">
-          ${message}
-        </td>
-      </tr>
-    `;
-  }
-
-  /**
-   * Додати рядок в таблицю
-   */
-  addTableRow(tableId, rowData) {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-
-    const tbody = table.querySelector('tbody');
-    if (!tbody) return;
-
-    // Видалити skeleton або empty state
-    const skeleton = tbody.querySelector('.skeleton-row');
-    const empty = tbody.querySelector('.empty-state');
-    if (skeleton) tbody.innerHTML = '';
-    if (empty) tbody.innerHTML = '';
-
-    const tr = document.createElement('tr');
-    
-    rowData.forEach(cellData => {
-      const td = document.createElement('td');
-      td.innerHTML = cellData;
-      tr.appendChild(td);
-    });
-    
-    tbody.appendChild(tr);
-  }
-
-  /**
-   * Очистити таблицю
-   */
-  clearTable(tableId) {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-
-    const tbody = table.querySelector('tbody');
-    if (tbody) {
-      tbody.innerHTML = '';
-    }
-  }
-
-  /**
-   * Оновити значення елемента
-   */
-  updateElement(elementId, value) {
-    const element = document.getElementById(elementId);
-    if (element) {
-      if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-        element.value = value;
-      } else {
-        element.textContent = value;
-      }
-    }
-  }
-
-  /**
-   * Показати/приховати елемент
-   */
-  toggleElement(elementId, show) {
-    const element = document.getElementById(elementId);
-    if (element) {
-      element.style.display = show ? 'block' : 'none';
-    }
-  }
-
-  /**
-   * Додати клас до елемента
-   */
-  addClass(elementId, className) {
-    const element = document.getElementById(elementId);
-    if (element) {
-      element.classList.add(className);
-    }
-  }
-
-  /**
-   * Видалити клас з елемента
-   */
-  removeClass(elementId, className) {
-    const element = document.getElementById(elementId);
-    if (element) {
-      element.classList.remove(className);
-    }
-  }
-
-  /**
-   * Показати badge з повідомленням (для навігації)
-   */
-  showNavBadge(pageName, count) {
-    const navLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
-    if (!navLink) return;
-
-    let badge = navLink.querySelector('.nav-badge');
-    
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'nav-badge';
-      navLink.appendChild(badge);
-    }
-
-    badge.textContent = count > 99 ? '99+' : count;
-    badge.style.display = count > 0 ? 'inline-block' : 'none';
-  }
-
-  /**
-   * Приховати badge
-   */
-  hideNavBadge(pageName) {
-    const navLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
-    if (!navLink) return;
-
-    const badge = navLink.querySelector('.nav-badge');
-    if (badge) {
-      badge.style.display = 'none';
-    }
-  }
-
-  /**
-   * Форматувати HTML для відображення транзакції
-   */
-  formatTransactionRow(tx) {
-    return `
-      <tr>
-        <td>${Utils.formatDateShort(tx.timestamp)}</td>
-        <td><span class="tx-type ${tx.type}">${tx.type}</span></td>
-        <td>${Utils.formatBNB(tx.amount)} BNB</td>
-        <td>
-          <a href="${Utils.getExplorerLink(tx.hash)}" target="_blank" rel="noopener">
-            ${Utils.formatAddress(tx.hash)}
-          </a>
-        </td>
-        <td><span class="tx-status ${tx.status}">${tx.status}</span></td>
-      </tr>
-    `;
-  }
-
-  /**
-   * Форматувати рядок партнера
-   */
-  formatPartnerRow(partner) {
-    return `
-      <tr>
-        <td>${Utils.formatUserId(partner.id)}</td>
-        <td>${Utils.formatAddress(partner.address)}</td>
-        <td>${partner.level}</td>
-        <td><span class="rank-badge rank-${partner.rank}">${Utils.getRankName(partner.rank)}</span></td>
-        <td>${partner.partners}</td>
-        <td>${Utils.formatDateShort(partner.joinDate)}</td>
-      </tr>
-    `;
-  }
-
-  /**
-   * Показати прогрес бар
-   */
-  showProgressBar(elementId, current, total) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    const percentage = total > 0 ? (current / total) * 100 : 0;
-    
-    element.innerHTML = `
-      <div class="progress-bar">
-        <div class="progress-fill" style="width: ${percentage}%"></div>
-      </div>
-      <div class="progress-text">${current} / ${total}</div>
-    `;
-  }
-
-  /**
-   * Показати статистичну картку
-   */
-  showStatCard(containerId, stats) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    container.innerHTML = stats.map(stat => `
-      <div class="stat-card">
-        <div class="stat-icon">${stat.icon}</div>
-        <div class="stat-value">${stat.value}</div>
-        <div class="stat-label">${stat.label}</div>
-      </div>
-    `).join('');
-  }
-
-  /**
-   * Анімація зміни числа
-   */
-  animateNumber(elementId, from, to, duration = 1000) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    const start = Date.now();
-    const range = to - from;
-
-    const update = () => {
-      const now = Date.now();
-      const progress = Math.min((now - start) / duration, 1);
-      const current = from + (range * progress);
-      
-      element.textContent = Math.floor(current);
-
-      if (progress < 1) {
-        requestAnimationFrame(update);
-      }
-    };
-
-    requestAnimationFrame(update);
+  getCurrentPage() {
+    return this.currentPage;
   }
 }
 
-// Створити глобальний екземпляр
+// Создать глобальный экземпляр
 const uiManager = new UIManager();
 
-// Експорт для використання в інших модулях
+// Инициализация при загрузке DOM
+document.addEventListener('DOMContentLoaded', () => {
+  uiManager.init();
+});
+
+// Экспорт
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = UIManager;
+  module.exports = { Utils, UIManager };
 }
