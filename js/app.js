@@ -70,6 +70,32 @@ class Application {
    * Настройка обработчиков событий
    */
   setupEventListeners() {
+    // 🔥 ИСПРАВЛЕНО: Кнопка входа в DApp
+    const openDappBtn = document.getElementById('openDapp');
+    if (openDappBtn) {
+      openDappBtn.addEventListener('click', () => {
+        console.log('🚀 Opening DApp...');
+        if (window.uiManager) {
+          uiManager.showPage('dapp');
+          // Скрыть landing, показать dapp
+          const landing = document.getElementById('landing');
+          const dapp = document.getElementById('dapp');
+          if (landing) landing.classList.remove('active');
+          if (dapp) dapp.classList.add('active');
+        }
+      });
+    }
+    
+    // 🔥 ИСПРАВЛЕНО: Обработчики планет (работают на ВСЕХ устройствах)
+    const planets = document.querySelectorAll('.planet');
+    planets.forEach(planet => {
+      planet.addEventListener('click', () => {
+        const planetType = planet.dataset.planet;
+        console.log('🌍 Planet clicked:', planetType);
+        this.showPlanetModal(planetType);
+      });
+    });
+    
     // Кнопка Connect Wallet
     const connectBtn = document.getElementById('connectWallet');
     if (connectBtn) {
@@ -850,6 +876,130 @@ class Application {
     modal.style.display = 'block';
     
     // Адаптируем модалку под размер экрана
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent && window.innerWidth < 768) {
+      modalContent.style.width = '95%';
+      modalContent.style.maxWidth = '95%';
+    }
+    
+    // Закрытие
+    const closeBtn = modal.querySelector('.close');
+    closeBtn.onclick = () => {
+      modal.style.display = 'none';
+      modal.remove();
+    };
+    
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+        modal.remove();
+      }
+    };
+  }
+
+  /**
+   * Показать модалку с информацией о планете
+   * 🔥 НОВОЕ: Модалки для планет на landing странице
+   */
+  showPlanetModal(planetType) {
+    console.log('🌍 Showing planet modal:', planetType);
+    
+    // Контент для каждой планеты
+    const planetContent = {
+      club: {
+        title: 'GlobalWay Club',
+        content: `
+          <h3>🌟 Welcome to GlobalWay Club</h3>
+          <p>GlobalWay is a decentralized club on opBNB blockchain that combines:</p>
+          <ul>
+            <li>🤝 Referral marketing system</li>
+            <li>💎 Binary matrix structure</li>
+            <li>🏆 Rank-based bonuses</li>
+            <li>💰 Quarterly rewards</li>
+          </ul>
+          <p>Join us and build your global network!</p>
+        `
+      },
+      mission: {
+        title: 'Our Mission',
+        content: `
+          <h3>🎯 Mission</h3>
+          <p>Create a fair and transparent decentralized club where everyone has equal opportunities to earn and grow.</p>
+          <ul>
+            <li>🌐 Global accessibility</li>
+            <li>🔒 Full transparency on blockchain</li>
+            <li>💪 Community-driven development</li>
+            <li>🚀 Sustainable growth model</li>
+          </ul>
+        `
+      },
+      goals: {
+        title: 'Club Goals',
+        content: `
+          <h3>🎯 Our Goals</h3>
+          <ul>
+            <li>📈 Build 100,000+ member community</li>
+            <li>💎 Launch GWT token ecosystem</li>
+            <li>🌍 Expand to 50+ countries</li>
+            <li>🏢 Develop business partnerships</li>
+            <li>📱 Create mobile app</li>
+          </ul>
+        `
+      },
+      roadmap: {
+        title: 'Roadmap',
+        content: `
+          <h3>🗺️ Development Roadmap</h3>
+          <div class="roadmap">
+            <div class="roadmap-item">
+              <strong>Q4 2024:</strong> Platform launch, Smart contracts audit
+            </div>
+            <div class="roadmap-item">
+              <strong>Q1 2025:</strong> Mobile app, 10,000 members
+            </div>
+            <div class="roadmap-item">
+              <strong>Q2 2025:</strong> GWT token launch, Exchange listings
+            </div>
+            <div class="roadmap-item">
+              <strong>Q3-Q4 2025:</strong> Global expansion, Partnerships
+            </div>
+          </div>
+        `
+      },
+      projects: {
+        title: 'Our Projects',
+        content: `
+          <h3>🚀 Projects in Development</h3>
+          <ul>
+            <li>💎 <strong>GWT Token</strong> - Utility token for rewards</li>
+            <li>🏪 <strong>Marketplace</strong> - NFT & Services</li>
+            <li>🎓 <strong>Academy</strong> - Education platform</li>
+            <li>🤝 <strong>Partnerships</strong> - Business integrations</li>
+          </ul>
+        `
+      }
+    };
+    
+    const content = planetContent[planetType] || planetContent.club;
+    
+    // Создать модалку
+    const modal = document.createElement('div');
+    modal.className = 'modal planet-modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="planet-modal-content">
+          ${content.content}
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Показать модалку
+    modal.style.display = 'block';
+    
+    // Адаптивность
     const modalContent = modal.querySelector('.modal-content');
     if (modalContent && window.innerWidth < 768) {
       modalContent.style.width = '95%';
