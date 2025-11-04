@@ -196,53 +196,79 @@ class MatrixManager {
     }
   }
 
+  /**
+   * Отобразить таблицу матрицы
+   * 🔥 ИСПРАВЛЕНО: Показываем ВСЕ позиции (не только заполненные)
+   * Убрано ограничение на 20 строк - показываем 2^N позиций
+   */
   renderMatrixTable() {
     const tableBody = document.getElementById('matrixTableBody');
     if (!tableBody || !this.matrixData) return;
     
-    const filledPositions = this.matrixData.positions.filter(p => p.isFilled);
+    const allPositions = this.matrixData.positions || [];
     
-    if (filledPositions.length === 0) {
+    if (allPositions.length === 0) {
       tableBody.innerHTML = `
         <tr>
-          <td colspan="7" class="no-data">No positions filled yet</td>
+          <td colspan="7" class="no-data">No matrix data available</td>
         </tr>
       `;
       return;
     }
     
-    tableBody.innerHTML = filledPositions.map((position, index) => `
-      <tr>
-        <td>${index + 1}</td>
-        <td>${position.userId || '-'}</td>
-        <td><a href="${Utils.getExplorerLink(position.user)}" target="_blank">${Utils.formatAddress(position.user)}</a></td>
-        <td>${Utils.formatAddress(position.placedBy)}</td>
-        <td>${Utils.formatDate(position.timestamp)}</td>
-        <td>${this.currentLevel}</td>
-        <td><span class="position-badge position-${position.position}">Position ${position.position}</span></td>
-      </tr>
-    `).join('');
+    // 🔥 ИСПРАВЛЕНО: Показываем ВСЕ позиции (включая пустые), а не только filled
+    // Сортируем по номеру позиции
+    const sortedPositions = [...allPositions].sort((a, b) => a.position - b.position);
+    
+    tableBody.innerHTML = sortedPositions.map((position, index) => {
+      // Определяем класс для статуса
+      const statusClass = position.isFilled ? 'filled' : 'empty';
+      const statusText = position.isFilled ? 'Active' : 'Empty';
+      
+      return `
+        <tr class="${statusClass}">
+          <td>${index + 1}</td>
+          <td>${position.userId || '-'}</td>
+          <td>${position.isFilled ? `<a href="${CONFIG.NETWORK.explorer}/address/${position.user}" target="_blank" rel="noopener">${Utils.formatAddress(position.user)}</a>` : '-'}</td>
+          <td>${position.placedBy && position.placedBy !== ethers.constants.AddressZero ? Utils.formatAddress(position.placedBy) : '-'}</td>
+          <td>${position.isFilled ? Utils.formatDate(position.timestamp) : '-'}</td>
+          <td>${this.currentLevel}</td>
+          <td><span class="position-badge position-${position.position} ${statusClass}">${statusText} (Pos ${position.position})</span></td>
+        </tr>
+      `;
+    }).join('');
+    
+    console.log(`📊 Displayed ${sortedPositions.length} positions in table`);
   }
 
+  /**
+   * Обновить статистику матрицы
+   * 🔥 ИСПРАВЛЕНО: Правильный подсчёт всех типов позиций
+   */
   updateMatrixStatistics() {
-    if (!this.matrixData) return;
+    if (!this.matrixData || !this.matrixData.positions) return;
     
-    const filled = this.matrixData.positions.filter(p => p.isFilled);
+    const allPositions = this.matrixData.positions;
+    const filled = allPositions.filter(p => p.isFilled);
     
+    // Общее количество заполненных позиций
     const totalEl = document.getElementById('totalActivePositions');
     if (totalEl) {
       totalEl.textContent = filled.length;
     }
     
+    // Партнёрские позиции (не Charity и не Technical)
     const partnerEl = document.getElementById('partnerPositions');
     if (partnerEl) {
       const partners = filled.filter(p => 
         p.user.toLowerCase() !== CONFIG.WALLETS.CHARITY.toLowerCase() &&
-        p.placedBy !== ethers.constants.AddressZero
+        p.placedBy && p.placedBy !== ethers.constants.AddressZero &&
+        p.user !== ethers.constants.AddressZero
       );
       partnerEl.textContent = partners.length;
     }
     
+    // Благотворительные позиции
     const charityEl = document.getElementById('charityPositions');
     if (charityEl) {
       const charity = filled.filter(p => 
@@ -251,13 +277,28 @@ class MatrixManager {
       charityEl.textContent = charity.length;
     }
     
+    // Технические позиции (размещены системой)
     const technicalEl = document.getElementById('technicalPositions');
     if (technicalEl) {
       const technical = filled.filter(p => 
-        p.placedBy === ethers.constants.AddressZero &&
-        p.user.toLowerCase() !== CONFIG.WALLETS.CHARITY.toLowerCase()
+        (!p.placedBy || p.placedBy === ethers.constants.AddressZero) &&
+        p.user.toLowerCase() !== CONFIG.WALLETS.CHARITY.toLowerCase() &&
+        p.user !== ethers.constants.AddressZero
       );
       technicalEl.textContent = technical.length;
+    }
+    
+    // Обновляем информацию о текущем уровне
+    const levelInfoEl = document.getElementById('currentMatrixLevel');
+    if (levelInfoEl) {
+      levelInfoEl.textContent = `Level ${this.currentLevel}`;
+    }
+    
+    // Максимальное количество позиций для этого уровня
+    const maxPositionsEl = document.getElementById('maxMatrixPositions');
+    if (maxPositionsEl) {
+      const maxPositions = Math.pow(2, this.currentLevel);
+      maxPositionsEl.textContent = `${maxPositions} positions`;
     }
   }
 
