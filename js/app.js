@@ -104,15 +104,21 @@ class Application {
     });
     
     // Кнопка Connect Wallet
-    const connectBtn = document.getElementById('connectWallet');
+    const connectBtn = document.getElementById('connectBtn'); // 🔥 ИСПРАВЛЕНО: connectBtn вместо connectWallet
     if (connectBtn) {
       connectBtn.addEventListener('click', () => this.connectWallet());
+      console.log('✅ Connect button listener added');
+    } else {
+      console.error('❌ Connect button NOT FOUND!');
     }
     
     // Кнопка Register
     const registerBtn = document.getElementById('registerBtn');
     if (registerBtn) {
       registerBtn.addEventListener('click', () => this.register());
+      console.log('✅ Register button listener added');
+    } else {
+      console.warn('⚠️ Register button not found (normal if user is registered)');
     }
     
     // Кнопка Activate Level
@@ -489,21 +495,29 @@ class Application {
    * Обновить статус подключения
    */
   updateConnectionStatus() {
-    const statusEl = document.getElementById('walletStatus');
-    const connectBtn = document.getElementById('connectWallet');
+    // 🔥 ИСПРАВЛЕНО: Правильные ID из HTML
+    const statusEl = document.getElementById('walletAddress'); // walletAddress в header
+    const connectBtn = document.getElementById('connectBtn'); // connectBtn в header
     
-    if (!statusEl || !connectBtn) return;
+    if (!statusEl || !connectBtn) {
+      console.warn('⚠️ Wallet status elements not found');
+      return;
+    }
     
     if (web3Manager.connected) {
       statusEl.textContent = Utils.formatAddress(web3Manager.address);
       statusEl.classList.add('connected');
       connectBtn.textContent = 'Connected';
       connectBtn.disabled = true;
+      connectBtn.classList.add('connected');
+      console.log('✅ Connection status: Connected');
     } else {
-      statusEl.textContent = 'Not Connected';
+      statusEl.textContent = 'Not connected';
       statusEl.classList.remove('connected');
-      connectBtn.textContent = 'Connect Wallet';
+      connectBtn.textContent = 'Connect';
       connectBtn.disabled = false;
+      connectBtn.classList.remove('connected');
+      console.log('⚠️ Connection status: Not connected');
     }
   }
 
