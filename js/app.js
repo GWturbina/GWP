@@ -40,6 +40,9 @@ class Application {
       // Обработчики кнопок
       this.setupEventListeners();
       
+      // 🔥 НОВОЕ: Touch-поддержка для мобильных устройств
+      this.setupTouchSupport();
+      
       // Проверка реферальной ссылки
       this.checkReferralLink();
       
@@ -114,6 +117,155 @@ class Application {
     if (generateQRBtn) {
       generateQRBtn.addEventListener('click', () => this.generateQRCode());
     }
+  }
+
+  /**
+   * Настройка touch-поддержки для мобильных устройств
+   * 🔥 НОВОЕ: Добавляем touchstart/touchend для всех кликабельных элементов
+   */
+  setupTouchSupport() {
+    // Проверяем, является ли устройство мобильным
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    if (!isMobile && !isTouchDevice) {
+      console.log('📱 Desktop device detected, skipping touch setup');
+      return;
+    }
+    
+    console.log('📱 Mobile/Touch device detected, setting up touch events');
+    
+    // Добавляем touch события ко всем кнопкам
+    const buttons = document.querySelectorAll('button, .btn, .level-btn, .nav-btn');
+    buttons.forEach(btn => {
+      this.addTouchEvent(btn);
+    });
+    
+    // Добавляем touch события к планетам
+    const planets = document.querySelectorAll('.planet, .planet-item, [data-planet]');
+    planets.forEach(planet => {
+      this.addTouchEvent(planet);
+    });
+    
+    // Добавляем touch события к кликабельным элементам
+    const clickables = document.querySelectorAll('[onclick], .clickable, .position-card');
+    clickables.forEach(el => {
+      this.addTouchEvent(el);
+    });
+    
+    // Адаптивные модальные окна
+    this.makeModalsAdaptive();
+    
+    console.log('✅ Touch support enabled');
+  }
+  
+  /**
+   * Добавить touch-событие к элементу
+   */
+  addTouchEvent(element) {
+    if (!element || element.dataset.touchEnabled) return;
+    
+    let touchStartTime = 0;
+    let touchMoved = false;
+    
+    element.addEventListener('touchstart', (e) => {
+      touchStartTime = Date.now();
+      touchMoved = false;
+      element.classList.add('touch-active');
+    }, { passive: true });
+    
+    element.addEventListener('touchmove', () => {
+      touchMoved = true;
+      element.classList.remove('touch-active');
+    }, { passive: true });
+    
+    element.addEventListener('touchend', (e) => {
+      element.classList.remove('touch-active');
+      
+      // Если это был короткий тап без движения - эмулируем клик
+      const touchDuration = Date.now() - touchStartTime;
+      if (!touchMoved && touchDuration < 500) {
+        // Предотвращаем двойное срабатывание (touch + click)
+        e.preventDefault();
+        
+        // Триггерим клик событие
+        const clickEvent = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        });
+        element.dispatchEvent(clickEvent);
+      }
+    });
+    
+    // Отмечаем что touch уже добавлен
+    element.dataset.touchEnabled = 'true';
+  }
+  
+  /**
+   * Сделать модальные окна адаптивными
+   * 🔥 НОВОЕ: Адаптация под размер экрана и touch-жесты
+   */
+  makeModalsAdaptive() {
+    const modals = document.querySelectorAll('.modal');
+    
+    modals.forEach(modal => {
+      // Адаптивное позиционирование
+      const checkModalSize = () => {
+        const modalContent = modal.querySelector('.modal-content');
+        if (!modalContent) return;
+        
+        const windowHeight = window.innerHeight;
+        const windowWidth = window.innerWidth;
+        
+        // На мобильных делаем модалку на весь экран
+        if (windowWidth < 768) {
+          modalContent.style.width = '95%';
+          modalContent.style.maxWidth = '95%';
+          modalContent.style.margin = '10px auto';
+          modalContent.style.maxHeight = `${windowHeight - 40}px`;
+          modalContent.style.overflowY = 'auto';
+        } else {
+          // На десктопе стандартные размеры
+          modalContent.style.width = '';
+          modalContent.style.maxWidth = '';
+          modalContent.style.margin = '';
+          modalContent.style.maxHeight = '';
+        }
+      };
+      
+      // Проверяем при открытии модалки
+      const originalDisplay = modal.style.display;
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'style' && modal.style.display === 'block') {
+            checkModalSize();
+          }
+        });
+      });
+      
+      observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
+      
+      // Проверяем при изменении размера окна
+      window.addEventListener('resize', checkModalSize);
+      
+      // Swipe для закрытия на мобильных
+      let touchStartY = 0;
+      let touchEndY = 0;
+      
+      modal.addEventListener('touchstart', (e) => {
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+      
+      modal.addEventListener('touchend', (e) => {
+        touchEndY = e.changedTouches[0].screenY;
+        
+        // Если свайп вниз больше 100px - закрываем модалку
+        if (touchStartY - touchEndY < -100) {
+          modal.style.display = 'none';
+        }
+      }, { passive: true });
+    });
   }
 
   /**
@@ -255,10 +407,11 @@ class Application {
       userIdEl.textContent = this.userData.id;
     }
     
-    // Ранг
+    // Ранг (определяется по количеству активных уровней)
     const rankEl = document.getElementById('userRank');
     if (rankEl) {
-      const rankName = this.getRankName(this.userData.rankLevel);
+      // 🔥 ИСПРАВЛЕНО: Передаём activeLevel вместо rankLevel
+      const rankName = this.getRankName(this.userData.activeLevel || 0);
       rankEl.textContent = rankName;
       rankEl.className = `rank-badge ${rankName.toLowerCase()}`;
     }
@@ -274,11 +427,29 @@ class Application {
   }
 
   /**
-   * Получить название ранга
+   * Получить название ранга по количеству активных уровней
+   * 🔥 ИСПРАВЛЕНО: Определяем ранг по activeLevel, а не по rankLevel
+   * Логика:
+   * - 0 уровней = None
+   * - 1-3 уровня = Bronze
+   * - 4-7 уровней = Silver
+   * - 8-10 уровней = Gold
+   * - 11-12 уровней = Platinum
    */
   getRankName(rankLevel) {
-    const ranks = ['None', 'Bronze', 'Silver', 'Gold', 'Platinum'];
-    return ranks[rankLevel] || 'None';
+    // Если передан activeLevel напрямую, используем его
+    // Иначе берём из userData
+    const activeLevel = (typeof rankLevel === 'number' && rankLevel >= 0) 
+      ? rankLevel 
+      : (this.userData?.activeLevel || 0);
+    
+    if (activeLevel === 0) return 'None';
+    if (activeLevel >= 1 && activeLevel <= 3) return 'Bronze';
+    if (activeLevel >= 4 && activeLevel <= 7) return 'Silver';
+    if (activeLevel >= 8 && activeLevel <= 10) return 'Gold';
+    if (activeLevel >= 11 && activeLevel <= 12) return 'Platinum';
+    
+    return 'None';
   }
 
   /**
@@ -675,7 +846,15 @@ class Application {
     });
     
     // Показать модал
+    // 🔥 ИСПРАВЛЕНО: Используем адаптивное отображение
     modal.style.display = 'block';
+    
+    // Адаптируем модалку под размер экрана
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent && window.innerWidth < 768) {
+      modalContent.style.width = '95%';
+      modalContent.style.maxWidth = '95%';
+    }
     
     // Закрытие
     const closeBtn = modal.querySelector('.close');
