@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWay",
-  "address": "0xAc6D3f7a61ddC95C09d635514F97E628CA9BD5e1",
+  "address": "0x974fFA4e51458AA72C6262B59Af610844db27548",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -488,13 +488,7 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "uint8",
-          "name": "level",
-          "type": "uint8"
-        }
-      ],
+      "inputs": [],
       "name": "findFreePositionInMatrix",
       "outputs": [
         {
@@ -566,11 +560,6 @@
     {
       "inputs": [
         {
-          "internalType": "uint8",
-          "name": "level",
-          "type": "uint8"
-        },
-        {
           "internalType": "uint256",
           "name": "position",
           "type": "uint256"
@@ -613,11 +602,6 @@
     },
     {
       "inputs": [
-        {
-          "internalType": "uint8",
-          "name": "level",
-          "type": "uint8"
-        },
         {
           "internalType": "address",
           "name": "user",
