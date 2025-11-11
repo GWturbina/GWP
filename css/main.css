@@ -1379,11 +1379,15 @@ body.admin-access .nav-btn[data-page="admin"] {
 }
 
 .page-content {
-  display: none;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 .page-content.active {
-  display: block;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* КРИТИЧЕСКИ ВАЖНО: Админский контент - ИСПРАВЛЕНЫ */
