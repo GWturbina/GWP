@@ -1,249 +1,346 @@
-/* jshint esversion: 8 */
-/* global CONFIG, web3Manager, contracts, Utils, ethers */
+// ═══════════════════════════════════════════════════════════════════
+// GlobalWay DApp - Projects Module
+// Проекты: список, детали, доступ, предложения
+// ═══════════════════════════════════════════════════════════════════
 
-/**
- * Projects Manager - З ІНТЕГРАЦІЄЮ BRIDGE
- */
+const projectsModule = {
+  // Контракты
+  contracts: {},
+  
+  // Состояние
+  state: {
+    projects: [],
+    userLevel: 0,
+    stats: {
+      total: 0,
+      active: 0,
+      development: 0,
+      coming: 0,
+      review: 0
+    }
+  },
 
-class ProjectsManager {
-  constructor() {
-    this.projects = [];
-  }
-
+  // ═══════════════════════════════════════════════════════════════
+  // ИНИЦИАЛИЗАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
   async init() {
-    console.log('🚀 Initializing Projects Manager...');
+    console.log('🚀 Initializing Projects...');
     
-    if (!web3Manager.connected) {
-      console.log('⚠️ Wallet not connected');
-      return;
-    }
-    
-    await this.loadProjects();
-    this.setupEventListeners();
-    
-    console.log('✅ Projects Manager initialized');
-  }
+    try {
+      // Загружаем контракты
+      await this.loadContracts();
 
-  setupEventListeners() {
-    const proposalForm = document.getElementById('proposalForm');
-    if (proposalForm) {
-      proposalForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await this.submitProposal();
-      });
-    }
-    
-    const joinProgramBtn = document.getElementById('joinProgram');
-    if (joinProgramBtn) {
-      joinProgramBtn.addEventListener('click', () => {
-        Utils.showNotification('Developer program coming soon', 'info');
-      });
-    }
-    
-    const viewDocsBtn = document.getElementById('viewDocs');
-    if (viewDocsBtn) {
-      viewDocsBtn.addEventListener('click', () => {
-        window.open('https://docs.globalway.io', '_blank');
-      });
-    }
-  }
+      // Получаем уровень пользователя
+      if (app.state.userAddress) {
+        this.state.userLevel = app.state.maxLevel || 0;
+      }
 
+      // Загружаем проекты
+      await this.loadProjects();
+
+      // Обновляем статистику
+      this.updateStatistics();
+
+      // Инициализируем UI
+      this.initUI();
+
+      console.log('✅ Projects loaded');
+    } catch (error) {
+      console.error('❌ Projects init error:', error);
+      app.showNotification('Ошибка загрузки проектов', 'error');
+    }
+  },
+
+  // Загрузка контрактов
+  async loadContracts() {
+    this.contracts.bridge = await app.getContract('GlobalWayBridge');
+    this.contracts.globalWay = await app.getContract('GlobalWay');
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА ПРОЕКТОВ
+  // ═══════════════════════════════════════════════════════════════
   async loadProjects() {
     try {
-      const projects = CONFIG.PROJECTS;
-      
-      const userStatus = await contracts.getUserAccessStatus(web3Manager.address);
-      const activeProjects = await contracts.getAllProjects();
-      
-      this.renderProjects(projects, userStatus, activeProjects);
-      this.updateProjectStats(projects, activeProjects);
-      
-    } catch (error) {
-      console.error('loadProjects error:', error);
-      Utils.showNotification('Failed to load projects', 'error');
-    }
-  }
+      // Получаем проекты из контракта Bridge
+      const projectIDs = await this.contracts.bridge.getAllProjects();
+      const projectsFromChain = [];
 
-  renderProjects(projects, userStatus, activeProjects) {
-    const grid = document.getElementById('projectsGrid');
-    if (!grid) return;
-    
-    grid.innerHTML = '';
-    
-    for (const project of projects) {
-      const hasAccess = userStatus.isRegistered && 
-                        userStatus.maxLevel >= project.requiredLevel &&
-                        userStatus.quarterlyActive;
-      
-      const isActiveOnBridge = activeProjects.includes(project.id);
-      
-      const card = document.createElement('div');
-      card.className = 'project-card';
-      card.innerHTML = `
-        <div class="project-logo">
-          <img src="${project.logo}" alt="${project.name}" onerror="this.src='assets/icons/default.png'">
-        </div>
-        <div class="project-info">
-          <h3>${project.name}</h3>
-          <p>${project.description}</p>
-          <div class="project-meta">
-            <span class="project-status status-${project.status}">${project.status}</span>
-            <span class="project-level">Level ${project.requiredLevel}+</span>
-          </div>
-        </div>
-        <div class="project-actions">
-          ${hasAccess && isActiveOnBridge ? 
-            `<button class="btn-primary" onclick="projectsManager.openProject('${project.id}')">Open Project</button>` :
-            `<button class="btn-secondary" onclick="projectsManager.showProjectDetails('${project.id}')">View Details</button>`
-          }
-        </div>
-      `;
-      
-      grid.appendChild(card);
-    }
-  }
+      for (const projectID of projectIDs) {
+        const [isActive, name, wallet, token, registeredAt] = 
+          await this.contracts.bridge.getProject(projectID);
 
-  async showProjectDetails(projectId) {
-    const project = CONFIG.PROJECTS.find(p => p.id === projectId);
-    if (!project) return;
-    
-    let accessStatus;
-    try {
-      accessStatus = await contracts.checkUserAccess(projectId, web3Manager.address);
-    } catch (error) {
-      console.error('checkUserAccess error:', error);
-      accessStatus = {
-        isRegistered: false,
-        maxLevel: 0,
-        userStatus: 0,
-        quarterlyActive: false
-      };
-    }
-    
-    const modal = document.getElementById('projectModal');
-    if (!modal) return;
-    
-    document.getElementById('projectModalLogo').src = project.logo;
-    document.getElementById('projectModalTitle').textContent = project.name;
-    document.getElementById('projectModalStatus').textContent = project.status;
-    document.getElementById('projectModalStatus').className = `project-status status-${project.status}`;
-    document.getElementById('projectModalDescription').textContent = project.description;
-    document.getElementById('projectModalRequirements').textContent = `Level ${project.requiredLevel} or higher`;
-    document.getElementById('projectModalPrefix').textContent = `${project.prefix}-XXXXXXX`;
-    
-    const actionBtn = document.getElementById('projectModalAction');
-    if (actionBtn) {
-      if (accessStatus.isRegistered && accessStatus.maxLevel >= project.requiredLevel && accessStatus.quarterlyActive) {
-        actionBtn.disabled = false;
-        actionBtn.textContent = 'Open Project';
-        actionBtn.onclick = () => {
-          modal.style.display = 'none';
-          this.openProject(projectId);
-        };
-      } else {
-        actionBtn.disabled = true;
-        if (!accessStatus.isRegistered) {
-          actionBtn.textContent = 'Please Register First';
-        } else if (accessStatus.maxLevel < project.requiredLevel) {
-          actionBtn.textContent = `Requires Level ${project.requiredLevel}`;
-        } else if (!accessStatus.quarterlyActive) {
-          actionBtn.textContent = 'Pay Quarterly Activity First';
-        } else {
-          actionBtn.textContent = 'Access Denied';
+        if (isActive) {
+          projectsFromChain.push({
+            id: projectID,
+            name,
+            wallet,
+            token,
+            registeredAt: Number(registeredAt),
+            onChain: true
+          });
         }
       }
-    }
-    
-    modal.style.display = 'block';
-    
-    const closeBtn = modal.querySelector('.close');
-    if (closeBtn) {
-      closeBtn.onclick = () => modal.style.display = 'none';
-    }
-  }
 
-  async openProject(projectId) {
-    try {
-      const projectData = await contracts.getProject(projectId);
-      
-      if (!projectData || !projectData.isActive) {
-        Utils.showNotification('Project is not active yet', 'warning');
-        return;
-      }
-      
-      const userInfo = await contracts.getUserInfo(web3Manager.address);
-      const projectUserId = `${projectId}-${userInfo.id}`;
-      
-      Utils.showNotification(`Opening ${projectId} with ID: ${projectUserId}`, 'info');
-      
+      // Объединяем с проектами из config
+      this.state.projects = CONFIG.PROJECTS.map(project => {
+        const onChainProject = projectsFromChain.find(p => p.id === project.id);
+        
+        return {
+          ...project,
+          onChain: !!onChainProject,
+          wallet: onChainProject?.wallet,
+          token: onChainProject?.token
+        };
+      });
+
+      // Отображаем проекты
+      this.displayProjects();
+
     } catch (error) {
-      console.error('openProject error:', error);
-      Utils.showNotification('Failed to open project', 'error');
+      console.error('Error loading projects:', error);
+      // Используем данные из config
+      this.state.projects = CONFIG.PROJECTS;
+      this.displayProjects();
     }
-  }
+  },
 
-  updateProjectStats(projects, activeProjects) {
-    const totalProjectsEl = document.getElementById('totalProjects');
-    if (totalProjectsEl) {
-      totalProjectsEl.textContent = projects.length;
-    }
-    
-    const activeProjectsEl = document.getElementById('activeProjects');
-    if (activeProjectsEl) {
-      activeProjectsEl.textContent = activeProjects.length;
-    }
-    
-    const devProjectsEl = document.getElementById('devProjects');
-    if (devProjectsEl) {
-      const devCount = projects.filter(p => p.status === 'development').length;
-      devProjectsEl.textContent = devCount;
-    }
-    
-    const comingProjectsEl = document.getElementById('comingProjects');
-    if (comingProjectsEl) {
-      const comingCount = projects.filter(p => p.status === 'coming' || p.status === 'planning').length;
-      comingProjectsEl.textContent = comingCount;
-    }
-  }
+  // Отображение проектов
+  displayProjects() {
+    const container = document.getElementById('projectsGrid');
+    if (!container) return;
 
-  async submitProposal() {
-    const author = document.getElementById('proposalAuthor').value;
-    const contact = document.getElementById('proposalContact').value;
-    const sphere = document.getElementById('proposalSphere').value;
-    const idea = document.getElementById('proposalIdea').value;
-    const description = document.getElementById('proposalDescription').value;
-    
-    if (!author || !contact || !sphere || !idea || !description) {
-      Utils.showNotification('Please fill all fields', 'warning');
+    container.innerHTML = this.state.projects.map(project => {
+      const canAccess = this.state.userLevel >= project.requiredLevel;
+      const statusClass = project.status.replace(/ /g, '-').toLowerCase();
+
+      return `
+        <div class="project-card ${statusClass}" data-project-id="${project.id}">
+          <div class="project-logo">
+            <img src="${project.logo}" alt="${project.name}" onerror="this.src='assets/icons/default-project.png'">
+          </div>
+          <div class="project-info">
+            <h3>${project.name}</h3>
+            <p>${project.description}</p>
+            <div class="project-meta">
+              <span class="project-status status-${statusClass}">${this.getStatusLabel(project.status)}</span>
+              <span class="project-level">Уровень ${project.requiredLevel}+</span>
+            </div>
+          </div>
+          <button 
+            class="project-btn ${canAccess ? '' : 'disabled'}" 
+            onclick="projectsModule.openProject('${project.id}')"
+            ${canAccess ? '' : 'disabled'}
+          >
+            ${canAccess ? 'Открыть проект' : 'Требуется уровень ' + project.requiredLevel}
+          </button>
+        </div>
+      `;
+    }).join('');
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ОТКРЫТИЕ ПРОЕКТА
+  // ═══════════════════════════════════════════════════════════════
+  async openProject(projectId) {
+    const project = this.state.projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    // Проверяем уровень
+    if (this.state.userLevel < project.requiredLevel) {
+      app.showNotification(`Требуется уровень ${project.requiredLevel}`, 'error');
       return;
     }
-    
-    try {
-      Utils.showLoader(true, 'Submitting proposal...');
-      
-      const proposal = {
-        author,
-        contact,
-        sphere,
-        idea,
-        description,
-        timestamp: Date.now(),
-        submitter: web3Manager.address
-      };
-      
-      console.log('Proposal:', proposal);
-      
-      Utils.showNotification('Proposal submitted successfully!', 'success');
-      
-      document.getElementById('proposalForm').reset();
-      
-    } catch (error) {
-      console.error('submitProposal error:', error);
-      Utils.showNotification('Failed to submit proposal', 'error');
-    } finally {
-      Utils.hideLoader();
-    }
-  }
-}
 
-const projectsManager = new ProjectsManager();
+    // Проверяем доступ через контракт (если проект on-chain)
+    if (project.onChain && app.state.userAddress) {
+      try {
+        const accessStatus = await this.contracts.bridge.checkUserAccess(
+          projectId,
+          app.state.userAddress
+        );
+
+        if (!accessStatus.isRegistered) {
+          app.showNotification('Сначала зарегистрируйтесь в системе', 'error');
+          return;
+        }
+
+        if (accessStatus.maxLevel < project.requiredLevel) {
+          app.showNotification(`Требуется уровень ${project.requiredLevel}`, 'error');
+          return;
+        }
+
+        // Проверяем quarterly
+        if (!accessStatus.quarterlyActive) {
+          app.showNotification('Оплатите quarterly активность', 'error');
+          return;
+        }
+
+      } catch (error) {
+        console.error('Error checking access:', error);
+      }
+    }
+
+    // Показываем модальное окно с деталями
+    this.showProjectModal(project);
+  },
+
+  // Модальное окно проекта
+  showProjectModal(project) {
+    // Заполняем данные
+    document.getElementById('projectModalTitle').textContent = project.name;
+    document.getElementById('projectModalDescription').textContent = project.description;
+    document.getElementById('projectModalStatus').textContent = this.getStatusLabel(project.status);
+    document.getElementById('projectModalStatus').className = `project-status status-${project.status}`;
+    document.getElementById('projectModalRequirements').textContent = 
+      `Минимальный уровень: ${project.requiredLevel}`;
+    document.getElementById('projectModalPrefix').textContent = 
+      `${project.prefix}-XXXXXXX`;
+
+    // Логотип
+    const logo = document.getElementById('projectModalLogo');
+    logo.src = project.logo;
+    logo.onerror = () => logo.src = 'assets/icons/default-project.png';
+
+    // Кнопка действия
+    const actionBtn = document.getElementById('projectModalAction');
+    
+    if (project.status === 'development' || project.status === 'active') {
+      actionBtn.disabled = false;
+      actionBtn.textContent = 'Открыть проект';
+      actionBtn.onclick = () => {
+        // TODO: Перенаправление на проект
+        app.showNotification('Функция в разработке', 'info');
+        app.closeModal('projectModal');
+      };
+    } else {
+      actionBtn.disabled = true;
+      actionBtn.textContent = this.getStatusLabel(project.status);
+    }
+
+    // Показываем модалку
+    app.showModal('projectModal');
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПРЕДЛОЖЕНИЕ ПРОЕКТА
+  // ═══════════════════════════════════════════════════════════════
+  async submitProposal(event) {
+    event.preventDefault();
+
+    const form = document.getElementById('proposalForm');
+    const formData = new FormData(form);
+
+    const proposal = {
+      author: formData.get('author') || document.getElementById('proposalAuthor').value,
+      contact: formData.get('contact') || document.getElementById('proposalContact').value,
+      sphere: formData.get('sphere') || document.getElementById('proposalSphere').value,
+      idea: formData.get('idea') || document.getElementById('proposalIdea').value,
+      description: formData.get('description') || document.getElementById('proposalDescription').value,
+      timestamp: Date.now()
+    };
+
+    // Валидация
+    if (!proposal.author || !proposal.contact || !proposal.sphere || 
+        !proposal.idea || !proposal.description) {
+      app.showNotification('Заполните все поля', 'error');
+      return;
+    }
+
+    try {
+      app.showNotification('Отправка предложения...', 'info');
+
+      // TODO: Отправка на backend или в контракт
+      console.log('Proposal:', proposal);
+
+      // Временно: сохраняем в localStorage
+      const proposals = JSON.parse(localStorage.getItem('gw_proposals') || '[]');
+      proposals.push(proposal);
+      localStorage.setItem('gw_proposals', JSON.stringify(proposals));
+
+      app.showNotification('Предложение отправлено! ✓', 'success');
+      
+      // Очищаем форму
+      form.reset();
+
+      // Обновляем статистику
+      this.state.stats.review++;
+      this.updateStatistics();
+
+    } catch (error) {
+      console.error('Error submitting proposal:', error);
+      app.showNotification('Ошибка отправки', 'error');
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // СТАТИСТИКА
+  // ═══════════════════════════════════════════════════════════════
+  updateStatistics() {
+    const stats = {
+      total: this.state.projects.length,
+      active: this.state.projects.filter(p => p.status === 'active').length,
+      development: this.state.projects.filter(p => p.status === 'development').length,
+      coming: this.state.projects.filter(p => p.status === 'coming').length,
+      review: parseInt(localStorage.getItem('gw_proposals_count') || '0')
+    };
+
+    this.state.stats = stats;
+
+    // Обновляем UI
+    document.getElementById('totalProjects').textContent = stats.total;
+    document.getElementById('activeProjects').textContent = stats.active;
+    document.getElementById('devProjects').textContent = stats.development;
+    document.getElementById('comingProjects').textContent = stats.coming;
+    document.getElementById('reviewProjects').textContent = stats.review;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // UI ИНИЦИАЛИЗАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
+  initUI() {
+    // Форма предложения проекта
+    const proposalForm = document.getElementById('proposalForm');
+    if (proposalForm) {
+      proposalForm.onsubmit = (e) => this.submitProposal(e);
+    }
+
+    // Кнопка "Присоединиться к программе"
+    const joinBtn = document.getElementById('joinProgram');
+    if (joinBtn) {
+      joinBtn.onclick = () => {
+        app.showNotification('Функция в разработке', 'info');
+      };
+    }
+
+    // Кнопка "Просмотр документации"
+    const docsBtn = document.getElementById('viewDocs');
+    if (docsBtn) {
+      docsBtn.onclick = () => {
+        window.open('https://docs.globalway.com', '_blank');
+      };
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+  // ═══════════════════════════════════════════════════════════════
+  getStatusLabel(status) {
+    const labels = {
+      'active': 'Активен',
+      'development': 'В разработке',
+      'coming': 'Скоро',
+      'planning': 'Планируется'
+    };
+    return labels[status] || status;
+  },
+
+  // Обновление данных
+  async refresh() {
+    await this.loadProjects();
+    this.updateStatistics();
+  }
+};
+
+// Экспорт в window
+window.projectsModule = projectsModule;
