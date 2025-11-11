@@ -1,1 +1,723 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GLOBALWAY - REGISTRATION & ACTIVATION MODALS
+   Космический дизайн для модальных окон регистрации
+   Поддержка: registrationModal + firstLevelModal
+   ═══════════════════════════════════════════════════════════════════ */
 
+/* ───────────────────────────────────────────────────────────────────
+   МОДАЛЬНОЕ ОКНО (БАЗА)
+   ─────────────────────────────────────────────────────────────────── */
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  display: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.active,
+.modal[style*="display: flex"] {
+  display: flex !important;
+  opacity: 1;
+  visibility: visible;
+  align-items: center;
+  justify-content: center;
+}
+
+/* OVERLAY (фон) */
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 10, 30, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: -1;
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   КОНТЕНТ МОДАЛКИ
+   ─────────────────────────────────────────────────────────────────── */
+
+.modal-content {
+  background: linear-gradient(135deg, #001a33 0%, #002a4d 100%);
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 255, 255, 0.2),
+              inset 0 0 30px rgba(0, 255, 255, 0.05);
+  animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Cosmic background effect */
+.modal-content::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    transparent 0%, 
+    rgba(0, 255, 255, 0.1) 50%, 
+    transparent 100%);
+  border-radius: 20px;
+  z-index: -1;
+  animation: borderGlow 3s ease infinite;
+}
+
+@keyframes borderGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   ХЕДЕР МОДАЛКИ
+   ─────────────────────────────────────────────────────────────────── */
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(0, 255, 255, 0.2);
+}
+
+.modal-header h2 {
+  color: #00ffff;
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  animation: textGlow 2s ease infinite;
+}
+
+@keyframes textGlow {
+  0%, 100% { text-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
+  50% { text-shadow: 0 0 30px rgba(0, 255, 255, 0.8); }
+}
+
+.close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 32px;
+  color: #00ffff;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.3s;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.close-btn:hover {
+  opacity: 1;
+  background: rgba(0, 255, 255, 0.1);
+  transform: rotate(90deg);
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   БОДИ МОДАЛКИ
+   ─────────────────────────────────────────────────────────────────── */
+
+.modal-body {
+  margin-bottom: 30px;
+}
+
+.registration-info,
+.first-level-info {
+  margin-bottom: 25px;
+}
+
+.registration-info p,
+.first-level-info p {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.8;
+  margin-bottom: 15px;
+  font-size: 15px;
+  text-align: center;
+}
+
+/* Icon (для начала модалки) */
+.modal-body::before {
+  content: '🚀';
+  font-size: 64px;
+  text-align: center;
+  display: block;
+  margin-bottom: 20px;
+  animation: iconBounce 0.6s ease;
+}
+
+#registrationModal .modal-body::before {
+  content: '🎉';
+}
+
+#firstLevelModal .modal-body::before {
+  content: '🚀';
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   ФОРМЫ
+   ─────────────────────────────────────────────────────────────────── */
+
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  display: block;
+  color: #ffffff;
+  font-size: 16px;
+  margin-bottom: 12px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.form-control {
+  width: 100%;
+  padding: 16px 50px 16px 20px;
+  background: rgba(0, 50, 100, 0.3);
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 18px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #00ffff;
+  background: rgba(0, 50, 100, 0.5);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.form-control::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+  cursor: not-allowed;
+  background: rgba(0, 100, 150, 0.3);
+  border-color: rgba(0, 255, 100, 0.4);
+  color: #00ff88;
+  font-weight: 600;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   INFO КАРТОЧКА
+   ─────────────────────────────────────────────────────────────────── */
+
+.info-card {
+  background: rgba(0, 50, 100, 0.3);
+  border: 2px solid rgba(0, 255, 255, 0.2);
+  border-radius: 15px;
+  padding: 25px;
+  margin: 25px 0;
+  backdrop-filter: blur(10px);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.info-row:first-child {
+  padding-top: 0;
+}
+
+.info-row .label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.info-row .value {
+  color: #00ffff;
+  font-weight: 700;
+  font-size: 18px;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   ПРЕИМУЩЕСТВА / BENEFITS
+   ─────────────────────────────────────────────────────────────────── */
+
+.registration-benefits,
+.benefits-list {
+  margin-top: 30px;
+  padding: 25px;
+  background: rgba(0, 255, 255, 0.05);
+  border-radius: 15px;
+  border: 2px solid rgba(0, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.registration-benefits::before,
+.benefits-list::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #00ffff, transparent, #00ffff);
+  border-radius: 15px;
+  z-index: -1;
+  opacity: 0.3;
+  animation: benefitsBorderGlow 3s linear infinite;
+}
+
+@keyframes benefitsBorderGlow {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(180deg);
+  }
+}
+
+.registration-benefits h4,
+.benefits-list h4 {
+  margin: 0 0 20px 0;
+  color: #00ffff;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.registration-benefits ul,
+.benefits-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.registration-benefits ul li,
+.benefits-list ul li {
+  padding: 10px 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.registration-benefits ul li:hover,
+.benefits-list ul li:hover {
+  color: #fff;
+  transform: translateX(5px);
+}
+
+/* Иконки чекбоксов */
+.registration-benefits ul li::before,
+.benefits-list ul li::before {
+  content: '✓';
+  color: #00ffaa;
+  font-weight: 700;
+  font-size: 18px;
+  margin-right: 12px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 255, 170, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(0, 255, 170, 0.3);
+  animation: iconPulse 2s ease infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.1); 
+    opacity: 0.8;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   ФУТЕР МОДАЛКИ
+   ─────────────────────────────────────────────────────────────────── */
+
+.modal-footer {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  padding-top: 20px;
+  border-top: 2px solid rgba(0, 255, 255, 0.2);
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   КНОПКИ
+   ─────────────────────────────────────────────────────────────────── */
+
+.btn {
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00cc88 0%, #00ffaa 100%);
+  color: #001a33;
+  box-shadow: 0 4px 20px rgba(0, 255, 170, 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(0, 255, 170, 0.6);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #333 0%, #555 100%);
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(0, 255, 255, 0.5);
+  box-shadow: 0 6px 30px rgba(0, 255, 255, 0.3);
+}
+
+.btn-lg {
+  padding: 16px 40px;
+  font-size: 18px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Loading состояние */
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  z-index: 2;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   SUCCESS STATE
+   ─────────────────────────────────────────────────────────────────── */
+
+.modal-content.success {
+  border-color: rgba(0, 255, 100, 0.6);
+  animation: successPulse 0.6s ease;
+}
+
+@keyframes successPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   SCROLLBAR (для модалок)
+   ─────────────────────────────────────────────────────────────────── */
+
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: rgba(0, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 255, 0.3);
+  border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 255, 0.5);
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   ДОПОЛНИТЕЛЬНЫЕ ЭЛЕМЕНТЫ
+   ─────────────────────────────────────────────────────────────────── */
+
+.warning-box {
+  background: rgba(255, 193, 7, 0.1);
+  border: 2px solid rgba(255, 193, 7, 0.3);
+  border-radius: 12px;
+  padding: 15px;
+  margin: 20px 0;
+  color: #ffc107;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.warning-box::before {
+  content: '⚠️';
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.error-box {
+  background: rgba(255, 0, 0, 0.1);
+  border: 2px solid rgba(255, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 15px;
+  margin: 20px 0;
+  color: #ff4444;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.error-box::before {
+  content: '❌';
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   АДАПТИВ
+   ─────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .modal-content {
+    padding: 30px 20px;
+    border-radius: 15px;
+    max-width: 95%;
+  }
+
+  .modal-header h2 {
+    font-size: 22px;
+  }
+
+  .modal-body::before {
+    font-size: 48px;
+  }
+
+  .form-control {
+    font-size: 16px;
+    padding: 14px 45px 14px 16px;
+  }
+
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .info-row .value {
+    font-size: 16px;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+  }
+
+  .btn {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  .btn-lg {
+    padding: 14px 30px;
+    font-size: 16px;
+  }
+
+  .registration-benefits,
+  .benefits-list {
+    padding: 20px;
+  }
+
+  .registration-benefits h4,
+  .benefits-list h4 {
+    font-size: 16px;
+  }
+
+  .registration-benefits ul li,
+  .benefits-list ul li {
+    font-size: 14px;
+    padding: 8px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: 20px 15px;
+  }
+
+  .modal-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+  }
+
+  .modal-header h2 {
+    font-size: 20px;
+  }
+
+  .modal-body {
+    margin-bottom: 20px;
+  }
+
+  .form-control {
+    font-size: 14px;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   ЗВЕЗДНОЕ НЕБО (опционально, для космического эффекта)
+   ─────────────────────────────────────────────────────────────────── */
+
+.modal::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #00ffff, transparent),
+    radial-gradient(2px 2px at 60px 70px, #00ffaa, transparent),
+    radial-gradient(1px 1px at 50px 50px, #ffffff, transparent),
+    radial-gradient(1px 1px at 130px 80px, #00ffff, transparent),
+    radial-gradient(2px 2px at 90px 10px, #00ffaa, transparent);
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.3;
+  animation: stars 20s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes stars {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-200px);
+  }
+}
