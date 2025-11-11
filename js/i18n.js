@@ -211,10 +211,6 @@ async function initI18n() {
   // Устанавливаем сохраненный язык или язык по умолчанию
   setLanguage(savedLang);
   
-  // 🔥 ИСПРАВЛЕНО: Переводим страницу после загрузки
-  translatePage();
-  console.log('✅ Initial page translated');
-  
   // Настраиваем селектор языка
   langSelectors.forEach(id => {
     const langSelect = document.getElementById(id);
@@ -277,11 +273,6 @@ window.i18n = {
   translatePage,
   initI18n
 };
-
-// 🔥 ИСПРАВЛЕНО: Прямой экспорт для обратной совместимости
-window.translatePage = translatePage;
-window.getTranslation = getTranslation;
-window.setLanguage = setLanguage;
 
 // Инициализация при загрузке
 if (document.readyState === 'loading') {
