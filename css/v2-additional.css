@@ -1,1 +1,618 @@
+/* ═══════════════════════════════════════════════════════════════
+   GLOBALWAY v2.0 ADDITIONAL STYLES
+   Стили для новых функций: Contract Balances, Board Management, PWA
+   Добавьте этот файл ПОСЛЕ components.css
+   ═══════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════
+   CONTRACT BALANCES & WITHDRAWAL (Dashboard)
+   ═══════════════════════════════════════════════════════════════ */
+
+.contract-balances {
+  margin: var(--spacing-xl) 0;
+  padding: var(--spacing-xl);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-gold);
+}
+
+.contract-balances h3 {
+  color: var(--gold);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-xl);
+}
+
+.balances-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.balance-item {
+  background: rgba(0, 0, 0, 0.3);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.balance-item:hover {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.balance-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.balance-header label {
+  font-weight: 600;
+  color: var(--gold);
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-lg);
+}
+
+.balance-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.balance-amount {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: #00ff88;
+}
+
+.withdraw-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-size: var(--font-size-md);
+}
+
+.withdraw-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.withdraw-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.withdraw-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #666;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .balances-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .balance-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .withdraw-btn {
+    width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOARD MEMBERS MANAGEMENT (Admin Panel)
+   ═══════════════════════════════════════════════════════════════ */
+
+.board-management {
+  margin: var(--spacing-xl) 0;
+  padding: var(--spacing-xl);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-gold);
+}
+
+.board-management h3 {
+  color: var(--gold);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-xl);
+}
+
+.board-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.board-section h4 {
+  color: var(--text-light);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-lg);
+}
+
+.board-members-list {
+  margin: var(--spacing-lg) 0;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: var(--spacing-sm);
+}
+
+/* Scrollbar styling */
+.board-members-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.board-members-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.board-members-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.3);
+  border-radius: 4px;
+}
+
+.board-members-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.5);
+}
+
+.board-member-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  margin: var(--spacing-sm) 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.board-member-card:hover {
+  border-color: var(--gold);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.member-info {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex: 1;
+}
+
+.member-number {
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 30px;
+  font-size: var(--font-size-lg);
+}
+
+.member-address {
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-sm);
+  color: var(--text-light);
+}
+
+.member-short {
+  display: none;
+}
+
+.member-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.btn-small {
+  padding: 4px 8px;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+}
+
+/* Board Forms */
+.board-form {
+  background: rgba(0, 0, 0, 0.2);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-md);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.form-group label {
+  display: block;
+  color: var(--text-light);
+  margin-bottom: var(--spacing-sm);
+  font-weight: 500;
+  font-size: var(--font-size-md);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-light);
+  font-size: var(--font-size-md);
+  font-family: var(--font-family);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Board Statistics */
+.board-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.board-stat-item {
+  padding: var(--spacing-md);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.board-stat-item .stat-value {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: var(--spacing-xs);
+}
+
+.board-stat-item .stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* Info/Warning Boxes */
+.info-box {
+  background: rgba(33, 150, 243, 0.1);
+  border-left: 3px solid #2196F3;
+  padding: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-light);
+  font-size: var(--font-size-sm);
+}
+
+.warning-box {
+  background: rgba(255, 152, 0, 0.1);
+  border-left: 3px solid #FF9800;
+  padding: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-light);
+  font-size: var(--font-size-sm);
+}
+
+.success-box {
+  background: rgba(76, 175, 80, 0.1);
+  border-left: 3px solid #4CAF50;
+  padding: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-light);
+  font-size: var(--font-size-sm);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .member-address {
+    display: none;
+  }
+  
+  .member-short {
+    display: inline;
+    font-family: 'Courier New', monospace;
+    font-size: var(--font-size-sm);
+  }
+  
+  .board-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS - Additional styles
+   ═══════════════════════════════════════════════════════════════ */
+
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  font-family: var(--font-family);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold) 0%, #ffed4e 100%);
+  color: var(--cosmic-black);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--success) 0%, #45a049 100%);
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger) 0%, #c82333 100%);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, var(--warning) 0%, #ffb300 100%);
+  color: var(--cosmic-black);
+}
+
+.btn-info {
+  background: linear-gradient(135deg, var(--info) 0%, #138496 100%);
+  color: white;
+}
+
+.btn-primary:active:not(:disabled),
+.btn-success:active:not(:disabled),
+.btn-danger:active:not(:disabled),
+.btn-warning:active:not(:disabled),
+.btn-info:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-success:disabled,
+.btn-danger:disabled,
+.btn-warning:disabled,
+.btn-info:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PWA SPECIFIC STYLES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Hide elements when running as PWA */
+body.pwa-standalone .install-app-btn {
+  display: none !important;
+}
+
+/* Update notification */
+.update-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 10001;
+  animation: slideInRight 0.3s ease;
+  max-width: 400px;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.update-notification-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.update-notification-content span {
+  font-weight: 600;
+  font-size: var(--font-size-lg);
+}
+
+.update-notification-content button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-size: var(--font-size-sm);
+}
+
+.update-notification-content button:first-of-type {
+  background: white;
+  color: #4CAF50;
+}
+
+.update-notification-content button:first-of-type:hover {
+  background: #f0f0f0;
+}
+
+.update-notification-content button:last-of-type {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.update-notification-content button:last-of-type:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Network status indicator */
+.network-status.offline {
+  color: var(--danger) !important;
+  animation: pulse 1.5s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.network-status.online {
+  color: var(--success);
+}
+
+/* Loading screen for PWA */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--cosmic-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.3s ease;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-logo {
+  width: 120px;
+  height: 120px;
+  margin-bottom: var(--spacing-xl);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 215, 0, 0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  margin: 0 auto var(--spacing-lg);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVENESS IMPROVEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+  .contract-balances,
+  .board-management {
+    padding: var(--spacing-md);
+  }
+  
+  .balance-amount {
+    font-size: var(--font-size-lg);
+  }
+  
+  .board-member-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .member-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .member-actions button {
+    flex: 1;
+  }
+  
+  .update-notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   END OF v2.0 ADDITIONAL STYLES
+   ═══════════════════════════════════════════════════════════════ */
