@@ -1,1412 +1,681 @@
-/* jshint esversion: 8 */
-/* global CONFIG, web3Manager, contracts, Utils, QRCode */
+// ═══════════════════════════════════════════════════════════════════
+// GlobalWay DApp - Main Application Controller
+// ═══════════════════════════════════════════════════════════════════
 
-/**
- * Application - Main DApp Controller
- * Version: 2.0 - Production Ready
- * Date: 03.11.2025
- */
+const app = {
+  // Состояние приложения
+  state: {
+    currentPage: null,
+    userAddress: null,
+    isRegistered: false,
+    userID: null,
+    maxLevel: 0,
+    contracts: {},
+    pageModules: {},
+    isLandingSkipped: false,
+    navigationInitialized: false  // ✅ НОВЫЙ флаг
+  },
 
-class Application {
-  constructor() {
-    this.initialized = false;
-    this.currentPage = 'landing';
-    this.userData = null;
-    this.autoUpdateInterval = null;
-  }
-
-  /**
-   * Инициализация приложения
-   */
+  // ═══════════════════════════════════════════════════════════════
+  // ИНИЦИАЛИЗАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
   async init() {
-    console.log('🚀 GlobalWay DApp Starting...');
+    console.log('🚀 Initializing GlobalWay DApp...');
     
     try {
-      // Инициализация Web3Manager
-      await web3Manager.init();
-      
-      // Проверка сохранённого подключения
-      const wasConnected = localStorage.getItem('walletConnected') === 'true';
-      const savedAddress = localStorage.getItem('walletAddress');
-      
-      if (wasConnected && savedAddress && web3Manager.connected) {
-        console.log('🔄 Auto-connected to saved wallet');
-        await this.onWalletConnected();
-      }
-      
-      // Настройка UI
-      this.setupUI();
-      
-      // Обработчики кнопок
-      this.setupEventListeners();
-      
-      // 🔥 НОВОЕ: Touch-поддержка для мобильных устройств
-      this.setupTouchSupport();
-      
-      // Проверка реферальной ссылки
-      this.checkReferralLink();
-      
-      this.initialized = true;
-      console.log('✅ DApp initialized successfully');
-      
-    } catch (error) {
-      console.error('❌ DApp initialization failed:', error);
-      Utils.showNotification('Initialization failed: ' + error.message, 'error');
-    }
-  }
+      await this.waitForWeb3();
+      this.initConnectButton();
+      await this.checkWalletConnection();
 
-  /**
-   * Настройка UI элементов
-   */
-  setupUI() {
-    // Обновить статус подключения
-    this.updateConnectionStatus();
-    
-    // Показать/скрыть элементы в зависимости от подключения
-    this.updateUIVisibility();
-  }
-
-  /**
-   * Настройка обработчиков событий
-   */
-  setupEventListeners() {
-    // 🔥 ИСПРАВЛЕНО: Кнопка входа в DApp
-    const openDappBtn = document.getElementById('openDapp');
-    if (openDappBtn) {
-      openDappBtn.addEventListener('click', () => {
-        console.log('🚀 Opening DApp...');
-        
-        // Переключаем главные страницы (landing <-> dapp)
+      // ПРИМУСОВО: Якщо немає hash і кошелек не підключений - показуємо лендінг
+      if (!window.location.hash && !this.state.isLandingSkipped) {
+        console.log('🔄 Forcing landing page...');
         const landing = document.getElementById('landing');
+        if (landing) landing.classList.add('active');
         const dapp = document.getElementById('dapp');
-        
-        if (landing && dapp) {
-          landing.classList.remove('active');
-          dapp.classList.add('active');
-          console.log('✅ Switched to DApp page');
-          
-          // Показываем dashboard внутри dapp
-          if (window.uiManager) {
-            uiManager.showPage('dashboard');
-          }
-        }
-      });
-    }
-    
-    // 🔥 ИСПРАВЛЕНО: Обработчики планет (работают на ВСЕХ устройствах)
-    const planets = document.querySelectorAll('.planet');
-    planets.forEach(planet => {
-      planet.addEventListener('click', () => {
-        const planetType = planet.dataset.planet;
-        console.log('🌍 Planet clicked:', planetType);
-        this.showPlanetModal(planetType);
-      });
-    });
-    
-    // Кнопка Connect Wallet
-    const connectBtn = document.getElementById('connectBtn'); // 🔥 ИСПРАВЛЕНО: connectBtn вместо connectWallet
-    if (connectBtn) {
-      connectBtn.addEventListener('click', () => this.connectWallet());
-      console.log('✅ Connect button listener added');
-    } else {
-      console.error('❌ Connect button NOT FOUND!');
-    }
-    
-    // Кнопка Register
-    const registerBtn = document.getElementById('registerBtn');
-    if (registerBtn) {
-      registerBtn.addEventListener('click', () => this.register());
-      console.log('✅ Register button listener added');
-    } else {
-      console.warn('⚠️ Register button not found (normal if user is registered)');
-    }
-    
-    // Кнопка Activate Level
-    const activateBtns = document.querySelectorAll('.activate-level-btn');
-    activateBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const level = parseInt(btn.dataset.level);
-        this.activateLevel(level);
-      });
-    });
-    
-    // Кнопка Pay Quarterly
-    const payQuarterlyBtn = document.getElementById('payActivityBtn');
-    if (payQuarterlyBtn) {
-      payQuarterlyBtn.addEventListener('click', () => this.payQuarterly());
-    }
-    
-    // Кнопки Withdraw
-    const withdrawBtns = document.querySelectorAll('.withdraw-btn');
-    withdrawBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const poolType = btn.dataset.pool;
-        this.withdraw(poolType);
-      });
-    });
-    
-    // Копирование реферальной ссылки
-    const copyRefBtn = document.getElementById('copyRefLink');
-    if (copyRefBtn) {
-      copyRefBtn.addEventListener('click', () => this.copyReferralLink());
-    }
-    
-    // Генерация QR кода
-    const generateQRBtn = document.getElementById('generateQR');
-    if (generateQRBtn) {
-      generateQRBtn.addEventListener('click', () => this.generateQRCode());
-    }
-  }
-
-  /**
-   * Настройка touch-поддержки для мобильных устройств
-   * 🔥 НОВОЕ: Добавляем touchstart/touchend для всех кликабельных элементов
-   */
-  setupTouchSupport() {
-    // Проверяем, является ли устройство мобильным
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    
-    if (!isMobile && !isTouchDevice) {
-      console.log('📱 Desktop device detected, skipping touch setup');
-      return;
-    }
-    
-    console.log('📱 Mobile/Touch device detected, setting up touch events');
-    
-    // Добавляем touch события ко всем кнопкам
-    const buttons = document.querySelectorAll('button, .btn, .level-btn, .nav-btn');
-    buttons.forEach(btn => {
-      this.addTouchEvent(btn);
-    });
-    
-    // Добавляем touch события к планетам
-    const planets = document.querySelectorAll('.planet, .planet-item, [data-planet]');
-    planets.forEach(planet => {
-      this.addTouchEvent(planet);
-    });
-    
-    // Добавляем touch события к кликабельным элементам
-    const clickables = document.querySelectorAll('[onclick], .clickable, .position-card');
-    clickables.forEach(el => {
-      this.addTouchEvent(el);
-    });
-    
-    // Адаптивные модальные окна
-    this.makeModalsAdaptive();
-    
-    console.log('✅ Touch support enabled');
-  }
-  
-  /**
-   * Добавить touch-событие к элементу
-   */
-  addTouchEvent(element) {
-    if (!element || element.dataset.touchEnabled) return;
-    
-    let touchStartTime = 0;
-    let touchMoved = false;
-    
-    element.addEventListener('touchstart', (e) => {
-      touchStartTime = Date.now();
-      touchMoved = false;
-      element.classList.add('touch-active');
-    }, { passive: true });
-    
-    element.addEventListener('touchmove', () => {
-      touchMoved = true;
-      element.classList.remove('touch-active');
-    }, { passive: true });
-    
-    element.addEventListener('touchend', (e) => {
-      element.classList.remove('touch-active');
-      
-      // Если это был короткий тап без движения - эмулируем клик
-      const touchDuration = Date.now() - touchStartTime;
-      if (!touchMoved && touchDuration < 500) {
-        // Предотвращаем двойное срабатывание (touch + click)
-        e.preventDefault();
-        
-        // Триггерим клик событие
-        const clickEvent = new MouseEvent('click', {
-          bubbles: true,
-          cancelable: true,
-          view: window
-        });
-        element.dispatchEvent(clickEvent);
+        if (dapp) dapp.classList.remove('active');
+        this.state.currentPage = 'landing';
+        return;
       }
-    });
-    
-    // Отмечаем что touch уже добавлен
-    element.dataset.touchEnabled = 'true';
-  }
-  
-  /**
-   * Сделать модальные окна адаптивными
-   * 🔥 НОВОЕ: Адаптация под размер экрана и touch-жесты
-   */
-  makeModalsAdaptive() {
-    const modals = document.querySelectorAll('.modal');
-    
-    modals.forEach(modal => {
-      // Адаптивное позиционирование
-      const checkModalSize = () => {
-        const modalContent = modal.querySelector('.modal-content');
-        if (!modalContent) return;
+      
+      const hash = window.location.hash.substring(1);
+      
+      if (hash) {
+        this.state.isLandingSkipped = true;
+        const dappPage = document.getElementById('dapp');
+        if (dappPage) dappPage.classList.add('active');
         
-        const windowHeight = window.innerHeight;
-        const windowWidth = window.innerWidth;
+        const landing = document.getElementById('landing');
+        if (landing) landing.classList.remove('active');
         
-        // На мобильных делаем модалку на весь экран
-        if (windowWidth < 768) {
-          modalContent.style.width = '95%';
-          modalContent.style.maxWidth = '95%';
-          modalContent.style.margin = '10px auto';
-          modalContent.style.maxHeight = `${windowHeight - 40}px`;
-          modalContent.style.overflowY = 'auto';
-        } else {
-          // На десктопе стандартные размеры
-          modalContent.style.width = '';
-          modalContent.style.maxWidth = '';
-          modalContent.style.margin = '';
-          modalContent.style.maxHeight = '';
-        }
-      };
-      
-      // Проверяем при открытии модалки
-      const originalDisplay = modal.style.display;
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.attributeName === 'style' && modal.style.display === 'block') {
-            checkModalSize();
-          }
-        });
-      });
-      
-      observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
-      
-      // Проверяем при изменении размера окна
-      window.addEventListener('resize', checkModalSize);
-      
-      // Swipe для закрытия на мобильных
-      let touchStartY = 0;
-      let touchEndY = 0;
-      
-      modal.addEventListener('touchstart', (e) => {
-        touchStartY = e.changedTouches[0].screenY;
-      }, { passive: true });
-      
-      modal.addEventListener('touchend', (e) => {
-        touchEndY = e.changedTouches[0].screenY;
+        // ✅ ИСПРАВЛЕНО: Всегда инициализируем навигацию при показе DApp
+        this.initNavigation();
         
-        // Если свайп вниз больше 100px - закрываем модалку
-        if (touchStartY - touchEndY < -100) {
-          modal.style.display = 'none';
-        }
-      }, { passive: true });
-    });
-  }
+        if (hash && hash !== '') this.state.currentPage = hash;
+        await this.loadCurrentPage();
+      } else {
+        console.log('👋 First visit - showing Landing page');
+        this.state.currentPage = 'landing';
+        const landing = document.getElementById('landing');
+        if (landing) landing.classList.add('active');
+        
+        const dappPage = document.getElementById('dapp');
+        if (dappPage) dappPage.classList.remove('active');
+      }
+      
+      console.log('✅ App initialized successfully');
+    } catch (error) {
+      console.error('❌ App initialization failed:', error);
+      this.showNotification('Ошибка инициализации приложения', 'error');
+    }
+  },
 
-  /**
-   * Подключение кошелька
-   */
+  // Инициализация кнопки Connect
+  initConnectButton() {
+    const connectBtn = document.getElementById('connectBtn');
+    if (connectBtn) {
+      connectBtn.addEventListener('click', async () => {
+        await this.connectWallet();
+      });
+    }
+  },
+
+  // Подключение кошелька
   async connectWallet() {
     try {
-      Utils.showLoader(true);
-      
-      await web3Manager.connect();
-      await this.onWalletConnected();
-      
-      Utils.showNotification(CONFIG.SUCCESS.WALLET_CONNECTED, 'success');
-      
-    } catch (error) {
-      console.error('Connection error:', error);
-      Utils.showNotification(error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+      if (!window.web3Manager) {
+        this.showNotification('Web3 Manager не загружен', 'error');
+        return;
+      }
 
-  /**
-   * Обработчик успешного подключения кошелька
-   */
-  async onWalletConnected() {
-    console.log('✅ Wallet connected:', web3Manager.address);
-    
-    try {
-      // Инициализация контрактов
-      await contracts.init();
+      this.showNotification('Подключение кошелька...', 'info');
       
-      // Загрузка данных пользователя
+      await window.web3Manager.connect();
+      
+      if (window.web3Manager.isConnected) {
+        this.state.userAddress = window.web3Manager.currentAccount;
+        
+        // Обновляем UI
+        this.updateWalletUI();
+        
+        // Загружаем данные
+        await this.loadUserData();
+        
+        // Автоматическая регистрация
+        await this.checkAndAutoRegister();
+        
+        // КРИТИЧНО: Перезагружаем текущую страницу
+        await this.loadCurrentPage();
+        
+        this.showNotification('Кошелек подключен!', 'success');
+      }
+    } catch (error) {
+      console.error('❌ Connect wallet error:', error);
+      this.showNotification('Ошибка подключения кошелька', 'error');
+    }
+  },
+
+  // Обновление UI кошелька
+  updateWalletUI() {
+    const walletAddress = document.getElementById('walletAddress');
+    const connectBtn = document.getElementById('connectBtn');
+    
+    if (this.state.userAddress) {
+      if (walletAddress) {
+        walletAddress.textContent = this.formatAddress(this.state.userAddress);
+      }
+      if (connectBtn) {
+        connectBtn.textContent = 'Connected';
+        connectBtn.style.background = '#00ff00';
+        connectBtn.disabled = true;
+      }
+    }
+  },
+
+  // Ждем загрузки Web3
+  async waitForWeb3() {
+    return new Promise((resolve) => {
+      if (window.web3Manager) {
+        resolve();
+      } else {
+        const interval = setInterval(() => {
+          if (window.web3Manager) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 100);
+      }
+    });
+  },
+
+  // Проверка подключения кошелька
+  async checkWalletConnection() {
+    if (window.web3Manager && window.web3Manager.isConnected) {
+      this.state.userAddress = window.web3Manager.currentAccount;
       await this.loadUserData();
       
-      // Обновить UI
-      this.updateConnectionStatus();
-      this.updateUIVisibility();
+      // АВТОМАТИЧЕСКАЯ регистрация (если ID нет)
+      await this.checkAndAutoRegister();
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
+  // ═══════════════════════════════════════════════════════════════
+  async loadUserData() {
+    try {
+      const { userAddress } = this.state;
+      if (!userAddress) return;
+
+      // Получаем контракты
+      const globalWay = await this.getContract('GlobalWay');
+      const helper = await this.getContract('GlobalWayHelper');
+
+      // Проверяем регистрацию
+      this.state.isRegistered = await globalWay.isUserRegistered(userAddress);
+
+      if (this.state.isRegistered) {
+        // Получаем ID пользователя
+        const userID = await helper.getUserID(userAddress);
+        this.state.userID = userID === '' ? null : userID;
+
+        // Получаем максимальный уровень
+        this.state.maxLevel = await globalWay.getUserMaxLevel(userAddress);
+
+        console.log('✅ User data loaded:', {
+          address: userAddress,
+          id: this.state.userID,
+          maxLevel: this.state.maxLevel
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error loading user data:', error);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ (БЕСПЛАТНАЯ!)
+  // ═══════════════════════════════════════════════════════════════
+  
+  // Получить реферальный код из URL
+  getReferralFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('ref') || params.get('sponsor') || null;
+  },
+
+  // Автоматическое присвоение ID при первом подключении
+  async checkAndAutoRegister() {
+    if (!this.state.userAddress) return;
+
+    try {
+      const globalWay = await this.getContract('GlobalWay');
+      const helper = await this.getContract('GlobalWayHelper');
       
-      // Проверка регистрации
-      const isRegistered = await contracts.isUserRegistered(web3Manager.address);
+      // Проверяем зарегистрирован ли пользователь
+      const isRegistered = await globalWay.isUserRegistered(this.state.userAddress);
       
       if (!isRegistered) {
-        console.log('⚠️ User not registered');
-        this.showRegistrationPrompt();
-      } else {
-        console.log('✅ User registered');
-        this.showPage('dashboard');
+        console.log('🆕 User not registered, starting registration...');
         
-        // Запустить автообновление
-        this.startAutoUpdate();
+        // ШАГ 1: Регистрируем через GlobalWay
+        const sponsor = await this.getSponsorAddress();
+        console.log('📍 Sponsor address:', sponsor);
+
+        const globalWaySigned = await this.getSignedContract('GlobalWay');
+        const registerTx = await globalWaySigned.register(sponsor, { gasLimit: 500000 });
+        
+        this.showNotification('Регистрация...', 'info');
+        await registerTx.wait();
+        console.log('✅ Registered in GlobalWay');
       }
       
-    } catch (error) {
-      console.error('❌ Post-connection setup failed:', error);
-      Utils.showNotification('Failed to load user data', 'error');
-    }
-  }
-
-  /**
-   * Смена аккаунта
-   */
-  async onAccountChanged(newAddress) {
-    console.log('🔄 Account changed to:', newAddress);
-    
-    // Остановить автообновление
-    this.stopAutoUpdate();
-    
-    // Перезагрузить данные
-    await this.loadUserData();
-    
-    // Проверка регистрации нового аккаунта
-    const isRegistered = await contracts.isUserRegistered(newAddress);
-    
-    if (!isRegistered) {
-      this.showRegistrationPrompt();
-    } else {
-      this.showPage('dashboard');
-      this.startAutoUpdate();
-    }
-  }
-
-  /**
-   * Загрузка данных пользователя
-   */
-  async loadUserData() {
-    if (!web3Manager.connected) {
-      console.warn('⚠️ Wallet not connected');
-      return;
-    }
-    
-    console.log('📊 Loading user data...');
-    
-    try {
-      const address = web3Manager.address;
+      // Проверяем есть ли уже ID
+      const userID = await helper.getUserID(this.state.userAddress);
       
-      // Базовая информация
-      const balance = await web3Manager.getBalance();
-      const userInfo = await contracts.getUserInfo(address);
-      
-      // Сохранить данные
-      this.userData = {
-        address,
-        balance,
-        ...userInfo
-      };
-      
-      // Обновить UI
-      this.updateUserInfo();
-      
-      console.log('✅ User data loaded');
-      
-    } catch (error) {
-      console.error('❌ Failed to load user data:', error);
-    }
-  }
-
-  /**
-   * Обновление информации о пользователе в UI
-   */
-  updateUserInfo() {
-    if (!this.userData) return;
-    
-    // Адрес
-    const addressEl = document.getElementById('userAddress');
-    if (addressEl) {
-      addressEl.textContent = Utils.formatAddress(this.userData.address);
-    }
-    
-    // Баланс
-    const balanceEl = document.getElementById('userBalance');
-    if (balanceEl) {
-      balanceEl.textContent = `${parseFloat(this.userData.balance).toFixed(4)} BNB`;
-    }
-    
-    // ID пользователя
-    const userIdEl = document.getElementById('userId');
-    if (userIdEl && this.userData.id) {
-      userIdEl.textContent = this.userData.id;
-    }
-    
-    // Ранг (определяется по количеству активных уровней)
-    const rankEl = document.getElementById('userRank');
-    if (rankEl) {
-      // 🔥 ИСПРАВЛЕНО: Передаём activeLevel вместо rankLevel
-      const rankName = this.getRankName(this.userData.activeLevel || 0);
-      rankEl.textContent = rankName;
-      rankEl.className = `rank-badge ${rankName.toLowerCase()}`;
-    }
-    
-    // Реферальная ссылка
-    if (this.userData.id) {
-      const refLinkEl = document.getElementById('refLink');
-      if (refLinkEl) {
-        const refLink = `${window.location.origin}?ref=${this.userData.id}`;
-        refLinkEl.value = refLink;
-      }
-    }
-  }
-
-  /**
-   * Получить название ранга по количеству активных уровней
-   * 🔥 ИСПРАВЛЕНО: Определяем ранг по activeLevel, а не по rankLevel
-   * Логика:
-   * - 0 уровней = None
-   * - 1-3 уровня = Bronze
-   * - 4-7 уровней = Silver
-   * - 8-10 уровней = Gold
-   * - 11-12 уровней = Platinum
-   */
-  getRankName(rankLevel) {
-    // Если передан activeLevel напрямую, используем его
-    // Иначе берём из userData
-    const activeLevel = (typeof rankLevel === 'number' && rankLevel >= 0) 
-      ? rankLevel 
-      : (this.userData?.activeLevel || 0);
-    
-    if (activeLevel === 0) return 'None';
-    if (activeLevel >= 1 && activeLevel <= 3) return 'Bronze';
-    if (activeLevel >= 4 && activeLevel <= 7) return 'Silver';
-    if (activeLevel >= 8 && activeLevel <= 10) return 'Gold';
-    if (activeLevel >= 11 && activeLevel <= 12) return 'Platinum';
-    
-    return 'None';
-  }
-
-  /**
-   * Обновить статус подключения
-   */
-  updateConnectionStatus() {
-    // 🔥 ИСПРАВЛЕНО: Правильные ID из HTML
-    const statusEl = document.getElementById('walletAddress'); // walletAddress в header
-    const connectBtn = document.getElementById('connectBtn'); // connectBtn в header
-    
-    if (!statusEl || !connectBtn) {
-      console.warn('⚠️ Wallet status elements not found');
-      return;
-    }
-    
-    if (web3Manager.connected) {
-      statusEl.textContent = Utils.formatAddress(web3Manager.address);
-      statusEl.classList.add('connected');
-      connectBtn.textContent = 'Connected';
-      connectBtn.disabled = true;
-      connectBtn.classList.add('connected');
-      console.log('✅ Connection status: Connected');
-    } else {
-      statusEl.textContent = 'Not connected';
-      statusEl.classList.remove('connected');
-      connectBtn.textContent = 'Connect';
-      connectBtn.disabled = false;
-      connectBtn.classList.remove('connected');
-      console.log('⚠️ Connection status: Not connected');
-    }
-  }
-
-  /**
-   * Обновить видимость UI элементов
-   */
-  updateUIVisibility() {
-    const isConnected = web3Manager.connected;
-    
-    // Скрыть/показать элементы требующие подключения
-    const connectedElements = document.querySelectorAll('.requires-connection');
-    connectedElements.forEach(el => {
-      el.style.display = isConnected ? 'block' : 'none';
-    });
-    
-    // Показать/скрыть алерт подключения
-    const connectionAlert = document.getElementById('connectionAlert');
-    if (connectionAlert) {
-      connectionAlert.style.display = isConnected ? 'none' : 'flex';
-    }
-  }
-
-  /**
-   * Проверка реферальной ссылки в URL
-   */
-  checkReferralLink() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const refId = urlParams.get('ref');
-    
-    if (refId) {
-      console.log('🔗 Referral ID found:', refId);
-      
-      // Сохранить в localStorage
-      localStorage.setItem('referralId', refId);
-      
-      // Показать форму регистрации
-      const regSection = document.getElementById('registration');
-      if (regSection) {
-        regSection.scrollIntoView({ behavior: 'smooth' });
-      }
-      
-      // Заполнить поле
-      const refInput = document.getElementById('refInput');
-      if (refInput) {
-        refInput.value = refId;
-      }
-    }
-  }
-
-  /**
-   * Показать prompt регистрации
-   */
-  showRegistrationPrompt() {
-    const alertEl = document.getElementById('connectionAlert');
-    const messageEl = document.getElementById('alertMessage');
-    const actionBtn = document.getElementById('alertAction');
-    
-    if (!alertEl || !messageEl || !actionBtn) return;
-    
-    messageEl.textContent = 'You need to register first!';
-    actionBtn.textContent = 'Register Now';
-    actionBtn.onclick = () => {
-      this.showPage('landing');
-      const regSection = document.getElementById('registration');
-      if (regSection) {
-        regSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    };
-    
-    alertEl.style.display = 'flex';
-  }
-
-  /**
-   * Регистрация пользователя
-   */
-  async register() {
-    try {
-      if (!web3Manager.connected) {
-        Utils.showNotification(CONFIG.ERRORS.WALLET_NOT_CONNECTED, 'error');
+      if (userID && userID !== '') {
+        console.log('✅ User already has ID:', userID);
+        this.state.userID = userID;
         return;
       }
+
+      // ШАГ 2: Присваиваем ID
+      console.log('🆔 Assigning user ID...');
+      const helperSigned = await this.getSignedContract('GlobalWayHelper');
+      const assignTx = await helperSigned.assignUserID({ gasLimit: 300000 });
       
-      // Получить referral ID
-      const refInput = document.getElementById('refInput');
-      if (!refInput || !refInput.value) {
-        Utils.showNotification('Please enter Referral ID', 'error');
-        return;
-      }
-      
-      const refId = refInput.value.trim();
-      
-      // Валидация ID
-      if (!CONFIG.VALIDATION.USER_ID_REGEX.test(refId)) {
-        Utils.showNotification('Invalid Referral ID format', 'error');
-        return;
-      }
-      
-      Utils.showLoader(true);
-      
-      // Получить адрес спонсора по ID
-      const sponsorAddress = await contracts.getAddressByUserId(refId);
-      
-      if (sponsorAddress === ethers.constants.AddressZero) {
-        throw new Error('Invalid Referral ID: Sponsor not found');
-      }
-      
-      console.log('📝 Registering with sponsor:', sponsorAddress);
-      
-      // Проверка спонсора зарегистрирован
-      const sponsorRegistered = await contracts.isUserRegistered(sponsorAddress);
-      if (!sponsorRegistered) {
-        throw new Error('Sponsor is not registered');
-      }
-      
-      // Вызов контракта
-      const receipt = await contracts.register(sponsorAddress);
-      
-      console.log('✅ Registration successful:', receipt.transactionHash);
-      
-      Utils.showNotification(CONFIG.SUCCESS.REGISTRATION_COMPLETE, 'success');
-      
-      // Перезагрузить данные
+      this.showNotification('Присвоение ID...', 'info');
+      await assignTx.wait();
+
+      // Получаем ID
+      const newID = await helper.getUserID(this.state.userAddress);
+      this.state.userID = newID;
+
+      this.showNotification(`ID присвоен: GW${newID} 🎉`, 'success');
       await this.loadUserData();
-      
-      // Переход на dashboard
-      setTimeout(() => {
-        this.showPage('dashboard');
-        this.startAutoUpdate();
-      }, 2000);
-      
-    } catch (error) {
-      console.error('❌ Registration failed:', error);
-      Utils.showNotification(error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+      console.log('✅ ID assigned:', newID);
 
-  /**
-   * Активация уровня
-   */
-  async activateLevel(level) {
-    try {
-      if (!web3Manager.connected) {
-        Utils.showNotification(CONFIG.ERRORS.WALLET_NOT_CONNECTED, 'error');
-        return;
-      }
-      
-      // Проверка можно ли купить
-      const canBuy = await contracts.canBuyLevel(web3Manager.address, level);
-      if (!canBuy) {
-        Utils.showNotification('Cannot activate this level yet', 'error');
-        return;
-      }
-      
-      const price = CONFIG.LEVEL_PRICES[level - 1];
-      
-      const confirmed = confirm(
-        `Activate Level ${level}?\n\n` +
-        `Price: ${price} BNB\n\n` +
-        `You will receive ${CONFIG.TOKEN_REWARDS[level - 1]} GWT tokens!`
-      );
-      
-      if (!confirmed) return;
-      
-      Utils.showLoader(true);
-      
-      const receipt = await contracts.activateLevel(level);
-      
-      console.log('✅ Level activated:', receipt.transactionHash);
-      
-      Utils.showNotification(CONFIG.SUCCESS.LEVEL_ACTIVATED, 'success');
-      
-      // Обновить UI
-      await this.loadDashboard();
-      
     } catch (error) {
-      console.error('❌ Level activation failed:', error);
-      Utils.showNotification(error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
+      console.error('❌ Registration error:', error);
+      console.log('⚠️ User can still browse but needs manual registration');
     }
-  }
+  },
 
-  /**
-   * Пакетная активация уровней
-   */
-  async activateBulkLevels(upToLevel) {
+  // Получить адрес спонсора из URL или использовать Owner
+  async getSponsorAddress() {
+    const refCode = this.getReferralFromURL();
+    
+    if (!refCode) {
+      // Нет реф. кода - используем Owner
+      return CONFIG.ADMIN.owner;
+    }
+
     try {
-      if (!web3Manager.connected) {
-        Utils.showNotification(CONFIG.ERRORS.WALLET_NOT_CONNECTED, 'error');
-        return;
+      const helper = await this.getContract('GlobalWayHelper');
+      let sponsorAddress = null;
+
+      // Проверяем - это ID или адрес?
+      if (refCode.startsWith('GW') || /^\d+$/.test(refCode)) {
+        // Это ID
+        const id = refCode.replace(/^GW/i, '');
+        sponsorAddress = await helper.getAddressByID(id);
+      } else if (refCode.startsWith('0x')) {
+        // Это адрес
+        sponsorAddress = refCode;
       }
-      
-      Utils.showLoader(true);
-      
-      // Рассчитать цену
-      const totalPrice = await contracts.calculateBulkPrice(upToLevel);
-      const priceFormatted = ethers.utils.formatEther(totalPrice);
-      
-      const confirmed = confirm(
-        `Activate Levels 1-${upToLevel}?\n\n` +
-        `Total Price: ${priceFormatted} BNB\n\n` +
-        `You will receive tokens for all levels!`
-      );
-      
-      if (!confirmed) {
-        Utils.showLoader(false);
-        return;
+
+      // Проверяем что спонсор существует
+      if (sponsorAddress && sponsorAddress !== ethers.ZeroAddress) {
+        return sponsorAddress;
       }
-      
-      const receipt = await contracts.activateBulkLevels(upToLevel);
-      
-      console.log('✅ Bulk levels activated:', receipt.transactionHash);
-      
-      Utils.showNotification('Bulk activation successful!', 'success');
-      
-      // Обновить UI
-      await this.loadDashboard();
-      
     } catch (error) {
-      console.error('❌ Bulk activation failed:', error);
-      Utils.showNotification(error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
+      console.error('Error getting sponsor:', error);
     }
-  }
 
-  /**
-   * Оплата квартальной активности
-   */
-  async payQuarterly() {
+    // Fallback на Owner
+    return CONFIG.ADMIN.owner;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // НАВИГАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
+  initNavigation() {
+    // ✅ ИСПРАВЛЕНО: Проверяем, не была ли навигация уже инициализирована
+    if (this.state.navigationInitialized) {
+      console.log('✅ Navigation already initialized, skipping...');
+      return;
+    }
+
+    console.log('🔧 Initializing navigation...');
+
+    // Навигационное меню
+    const navLinks = document.querySelectorAll('[data-page]');
+    console.log(`📍 Found ${navLinks.length} navigation links`);
+    
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const page = link.getAttribute('data-page');
+        console.log(`🔘 Navigation clicked: ${page}`);
+        this.showPage(page);
+      });
+    });
+
+    // Определяем текущую страницу из URL
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      this.state.currentPage = hash;
+    } else {
+      // ✅ ИСПРАВЛЕНО: Если нет hash, устанавливаем dashboard по умолчанию
+      this.state.currentPage = 'dashboard';
+    }
+
+    // ✅ НОВОЕ: Помечаем что навигация инициализирована
+    this.state.navigationInitialized = true;
+    console.log('✅ Navigation initialized successfully');
+  },
+
+  async showPage(pageName) {
+    console.log(`📄 Loading page: ${pageName}`);
+    
     try {
-      if (!web3Manager.connected) {
-        Utils.showNotification(CONFIG.ERRORS.WALLET_NOT_CONNECTED, 'error');
-        return;
+      // ✅ НОВОЕ: Убеждаемся что DApp видим и навигация инициализирована
+      const dapp = document.getElementById('dapp');
+      if (dapp && !dapp.classList.contains('active')) {
+        dapp.classList.add('active');
       }
-      
-      const fee = CONFIG.QUARTERLY.FEE;
-      
-      const confirmed = confirm(
-        `Pay Quarterly Activity?\n\n` +
-        `Fee: ${fee} BNB\n\n` +
-        `This will create 3 technical accounts in your matrix.`
-      );
-      
-      if (!confirmed) return;
-      
-      Utils.showLoader(true);
-      
-      const receipt = await contracts.payQuarterlyActivity();
-      
-      console.log('✅ Quarterly paid:', receipt.transactionHash);
-      
-      Utils.showNotification(CONFIG.SUCCESS.QUARTERLY_PAID, 'success');
-      
-      // Обновить UI
-      await this.loadDashboard();
-      
+
+      const landing = document.getElementById('landing');
+      if (landing && landing.classList.contains('active')) {
+        landing.classList.remove('active');
+      }
+
+      // ✅ НОВОЕ: Инициализируем навигацию если еще не было
+      if (!this.state.navigationInitialized) {
+        this.initNavigation();
+      }
+
+      // 1. Скрываем все страницы
+      document.querySelectorAll('.page-content').forEach(page => {
+        page.classList.remove('active');
+      });
+
+      // 2. Показываем нужную страницу
+      const pageElement = document.getElementById(pageName);
+      if (pageElement) {
+        pageElement.classList.add('active');
+      } else {
+        console.error(`❌ Page element #${pageName} not found!`);
+      }
+
+      // 3. Обновляем активный пункт меню
+      document.querySelectorAll('.nav-btn').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('data-page') === pageName) {
+          link.classList.add('active');
+        }
+      });
+
+      // 4. Обновляем URL
+      window.location.hash = pageName;
+      this.state.currentPage = pageName;
+
+      // 5. Загружаем модуль страницы
+      await this.loadPageModule(pageName);
+
     } catch (error) {
-      console.error('❌ Quarterly payment failed:', error);
-      Utils.showNotification(error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
+      console.error(`❌ Error showing page ${pageName}:`, error);
+      this.showNotification('Ошибка загрузки страницы', 'error');
     }
-  }
+  },
 
-  /**
-   * Вывод средств
-   */
-  async withdraw(poolType) {
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА МОДУЛЕЙ СТРАНИЦ
+  // ═══════════════════════════════════════════════════════════════
+  async loadPageModule(pageName) {
+    console.log(`🔧 Loading module for page: ${pageName}`);
+    
+    // Если модуль уже загружен, просто инициализируем
+    if (this.state.pageModules[pageName]) {
+      console.log(`✅ Module ${pageName} already loaded, re-initializing...`);
+      if (typeof this.state.pageModules[pageName].init === 'function') {
+        await this.state.pageModules[pageName].init();
+      }
+      return;
+    }
+
+    // Загружаем модуль динамически
     try {
-      if (!web3Manager.connected) {
-        Utils.showNotification(CONFIG.ERRORS.WALLET_NOT_CONNECTED, 'error');
-        return;
+      const moduleName = `${pageName}Module`;
+      console.log(`🔍 Looking for window.${moduleName}...`);
+      
+      const module = window[moduleName];
+      
+      if (module) {
+        console.log(`✅ Found module: ${moduleName}`);
+        this.state.pageModules[pageName] = module;
+        
+        if (typeof module.init === 'function') {
+          console.log(`🚀 Calling ${moduleName}.init()...`);
+          await module.init();
+        } else {
+          console.warn(`⚠️ Module ${moduleName} has no init() function`);
+        }
+      } else {
+        console.warn(`❌ Module ${moduleName} not found in window object`);
+        console.log('Available modules:', Object.keys(window).filter(k => k.endsWith('Module')));
+      }
+    } catch (error) {
+      console.error(`❌ Error loading module ${pageName}:`, error);
+    }
+  },
+
+  async loadCurrentPage() {
+    await this.showPage(this.state.currentPage);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // РАБОТА С КОНТРАКТАМИ
+  // ═══════════════════════════════════════════════════════════════
+  async getContract(contractName) {
+    // Если контракт уже загружен
+    if (this.state.contracts[contractName]) {
+      return this.state.contracts[contractName];
+    }
+
+    try {
+      const address = CONFIG.CONTRACTS[contractName];
+      if (!address) {
+        throw new Error(`Contract ${contractName} not found in config`);
+      }
+
+      // Загружаем ABI
+      const response = await fetch(`./contracts/abis/${contractName}.json`);
+      const contractData = await response.json();
+      
+      // Создаем контракт
+      // Создаем контракт с signer если доступен
+      const providerOrSigner = window.web3Manager?.signer || window.web3Manager?.provider;
+      
+      if (!providerOrSigner) {
+        throw new Error('Web3 not initialized');
       }
       
-      const confirmed = confirm(
-        `Withdraw from ${poolType} pool?\n\n` +
-        `All available funds will be sent to your wallet.`
+      const contract = new ethers.Contract(
+        address,
+        contractData.abi,
+        providerOrSigner
       );
+
+      // Сохраняем в кеш
+      this.state.contracts[contractName] = contract;
       
-      if (!confirmed) return;
-      
-      Utils.showLoader(true);
-      
-      let receipt;
-      
+      console.log(`✅ Contract ${contractName} loaded`);
+      return contract;
+    } catch (error) {
+      console.error(`❌ Error loading contract ${contractName}:`, error);
+      throw error;
+    }
+  },
+
+  // Получить контракт с подписью (для транзакций)
+  async getSignedContract(contractName) {
+    const contract = await this.getContract(contractName);
+    const signer = window.web3Manager.signer;
+    return contract.connect(signer);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ВЫВОД СРЕДСТВ (ОБЩАЯ ФУНКЦИЯ)
+  // ═══════════════════════════════════════════════════════════════
+  async withdrawFromContract(poolType) {
+    if (!this.state.userAddress) {
+      this.showNotification('Подключите кошелек', 'error');
+      return;
+    }
+
+    try {
+      let contractName, functionName;
+
       switch (poolType) {
-        case 'referral':
-          receipt = await contracts.withdrawReferral();
-          break;
-        case 'matrix':
-          receipt = await contracts.withdrawMatrix();
+        case 'marketing':
+          contractName = 'GlobalWayMarketing';
+          functionName = 'withdraw';
           break;
         case 'leader':
-          receipt = await contracts.claimRankBonus();
+          contractName = 'GlobalWayLeaderPool';
+          functionName = 'claimRankBonus';
           break;
         case 'investment':
-          receipt = await contracts.claimWeeklyReward();
+          contractName = 'GlobalWayInvestment';
+          functionName = 'withdraw';
           break;
         default:
           throw new Error('Unknown pool type');
       }
-      
-      console.log('✅ Withdrawal successful:', receipt.transactionHash);
-      
-      Utils.showNotification(CONFIG.SUCCESS.WITHDRAWAL_SUCCESS, 'success');
-      
-      // Обновить баланс
-      await this.loadUserData();
-      await this.loadDashboard();
-      
-    } catch (error) {
-      console.error('❌ Withdrawal failed:', error);
-      Utils.showNotification(error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
 
-  /**
-   * Копирование реферальной ссылки
-   */
-  async copyReferralLink() {
-    const refLinkEl = document.getElementById('refLink');
-    if (!refLinkEl) return;
-    
-    try {
-      await navigator.clipboard.writeText(refLinkEl.value);
-      Utils.showNotification('Referral link copied!', 'success');
-    } catch (error) {
-      // Fallback
-      refLinkEl.select();
-      document.execCommand('copy');
-      Utils.showNotification('Referral link copied!', 'success');
-    }
-  }
+      this.showNotification('Подготовка транзакции...', 'info');
 
-  /**
-   * Генерация QR кода
-   */
-  generateQRCode() {
-    const refLinkEl = document.getElementById('refLink');
-    if (!refLinkEl || !refLinkEl.value) {
-      Utils.showNotification('No referral link available', 'error');
-      return;
-    }
-    
-    // Создать модальное окно для QR
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Your Referral QR Code</h3>
-        <div id="qrcode-container"></div>
-        <p>Share this QR code to invite partners</p>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Генерировать QR
-    const qrContainer = modal.querySelector('#qrcode-container');
-    new QRCode(qrContainer, {
-      text: refLinkEl.value,
-      width: CONFIG.QR_CONFIG.size,
-      height: CONFIG.QR_CONFIG.size,
-      colorDark: CONFIG.QR_CONFIG.colorDark,
-      colorLight: CONFIG.QR_CONFIG.colorLight,
-      correctLevel: QRCode.CorrectLevel.H
-    });
-    
-    // Показать модал
-    // 🔥 ИСПРАВЛЕНО: Используем адаптивное отображение
-    modal.style.display = 'block';
-    
-    // Адаптируем модалку под размер экрана
-    const modalContent = modal.querySelector('.modal-content');
-    if (modalContent && window.innerWidth < 768) {
-      modalContent.style.width = '95%';
-      modalContent.style.maxWidth = '95%';
-    }
-    
-    // Закрытие
-    const closeBtn = modal.querySelector('.close');
-    closeBtn.onclick = () => {
-      modal.style.display = 'none';
-      modal.remove();
-    };
-    
-    modal.onclick = (e) => {
-      if (e.target === modal) {
-        modal.style.display = 'none';
-        modal.remove();
-      }
-    };
-  }
-
-  /**
-   * Показать модалку с информацией о планете
-   * 🔥 НОВОЕ: Модалки для планет на landing странице
-   */
-  showPlanetModal(planetType) {
-    console.log('🌍 Showing planet modal:', planetType);
-    
-    // Контент для каждой планеты
-    const planetContent = {
-      club: {
-        title: 'GlobalWay Club',
-        content: `
-          <h3>🌟 Welcome to GlobalWay Club</h3>
-          <p>GlobalWay is a decentralized club on opBNB blockchain that combines:</p>
-          <ul>
-            <li>🤝 Referral marketing system</li>
-            <li>💎 Binary matrix structure</li>
-            <li>🏆 Rank-based bonuses</li>
-            <li>💰 Quarterly rewards</li>
-          </ul>
-          <p>Join us and build your global network!</p>
-        `
-      },
-      mission: {
-        title: 'Our Mission',
-        content: `
-          <h3>🎯 Mission</h3>
-          <p>Create a fair and transparent decentralized club where everyone has equal opportunities to earn and grow.</p>
-          <ul>
-            <li>🌐 Global accessibility</li>
-            <li>🔒 Full transparency on blockchain</li>
-            <li>💪 Community-driven development</li>
-            <li>🚀 Sustainable growth model</li>
-          </ul>
-        `
-      },
-      goals: {
-        title: 'Club Goals',
-        content: `
-          <h3>🎯 Our Goals</h3>
-          <ul>
-            <li>📈 Build 100,000+ member community</li>
-            <li>💎 Launch GWT token ecosystem</li>
-            <li>🌍 Expand to 50+ countries</li>
-            <li>🏢 Develop business partnerships</li>
-            <li>📱 Create mobile app</li>
-          </ul>
-        `
-      },
-      roadmap: {
-        title: 'Roadmap',
-        content: `
-          <h3>🗺️ Development Roadmap</h3>
-          <div class="roadmap">
-            <div class="roadmap-item">
-              <strong>Q4 2024:</strong> Platform launch, Smart contracts audit
-            </div>
-            <div class="roadmap-item">
-              <strong>Q1 2025:</strong> Mobile app, 10,000 members
-            </div>
-            <div class="roadmap-item">
-              <strong>Q2 2025:</strong> GWT token launch, Exchange listings
-            </div>
-            <div class="roadmap-item">
-              <strong>Q3-Q4 2025:</strong> Global expansion, Partnerships
-            </div>
-          </div>
-        `
-      },
-      projects: {
-        title: 'Our Projects',
-        content: `
-          <h3>🚀 Projects in Development</h3>
-          <ul>
-            <li>💎 <strong>GWT Token</strong> - Utility token for rewards</li>
-            <li>🏪 <strong>Marketplace</strong> - NFT & Services</li>
-            <li>🎓 <strong>Academy</strong> - Education platform</li>
-            <li>🤝 <strong>Partnerships</strong> - Business integrations</li>
-          </ul>
-        `
-      }
-    };
-    
-    const content = planetContent[planetType] || planetContent.club;
-    
-    // Создать модалку
-    const modal = document.createElement('div');
-    modal.className = 'modal planet-modal';
-    modal.innerHTML = `
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <div class="planet-modal-content">
-          ${content.content}
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Показать модалку
-    modal.style.display = 'block';
-    
-    // Адаптивность
-    const modalContent = modal.querySelector('.modal-content');
-    if (modalContent && window.innerWidth < 768) {
-      modalContent.style.width = '95%';
-      modalContent.style.maxWidth = '95%';
-    }
-    
-    // Закрытие
-    const closeBtn = modal.querySelector('.close');
-    closeBtn.onclick = () => {
-      modal.style.display = 'none';
-      modal.remove();
-    };
-    
-    modal.onclick = (e) => {
-      if (e.target === modal) {
-        modal.style.display = 'none';
-        modal.remove();
-      }
-    };
-  }
-
-  /**
-   * Переключение страниц
-   */
-  showPage(pageName) {
-    console.log('📄 Showing page:', pageName);
-    
-    // Скрыть все страницы
-    const pages = document.querySelectorAll('.page-content');
-    pages.forEach(page => page.style.display = 'none');
-    
-    // Показать выбранную
-    const targetPage = document.getElementById(pageName);
-    if (targetPage) {
-      targetPage.style.display = 'block';
-      this.currentPage = pageName;
+      const contract = await this.getSignedContract(contractName);
+      const tx = await contract[functionName]();
       
-      // Загрузить данные для страницы
-      this.loadPageData(pageName);
-    }
-    
-    // Обновить навигацию
-    const navBtns = document.querySelectorAll('.nav-btn');
-    navBtns.forEach(btn => {
-      btn.classList.remove('active');
-      if (btn.dataset.page === pageName) {
-        btn.classList.add('active');
-      }
-    });
-  }
-
-  /**
-   * Загрузка данных для страницы
-   */
-  async loadPageData(pageName) {
-    if (!web3Manager.connected) return;
-    
-    try {
-      switch (pageName) {
-        case 'dashboard':
-          await this.loadDashboard();
-          break;
-        case 'partners':
-          await this.loadPartners();
-          break;
-        case 'matrix':
-          await this.loadMatrix();
-          break;
-        case 'tokens':
-          await this.loadTokens();
-          break;
-        case 'projects':
-          await this.loadProjects();
-          break;
-      }
-    } catch (error) {
-      console.error('Failed to load page data:', error);
-    }
-  }
-
-  /**
-   * Загрузка Dashboard
-   */
-  async loadDashboard() {
-    console.log('📊 Loading dashboard...');
-    
-    try {
-      await this.loadUserData();
-      await this.loadQuarterlyInfo();
-      await this.loadLevelManagement();
-      await this.loadBalances();
-      await this.loadEarnings();
-      await this.loadTransactionHistory();
+      this.showNotification('Ожидание подтверждения...', 'info');
+      await tx.wait();
       
-      console.log('✅ Dashboard loaded');
-    } catch (error) {
-      console.error('❌ Dashboard load failed:', error);
-    }
-  }
-
-  /**
-   * Загрузка квартальной информации
-   */
-  async loadQuarterlyInfo() {
-    try {
-      const info = await contracts.getUserQuarterlyInfo(web3Manager.address);
+      this.showNotification('Вывод успешен! 🎉', 'success');
       
-      // Обновить UI
-      const quarterEl = document.getElementById('currentQuarter');
-      if (quarterEl) {
-        quarterEl.textContent = info.currentQuarter || 1;
-      }
-      
-      const lastPaymentEl = document.getElementById('lastPayment');
-      if (lastPaymentEl) {
-        lastPaymentEl.textContent = info.lastPayment > 0 
-          ? Utils.formatDate(info.lastPayment) 
-          : '-';
-      }
-      
-      const nextPaymentEl = document.getElementById('nextPayment');
-      if (nextPaymentEl) {
-        nextPaymentEl.textContent = info.nextPayment > 0 
-          ? Utils.formatDate(info.nextPayment) 
-          : '-';
-      }
-      
-      // Дни до оплаты
-      const daysRemainingEl = document.getElementById('daysRemaining');
-      if (daysRemainingEl && info.nextPayment > 0) {
-        const now = Math.floor(Date.now() / 1000);
-        const days = Math.floor((info.nextPayment - now) / 86400);
-        daysRemainingEl.textContent = days;
-        
-        // Показать предупреждение если < 10 дней
-        const warningEl = document.getElementById('paymentWarning');
-        if (warningEl) {
-          warningEl.style.display = days <= 10 ? 'flex' : 'none';
+      // Обновляем данные на странице
+      if (this.state.pageModules[this.state.currentPage]) {
+        const module = this.state.pageModules[this.state.currentPage];
+        if (typeof module.refresh === 'function') {
+          await module.refresh();
         }
       }
-      
-    } catch (error) {
-      console.error('loadQuarterlyInfo error:', error);
-    }
-  }
 
-  /**
-   * Загрузка управления уровнями
-   */
-  async loadLevelManagement() {
-    try {
-      const container = document.getElementById('individualLevels');
-      if (!container) return;
+    } catch (error) {
+      console.error('❌ Withdrawal error:', error);
+      if (error.code === 4001) {
+        this.showNotification('Транзакция отклонена', 'error');
+      } else {
+        this.showNotification('Ошибка вывода средств', 'error');
+      }
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // УВЕДОМЛЕНИЯ
+  // ═══════════════════════════════════════════════════════════════
+  showNotification(message, type = 'info') {
+    // Создаем элемент уведомления
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+
+    // Добавляем на страницу
+    document.body.appendChild(notification);
+
+    // Показываем с анимацией
+    setTimeout(() => notification.classList.add('show'), 10);
+
+    // Убираем через 3 секунды
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // МОДАЛЬНЫЕ ОКНА
+  // ═══════════════════════════════════════════════════════════════
+  showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.style.display = 'block';
       
-      container.innerHTML = '';
-      
-      for (let level = 1; level <= 12; level++) {
-        const levelInfo = await contracts.getUserLevel(web3Manager.address, level);
-        const price = CONFIG.LEVEL_PRICES[level - 1];
-        
-        const btn = document.createElement('button');
-        btn.className = 'level-btn';
-        btn.dataset.level = level;
-        
-        if (levelInfo.isActive) {
-          btn.classList.add('active');
-          btn.disabled = true;
-          btn.innerHTML = `
-            <span class="level-number">Level ${level}</span>
-            <span class="level-price">${price} BNB</span>
-            <span class="level-status">✓ Active</span>
-          `;
-        } else {
-          const canBuy = await contracts.canBuyLevel(web3Manager.address, level);
-          
-          if (canBuy) {
-            btn.innerHTML = `
-              <span class="level-number">Level ${level}</span>
-              <span class="level-price">${price} BNB</span>
-              <span class="level-status">Buy</span>
-            `;
-            btn.onclick = () => this.activateLevel(level);
-          } else {
-            btn.classList.add('locked');
-            btn.disabled = true;
-            btn.innerHTML = `
-              <span class="level-number">Level ${level}</span>
-              <span class="level-price">${price} BNB</span>
-              <span class="level-status">🔒 Locked</span>
-            `;
-          }
+      // Закрытие по клику на крестик
+      const closeBtn = modal.querySelector('.close');
+      if (closeBtn) {
+        closeBtn.onclick = () => this.closeModal(modalId);
+      }
+
+      // Закрытие по клику вне модалки
+      modal.onclick = (event) => {
+        if (event.target === modal) {
+          this.closeModal(modalId);
         }
-        
-        container.appendChild(btn);
-      }
-      
-    } catch (error) {
-      console.error('loadLevelManagement error:', error);
+      };
     }
-  }
+  },
 
-  /**
-   * Загрузка балансов
-   */
-  async loadBalances() {
+  closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+  // ═══════════════════════════════════════════════════════════════
+  
+  // Копирование в буфер обмена
+  async copyToClipboard(text) {
     try {
-      const balances = await contracts.getUserBalances(web3Manager.address);
-      
-      // Referral
-      const refBalEl = document.getElementById('marketingBalance');
-      if (refBalEl) {
-        refBalEl.textContent = `${parseFloat(balances.referral).toFixed(4)} BNB`;
-      }
-      
-      // Matrix
-      const matrixBalEl = document.getElementById('leaderBalance');
-      if (matrixBalEl) {
-        matrixBalEl.textContent = `${parseFloat(balances.matrix).toFixed(4)} BNB`;
-      }
-      
-      // Investment
-      const investBalEl = document.getElementById('investmentBalance');
-      if (investBalEl) {
-        investBalEl.textContent = `${parseFloat(balances.investment).toFixed(4)} BNB`;
-      }
-      
+      await navigator.clipboard.writeText(text);
+      this.showNotification('Скопировано! ✓', 'success');
     } catch (error) {
-      console.error('loadBalances error:', error);
+      console.error('Copy failed:', error);
+      this.showNotification('Ошибка копирования', 'error');
     }
-  }
+  },
 
-  /**
-   * Загрузка доходов
-   */
-  async loadEarnings() {
-    try {
-      const stats = await contracts.getUserFullStats(web3Manager.address);
-      
-      const totalEl = document.getElementById('totalIncome');
-      if (totalEl) {
-        totalEl.textContent = `${parseFloat(stats.totalEarned).toFixed(4)} BNB`;
-      }
-      
-      // Детальная разбивка
-      const earningsContainer = document.getElementById('earningsRank');
-      if (earningsContainer) {
-        earningsContainer.innerHTML = `
-          <div class="earning-item">
-            <span>Referral Earnings</span>
-            <span>${parseFloat(stats.referralEarnings).toFixed(4)} BNB</span>
-          </div>
-          <div class="earning-item">
-            <span>Matrix Earnings</span>
-            <span>${parseFloat(stats.matrixEarnings).toFixed(4)} BNB</span>
-          </div>
-          <div class="earning-item">
-            <span>Leader Pool</span>
-            <span>${parseFloat(stats.leaderPoolEarnings).toFixed(4)} BNB</span>
-          </div>
-          <div class="earning-item">
-            <span>Quarterly</span>
-            <span>${parseFloat(stats.quarterlyEarnings).toFixed(4)} BNB</span>
-          </div>
-        `;
-      }
-      
-    } catch (error) {
-      console.error('loadEarnings error:', error);
-    }
-  }
+  // Форматирование адреса (0x1234...5678)
+  formatAddress(address) {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  },
 
-  /**
-   * Загрузка истории транзакций
-   */
-  async loadTransactionHistory(filterType = 'all') {
-    try {
-      const tbody = document.getElementById('historyTable');
-      if (!tbody) return;
-      
-      tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-      
-      const transactions = await contracts.getTransactionHistory(
-        web3Manager.address,
-        filterType,
-        50
-      );
-      
-      if (transactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">No transactions found</td></tr>';
-        return;
-      }
-      
-      tbody.innerHTML = '';
-      
-      transactions.forEach((tx, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${tx.level || '-'}</td>
-          <td>${parseFloat(tx.amount).toFixed(4)} BNB</td>
-          <td>${Utils.formatDate(tx.timestamp)}</td>
-          <td>${tx.from || '-'}</td>
-          <td><span class="badge">${tx.type}</span></td>
-        `;
-        tbody.appendChild(row);
-      });
-      
-    } catch (error) {
-      console.error('loadTransactionHistory error:', error);
-      const tbody = document.getElementById('historyTable');
-      if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="6">Error loading transactions</td></tr>';
-      }
-    }
-  }
+  // Форматирование числа с разделителями
+  formatNumber(number, decimals = 4) {
+    if (!number) return '0';
+    return Number(number).toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: decimals
+    });
+  },
 
-  /**
-   * Загрузка партнёров
-   */
-  async loadPartners() {
-    console.log('👥 Loading partners...');
-    // TODO: Implement in next iteration
-  }
+  // Форматирование BNB
+  formatBNB(wei) {
+    if (!wei) return '0';
+    return ethers.formatEther(wei);
+  },
 
-  /**
-   * Загрузка матрицы
-   */
-  async loadMatrix() {
-    console.log('🔷 Loading matrix...');
-    // TODO: Implement in next iteration
-  }
+  // Конвертация в Wei
+  parseEther(amount) {
+    return ethers.parseEther(amount.toString());
+  },
 
-  /**
-   * Загрузка токенов
-   */
-  async loadTokens() {
-    console.log('💎 Loading tokens...');
-    // TODO: Implement in next iteration
-  }
-
-  /**
-   * Загрузка проектов
-   */
-  async loadProjects() {
-    console.log('🚀 Loading projects...');
-    // TODO: Implement in next iteration
-  }
-
-  /**
-   * Запуск автообновления
-   */
-  startAutoUpdate() {
-    if (this.autoUpdateInterval) {
-      clearInterval(this.autoUpdateInterval);
-    }
+  // Проверка сети
+  async checkNetwork() {
+    if (!window.web3Manager) return false;
     
-    this.autoUpdateInterval = setInterval(() => {
-      if (web3Manager.connected && this.currentPage === 'dashboard') {
-        this.loadDashboard();
-      }
-    }, CONFIG.UI.autoUpdateInterval);
-    
-    console.log('🔄 Auto-update started');
-  }
+    const chainId = await window.web3Manager.provider.getNetwork().then(n => n.chainId);
+    if (chainId !== CONFIG.NETWORK.chainId) {
+      this.showNotification('Неправильная сеть! Переключитесь на opBNB', 'error');
+      return false;
+    }
+    return true;
+  },
 
-  /**
-   * Остановка автообновления
-   */
-  stopAutoUpdate() {
-    if (this.autoUpdateInterval) {
-      clearInterval(this.autoUpdateInterval);
-      this.autoUpdateInterval = null;
-      console.log('⏸️ Auto-update stopped');
+  // Обновление данных пользователя
+  async refreshUserData() {
+    await this.loadUserData();
+    
+    // Обновляем текущую страницу
+    if (this.state.pageModules[this.state.currentPage]) {
+      const module = this.state.pageModules[this.state.currentPage];
+      if (typeof module.refresh === 'function') {
+        await module.refresh();
+      }
     }
   }
-}
+};
 
-// Создать глобальный экземпляр
-const app = new Application();
+// ═══════════════════════════════════════════════════════════════════
+// ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
+// ═══════════════════════════════════════════════════════════════════
 
-// Инициализация при загрузке DOM
-document.addEventListener('DOMContentLoaded', async () => {
-  await app.init();
+// Обработчик изменения аккаунта
+window.addEventListener('accountsChanged', async (accounts) => {
+  console.log('👤 Account changed');
+  app.state.userAddress = accounts[0] || null;
+  await app.refreshUserData();
 });
 
-// Экспорт
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = Application;
-}
+// Обработчик изменения сети
+window.addEventListener('chainChanged', async () => {
+  console.log('🔗 Chain changed');
+  window.location.reload();
+});
+
+// Экспорт в window для доступа из других модулей
+window.app = app;
