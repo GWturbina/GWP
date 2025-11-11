@@ -1922,3 +1922,62 @@ textarea:focus {
   box-shadow: none !important;
   background: linear-gradient(135deg, #6c757d, #5a6268) !important;
 }
+
+/* ========================================
+   КНОПКА CONNECT В HEADER - КОМПАКТНАЯ
+   ======================================== */
+
+/* Контейнер */
+.wallet-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--spacing-sm) !important;
+}
+
+/* Адрес/Статус */
+#walletAddress {
+  background: rgba(0, 50, 100, 0.7) !important;
+  color: var(--gold) !important;
+  padding: 6px 12px !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border-gold) !important;
+  font-family: 'Courier New', monospace !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+/* Кнопка Connect - КОМПАКТНАЯ */
+#connectBtn,
+.btn-connect {
+  background: linear-gradient(135deg, var(--success) 0%, #1e7e34 100%) !important;
+  color: var(--text-light) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  padding: 8px 16px !important;
+  border: 2px solid var(--success) !important;
+  border-radius: var(--radius-md) !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  text-transform: capitalize !important;
+  letter-spacing: 0.5px !important;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.4) !important;
+  min-width: 100px !important;
+  white-space: nowrap !important;
+  font-family: var(--font-family) !important;
+}
+
+#connectBtn:hover,
+.btn-connect:hover {
+  background: linear-gradient(135deg, #34ce57 0%, var(--success) 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.6) !important;
+}
+
+/* Когда подключен */
+#connectBtn.connected,
+.btn-connect.connected {
+  background: linear-gradient(135deg, var(--gold) 0%, #ffed4e 100%) !important;
+  color: var(--cosmic-black) !important;
+  border-color: var(--gold) !important;
+  cursor: default !important;
+}
