@@ -4,7 +4,7 @@
 /**
  * UIManager - User Interface Manager
  * Управление навигацией, модальными окнами, темами, загрузкой компонентов
- * Version: 2.1
+ * Version: 2.1 
  */
 
 class UIManager {
