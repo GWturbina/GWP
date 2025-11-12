@@ -133,8 +133,13 @@ const dashboardModule = {
         this.userData.maxLevel = Number(await this.contracts.globalWay.getUserMaxLevel(address));
 
         // ✅ ИСПРАВЛЕНО: Используем LeaderPool контракт для получения ранга
-        const rank = await this.contracts.leaderPool.getUserRank(address);
-        this.userData.rank = this.getRankName(rank);
+        try {
+          const rank = await this.contracts.leaderPool.userRanks(address); // Публичный маппинг
+          this.userData.rank = this.getRankName(rank);
+        } catch (rankError) {
+          console.warn('Could not load rank:', rankError);
+          this.userData.rank = '-';
+        }
       }
 
       this.updatePersonalInfoUI();
