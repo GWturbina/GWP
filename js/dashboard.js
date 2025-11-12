@@ -428,11 +428,25 @@ const dashboardModule = {
         return;
       }
       
-      // 2. ПРОВЕРКА QUARTERLY АКТИВНОСТИ
+      // 2. ПРОВЕРКА QUARTERLY АКТИВНОСТИ (детально)
+      console.log(`🔍 Checking quarterly for level ${level}...`);
       const isQuarterlyActive = await this.contracts.globalWay.isQuarterlyActive(app.state.userAddress);
-      if (!isQuarterlyActive) {
-        app.showNotification('Оплатите quarterly активность (0.075 BNB)', 'error');
+      console.log(`📊 Quarterly active: ${isQuarterlyActive}`);
+      
+      if (!isQuarterlyActive && level > 1) {
+        app.showNotification('Оплатите quarterly активность (0.075 BNB) перед покупкой уровней', 'error');
         return;
+      }
+      
+      // Для уровня 1 - quarterly опционально, но лучше оплатить
+      if (!isQuarterlyActive && level === 1) {
+        const confirmed = confirm(
+          'Quarterly не оплачен!\n\n' +
+          'Для активации уровней 2-12 потребуется quarterly (0.075 BNB).\n\n' +
+          'Рекомендуется сначала оплатить quarterly.\n\n' +
+          'Продолжить активацию уровня 1 без quarterly?'
+        );
+        if (!confirmed) return;
       }
       
       // 3. ПРОВЕРКА ПРЕДЫДУЩИХ УРОВНЕЙ (для уровней 4-12)
@@ -512,12 +526,28 @@ const dashboardModule = {
     } catch (error) {
       console.error('❌ Buy level error:', error);
       
+      // Детальное логирование ошибки
+      if (error.receipt) {
+        console.error('Transaction failed with receipt:', error.receipt);
+      }
+      
       if (error.code === 4001) {
-        app.showNotification('Транзакция отклонена', 'error');
+        app.showNotification('Транзакция отклонена пользователем', 'error');
+      } else if (error.code === 'CALL_EXCEPTION') {
+        // Контракт отклонил транзакцию
+        app.showNotification(
+          '❌ Контракт отклонил транзакцию\n\n' +
+          'Возможные причины:\n' +
+          '• Quarterly не оплачен (требуется 0.075 BNB)\n' +
+          '• Не активированы предыдущие уровни\n' +
+          '• Недостаточно средств\n\n' +
+          'Проверьте условия и попробуйте снова', 
+          'error'
+        );
       } else if (error.message && error.message.includes('insufficient funds')) {
-        app.showNotification('Недостаточно средств', 'error');
+        app.showNotification('Недостаточно средств для транзакции', 'error');
       } else if (error.message && error.message.includes('gas')) {
-        app.showNotification('Ошибка gas, попробуйте снова', 'error');
+        app.showNotification('Ошибка gas, попробуйте увеличить лимит', 'error');
       } else if (error.data && error.data.message) {
         app.showNotification(`Ошибка: ${error.data.message}`, 'error');
       } else {
