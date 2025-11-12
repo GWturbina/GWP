@@ -530,6 +530,10 @@ const dashboardModule = {
         }
       });
     }
+    } catch (outerError) {
+      console.error("❌ Outer error:", outerError);
+      app.showNotification("Ошибка активации уровня", "error");
+    }
   },
 
   // ✅ ИСПРАВЛЕНО #5: Quarterly оплата с проверками
@@ -698,7 +702,6 @@ const dashboardModule = {
     if (qualifications[2]) return 'Золото 🥇';
     if (qualifications[1]) return 'Серебро 🥈';
     if (qualifications[0]) return 'Бронза 🥉';
-  },
   },
 
   showConnectionAlert() {
