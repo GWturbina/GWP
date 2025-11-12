@@ -266,6 +266,46 @@
             </div>
         </div>
 
+        <!-- ✅ СЕКЦИЯ РЕГИСТРАЦИИ (показывается если пользователь не зарегистрирован) -->
+        <div id="registrationSection" style="display: none;">
+            <div class="registration-alert" style="background: #2a2a3e; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #ffd700;">
+                <h3 style="color: #ffd700; margin-top: 0;">⚠️ Регистрация Required</h3>
+                <p style="color: #e0e0e0;">Для активации уровней необходимо зарегистрироваться в системе GlobalWay.</p>
+            </div>
+            
+            <div class="info-grid" style="margin-bottom: 30px;">
+                <div class="info-item">
+                    <label>Address</label>
+                    <span id="regUserAddress">0x000...000</span>
+                </div>
+                <div class="info-item">
+                    <label>Balance</label>
+                    <span id="regUserBalance">0.000 BNB</span>
+                </div>
+            </div>
+
+            <div class="registration-form" style="background: #1a1a2e; padding: 30px; border-radius: 12px;">
+                <label for="sponsorID" style="display: block; margin-bottom: 10px; color: #ffd700; font-weight: bold;">Sponsor ID *</label>
+                <p class="help-text" style="color: #b0b0b0; margin-bottom: 15px; font-size: 14px;">
+                    Введите 7-значный ID вашего спонсора (например: 7777777).<br>
+                    После регистрации спонсора НЕЛЬЗЯ изменить!
+                </p>
+                <input 
+                    type="text" 
+                    id="sponsorID" 
+                    placeholder="7777777"
+                    maxlength="7"
+                    pattern="[0-9]{7}"
+                    style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #3a3a4e; background: #2a2a3e; color: #fff; margin-bottom: 20px; font-family: monospace; font-size: 18px; text-align: center; letter-spacing: 2px;"
+                />
+                <button id="registerBtn" class="btn-primary" style="width: 100%; padding: 15px; font-size: 16px; font-weight: bold;">
+                    🚀 Зарегистрироваться
+                </button>
+            </div>
+        </div>
+
+        <!-- ✅ СЕКЦИЯ ИНФОРМАЦИИ (показывается после регистрации) -->
+        <div id="userInfoSection">
         <div class="info-grid">
             <div class="info-item">
                 <label data-translate="dashboard.address">Address</label>
@@ -293,9 +333,11 @@
                 <button id="generateQR" class="btn-secondary">QR</button>
             </div>
         </div>
+        </div> <!-- ✅ ЗАКРЫЛИ userInfoSection -->
     </section>
 
-    <!-- Quarterly Activity -->
+    <!-- ✅ Quarterly Activity (скрывается если не зарегистрирован) -->
+    <div id="quarterlySection">
     <section class="quarterly-activity">
         <h3 data-translate="dashboard.quarterly">Quarterly Activity</h3>
         <div class="activity-info">
@@ -327,6 +369,7 @@
         
         <button id="payActivityBtn" class="btn-primary" data-translate="dashboard.payActivity">Pay Activity</button>
     </section>
+    </div> <!-- ✅ ЗАКРЫЛИ quarterlySection -->
 
 
     <!-- Contract Balances & Withdrawal -->
@@ -363,7 +406,8 @@
         </div>
     </section>
 
-    <!-- Level Management -->
+    <!-- ✅ Level Management (скрывается если не зарегистрирован) -->
+    <div id="levelsSection">
     <section class="level-management">
         <h3 data-translate="dashboard.levelMgmt">Level Management</h3>
         
@@ -397,6 +441,7 @@
                  </div>
              </div>
     </section>
+    </div> <!-- ✅ ЗАКРЫЛИ levelsSection -->
     </section>
 
     <!-- Earnings by Rank -->
@@ -1665,7 +1710,7 @@
     <script src="js/landing.js?v=7"></script>    <!-- ✅ ИЗМЕНЕНО: v=6 → v=7 -->
     
     <!-- Страницы -->
-    <script src="js/dashboard.js?v=8"></script>
+    <script src="js/dashboard.js?v=11"></script>
     <script src="js/partners.js?v=6"></script>
     <script src="js/matrix.js?v=6"></script>
     <script src="js/tokens.js?v=6"></script>
