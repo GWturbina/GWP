@@ -174,23 +174,29 @@ const CONFIG = {
   ],
 
   QUARTERLY_COST: '0.075',
-
   DEEP_LINKS: {
     safepal: 'safepal://wc?uri=',
     metamask: 'https://metamask.app.link/dapp/'
   },
-
   QR_CONFIG: {
     size: 256,
     logo: 'assets/icons/logo-32x32.png'
+  },
+  
+  // ✅ ДОБАВЛЯЕМ ADMIN ВНУТРИ ОБЪЕКТА CONFIG (перед закрывающей скобкой)
+  ADMIN: {
+    owner: '0x03284A899147f5a07F82C622F34DF92198671635',
+    founders: [
+      { address: '0x03284A899147f5a07F82C622F34DF92198671635' },
+      { address: '0x9b49bD9c9458615e11C051afd1EBe983563b67EE' },
+      { address: '0xc2b58114cBc873cf360f7A673e4d8EE25d1431e7' }
+    ]
   }
-};
+}; // ← ТЕПЕРЬ закрываем CONFIG
 
-// ✅ ДОБАВЛЕНО: Экспорт в window для совместимости
+// ✅ ЭКСПОРТ В WINDOW
 if (typeof window !== 'undefined') {
   window.CONFIG = CONFIG;
-  
-  // ✅ КРИТИЧНО: Создаем алиас contractsConfig для обратной совместимости
   window.contractsConfig = CONFIG.CONTRACTS;
   
   console.log('✅ Config loaded:', {
