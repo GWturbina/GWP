@@ -45,9 +45,18 @@ const tokensModule = {
       const balance = await this.contracts.token.balanceOf(address);
       this.tokenData.balance = ethers.utils.formatEther(balance);
       
-      // 2. Цена токена
-      const price = await this.contracts.token.getCurrentPrice();
-      this.tokenData.price = ethers.utils.formatEther(price);
+      // 2. ✅ ПРАВИЛЬНО: Цена из tokenomics баланса
+      const TOKENOMICS_ADDRESS = '0xbDC29886c91878C1ba9ce0626Da5E1961324354F';
+      const TOTAL_SUPPLY = 1000000000; // 1 млрд токенов
+      
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const tokenomicsBalance = await provider.getBalance(TOKENOMICS_ADDRESS);
+      const tokenomicsBalanceBNB = parseFloat(ethers.utils.formatEther(tokenomicsBalance));
+      
+      const priceInBNB = tokenomicsBalanceBNB / TOTAL_SUPPLY;
+      const priceInUSD = (priceInBNB * 600).toFixed(6); // BNB @ $600
+      
+      this.tokenData.price = priceInUSD;
       
       // 3. Общая стоимость
       this.tokenData.totalValue = (parseFloat(this.tokenData.balance) * parseFloat(this.tokenData.price)).toFixed(2);
