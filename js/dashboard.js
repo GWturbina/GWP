@@ -362,7 +362,35 @@ const dashboardModule = {
   // ОБНОВЛЕНИЕ UI
   // ═══════════════════════════════════════════════════════════════
   updatePersonalInfoUI() {
-    const { address, balance, userID, rank } = this.userData;
+    const { address, balance, userID, rank, isRegistered } = this.userData;
+
+    // Показываем/скрываем секции в зависимости от регистрации
+    const registrationSection = document.getElementById('registrationSection');
+    const userInfoSection = document.getElementById('userInfoSection');
+    const levelsSection = document.getElementById('levelsSection');
+    const quarterlySection = document.getElementById('quarterlySection');
+
+    if (!isRegistered) {
+      // Показываем форму регистрации
+      if (registrationSection) registrationSection.style.display = 'block';
+      if (userInfoSection) userInfoSection.style.display = 'none';
+      if (levelsSection) levelsSection.style.display = 'none';
+      if (quarterlySection) quarterlySection.style.display = 'none';
+      
+      // Показываем адрес и баланс для регистрации
+      const regAddress = document.getElementById('regUserAddress');
+      const regBalance = document.getElementById('regUserBalance');
+      if (regAddress) regAddress.textContent = app.formatAddress(address);
+      if (regBalance) regBalance.textContent = `${app.formatNumber(balance, 4)} BNB`;
+      
+      return; // Выходим, не показываем остальное
+    }
+
+    // Пользователь зарегистрирован - показываем всё
+    if (registrationSection) registrationSection.style.display = 'none';
+    if (userInfoSection) userInfoSection.style.display = 'block';
+    if (levelsSection) levelsSection.style.display = 'block';
+    if (quarterlySection) quarterlySection.style.display = 'block';
 
     document.getElementById('userAddress').textContent = app.formatAddress(address);
     document.getElementById('userBalance').textContent = `${app.formatNumber(balance, 4)} BNB`;
@@ -421,6 +449,14 @@ const dashboardModule = {
     }
     
     if (!await app.checkNetwork()) return;
+
+      console.log(`🛒 Attempting to buy level ${level}...`);
+      console.log(`📊 User state:`, {
+        address: app.state.userAddress,
+        isRegistered: this.userData.isRegistered,
+        userID: this.userData.userID,
+        maxLevel: this.userData.maxLevel
+      });
 
       // 1. ПРОВЕРКА РЕГИСТРАЦИИ
       if (!this.userData.isRegistered) {
@@ -535,10 +571,13 @@ const dashboardModule = {
     } finally {
       // Включаем обратно все кнопки
       document.querySelectorAll('.level-btn').forEach(btn => {
-        const level = parseInt(btn.querySelector('.level-number').textContent);
-        // Проверяем активность через класс
-        if (!btn.classList.contains('active')) {
-          btn.disabled = false;
+        const levelNumEl = btn.querySelector('.level-number');
+        if (levelNumEl) {
+          const level = parseInt(levelNumEl.textContent);
+          // Проверяем активность через класс
+          if (!btn.classList.contains('active')) {
+            btn.disabled = false;
+          }
         }
       });
     }
@@ -653,9 +692,161 @@ const dashboardModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
+  // РЕГИСТРАЦИЯ ПОЛЬЗОВАТЕЛЯ
+  // ═══════════════════════════════════════════════════════════════
+  async register(sponsorID) {
+    if (!app.state.userAddress) {
+      app.showNotification('Подключите кошелек', 'error');
+      return;
+    }
+    
+    if (!await app.checkNetwork()) return;
+
+    try {
+      // 1. Проверка что пользователь ещё не зарегистрирован
+      if (this.userData.isRegistered) {
+        app.showNotification('Вы уже зарегистрированы', 'error');
+        return;
+      }
+
+      // 2. Валидация Sponsor ID
+      if (!sponsorID || sponsorID.trim() === '') {
+        app.showNotification('Введите ID спонсора', 'error');
+        return;
+      }
+
+      sponsorID = sponsorID.trim();
+
+      // Проверка формата ID (7 цифр)
+      if (!/^\d{7}$/.test(sponsorID)) {
+        app.showNotification('ID должен состоять из 7 цифр', 'error');
+        return;
+      }
+
+      // 3. Получаем адрес спонсора по ID через Helper
+      console.log(`🔍 Getting sponsor address by ID: ${sponsorID}`);
+      const sponsorAddress = await this.contracts.helper.getAddressByID(sponsorID);
+      
+      if (!sponsorAddress || sponsorAddress === ethers.constants.AddressZero) {
+        app.showNotification(`Спонсор с ID ${sponsorID} не найден в системе`, 'error');
+        return;
+      }
+
+      console.log(`✅ Sponsor found: ${sponsorAddress}`);
+
+      // 4. Проверка что спонсор зарегистрирован
+      const isSponsorRegistered = await this.contracts.globalWay.isUserRegistered(sponsorAddress);
+      if (!isSponsorRegistered) {
+        app.showNotification(`Спонсор GW${sponsorID} не зарегистрирован`, 'error');
+        return;
+      }
+
+      // 5. Подтверждение регистрации
+      const confirmed = confirm(
+        `Регистрация в GlobalWay\n\n` +
+        `Спонсор ID: GW${sponsorID}\n` +
+        `Спонсор адрес: ${sponsorAddress}\n\n` +
+        `После регистрации спонсора НЕЛЬЗЯ изменить!\n\n` +
+        `Продолжить?`
+      );
+
+      if (!confirmed) return;
+
+      // 6. Отключаем кнопку регистрации
+      const registerBtn = document.getElementById('registerBtn');
+      if (registerBtn) {
+        registerBtn.disabled = true;
+        registerBtn.textContent = 'Регистрация...';
+      }
+
+      console.log(`📝 Registering with sponsor: ${sponsorAddress}`);
+      
+      app.showNotification('Отправка транзакции регистрации...', 'info');
+
+      // 7. Вызов функции регистрации
+      const contract = await app.getSignedContract('GlobalWay');
+      const tx = await contract.register(sponsorAddress, {
+        gasLimit: 300000
+      });
+
+      console.log(`📝 Registration transaction hash: ${tx.hash}`);
+      app.showNotification(`Транзакция отправлена!\nHash: ${tx.hash.slice(0,10)}...`, 'info');
+
+      const receipt = await tx.wait();
+      console.log(`✅ Registration confirmed in block ${receipt.blockNumber}`);
+
+      // 8. Присваиваем ID через Helper (если не присвоен автоматически)
+      try {
+        const hasID = await this.contracts.helper.getUserID(app.state.userAddress);
+        if (!hasID || hasID === '') {
+          console.log('🔢 Assigning user ID...');
+          const helperTx = await this.contracts.helper.assignUserID(app.state.userAddress, {
+            gasLimit: 200000
+          });
+          await helperTx.wait();
+          console.log('✅ User ID assigned');
+        }
+      } catch (idError) {
+        console.warn('ID assignment error (may already have ID):', idError);
+      }
+
+      // 9. Успех
+      app.showNotification('✅ Регистрация завершена!', 'success');
+
+      // 10. Обновление данных
+      await this.refresh();
+
+    } catch (error) {
+      console.error('❌ Registration error:', error);
+
+      if (error.code === 4001) {
+        app.showNotification('Транзакция отклонена пользователем', 'error');
+      } else if (error.message && error.message.includes('Already registered')) {
+        app.showNotification('Вы уже зарегистрированы', 'error');
+      } else if (error.message && error.message.includes('Sponsor not registered')) {
+        app.showNotification('Спонсор не зарегистрирован в системе', 'error');
+      } else if (error.data && error.data.message) {
+        app.showNotification(`Ошибка: ${error.data.message}`, 'error');
+      } else {
+        app.showNotification('Ошибка регистрации. Попробуйте снова', 'error');
+      }
+    } finally {
+      // Включаем обратно кнопку
+      const registerBtn = document.getElementById('registerBtn');
+      if (registerBtn) {
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Зарегистрироваться';
+      }
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
   // UI ИНИЦИАЛИЗАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   initUI() {
+    // Получаем ref ID из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const refID = urlParams.get('ref');
+    
+    // Автозаполнение поля спонсора
+    const sponsorInput = document.getElementById('sponsorID');
+    if (sponsorInput && refID) {
+      sponsorInput.value = refID;
+      sponsorInput.readOnly = true; // Блокируем изменение если из ссылки
+      console.log(`✅ Auto-filled sponsor ID from URL: ${refID}`);
+    }
+
+    // Кнопка регистрации
+    const registerBtn = document.getElementById('registerBtn');
+    if (registerBtn) {
+      registerBtn.onclick = () => {
+        const input = document.getElementById('sponsorID');
+        if (input) {
+          this.register(input.value);
+        }
+      };
+    }
+
     // Кнопка копирования реф. ссылки
     const copyBtn = document.getElementById('copyRefLink');
     if (copyBtn) {
