@@ -205,7 +205,7 @@ async connect() {
       
       // Финальная проверка адреса
       const finalAddress = await this.signer.getAddress();
-      if (finalAddress !== this.address) {
+      if (finalAddress.toLowerCase() !== this.address.toLowerCase()) { // 🔥 FIX: Case-insensitive comparison
         throw new Error('Address mismatch after connection');
       }
       
@@ -323,7 +323,7 @@ async connect() {
 
       this.provider = provider;
       this.signer = provider.getSigner();
-      this.address = accounts[0];
+      this.address = accounts[0].toLowerCase(); // 🔥 FIX: Normalize to lowercase
       
       console.log('✅ SafePal connected successfully');
       console.log('📍 Address:', this.address);
@@ -381,7 +381,7 @@ async connect() {
       if (accounts && accounts.length > 0) {
         this.provider = provider;
         this.signer = provider.getSigner();
-        this.address = accounts[0];
+        this.address = accounts[0].toLowerCase(); // 🔥 FIX: Normalize to lowercase
         this.connected = true;
         await this.checkNetwork();
         console.log('✅ Auto-connected:', this.address);
