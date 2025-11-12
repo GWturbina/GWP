@@ -40,6 +40,7 @@ const dashboardModule = {
     cacheDuration: 30000 // 30 секунд
   },
   
+  
   // Данные пользователя
   userData: {
     address: null,
@@ -55,6 +56,9 @@ const dashboardModule = {
       investment: '0'
     }
   },
+  
+  // Таймер для автообновления quarterly
+  quarterlyTimer: null,
 
   // ═══════════════════════════════════════════════════════════════
   // ИНИЦИАЛИЗАЦИЯ
@@ -78,6 +82,7 @@ const dashboardModule = {
 
       // Инициализируем UI
       this.initUI();
+      this.startQuarterlyTimer();
 
       console.log('✅ Dashboard loaded');
     } catch (error) {
@@ -376,22 +381,106 @@ const dashboardModule = {
   updateQuarterlyUI() {
     const { quarter, lastPayment, nextPayment, cost } = this.userData.quarterlyInfo;
 
+    // Квартал
     document.getElementById('currentQuarter').textContent = quarter || '1';
     document.getElementById('quarterlyCost').textContent = `${cost} BNB`;
 
+    const payBtn = document.getElementById('payActivityBtn');
+    const warningEl = document.getElementById('paymentWarning');
+    const daysEl = document.getElementById('daysRemaining');
+    
     if (lastPayment > 0) {
-      document.getElementById('lastPayment').textContent = new Date(lastPayment * 1000).toLocaleDateString();
-      document.getElementById('nextPayment').textContent = new Date(nextPayment * 1000).toLocaleDateString();
+      // ✅ УЖЕ АКТИВИРОВАН - показываем историю и таймер
       
-      // Проверяем близость следующего платежа
-      const daysLeft = Math.floor((nextPayment * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
-      if (daysLeft <= 10) {
-        document.getElementById('paymentWarning').style.display = 'flex';
-        document.getElementById('daysRemaining').textContent = daysLeft;
+      // Даты
+      const lastDate = new Date(lastPayment * 1000).toLocaleDateString('ru-RU');
+      const nextDate = new Date(nextPayment * 1000).toLocaleDateString('ru-RU');
+      
+      document.getElementById('lastPayment').textContent = lastDate;
+      document.getElementById('nextPayment').textContent = nextDate;
+      
+      // Проверяем сколько времени до следующей оплаты
+      const now = Date.now();
+      const timeLeft = nextPayment * 1000 - now;
+      const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+      const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      
+      // ⚠️ ТАЙМЕР ЗА 10 ДНЕЙ
+      if (daysLeft <= 10 && daysLeft >= 0) {
+        if (warningEl) {
+          warningEl.style.display = 'flex';
+          warningEl.style.background = daysLeft <= 3 ? 'rgba(255, 50, 50, 0.1)' : 'rgba(255, 193, 7, 0.1)';
+        }
+        
+        if (daysEl) {
+          if (daysLeft === 0) {
+            daysEl.textContent = `Сегодня! (через ${hoursLeft}ч)`;
+            daysEl.style.color = '#ff3232';
+          } else if (daysLeft === 1) {
+            daysEl.textContent = `1 день`;
+            daysEl.style.color = '#ff6b6b';
+          } else {
+            daysEl.textContent = `${daysLeft} дней`;
+            daysEl.style.color = daysLeft <= 3 ? '#ff6b6b' : '#ffc107';
+          }
+        }
+      } else {
+        // Скрываем предупреждение если > 10 дней
+        if (warningEl) warningEl.style.display = 'none';
       }
+      
+      // 🔒 БЛОКИРОВКА КНОПКИ если рано платить
+      if (payBtn) {
+        if (timeLeft > 0) {
+          // Еще рано - блокируем
+          payBtn.disabled = true;
+          payBtn.textContent = `Оплата через ${daysLeft}д`;
+          payBtn.style.opacity = '0.5';
+          payBtn.style.cursor = 'not-allowed';
+        } else {
+          // Можно платить
+          payBtn.disabled = false;
+          payBtn.textContent = 'Оплатить Quarterly';
+          payBtn.style.opacity = '1';
+          payBtn.style.cursor = 'pointer';
+        }
+      }
+      
     } else {
-      document.getElementById('lastPayment').textContent = '-';
-      document.getElementById('nextPayment').textContent = '-';
+      // ❌ ЕЩЕ НЕ АКТИВИРОВАН
+      
+      document.getElementById('lastPayment').textContent = 'Еще не активирован';
+      
+      // Проверяем можно ли активировать
+      const timeLeft = nextPayment * 1000 - Date.now();
+      
+      if (timeLeft > 0) {
+        // Нужно подождать
+        const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        
+        document.getElementById('nextPayment').textContent = `Доступно через ${days}д ${hours}ч`;
+        
+        if (payBtn) {
+          payBtn.disabled = true;
+          payBtn.textContent = `Доступно через ${days}д`;
+          payBtn.style.opacity = '0.5';
+          payBtn.style.cursor = 'not-allowed';
+        }
+      } else {
+        // Можно активировать прямо сейчас
+        document.getElementById('nextPayment').textContent = '✅ Можно активировать';
+        
+        if (payBtn) {
+          payBtn.disabled = false;
+          payBtn.textContent = '⚡ Активировать Quarterly';
+          payBtn.style.opacity = '1';
+          payBtn.style.cursor = 'pointer';
+        }
+      }
+      
+      // Прячем предупреждение если не активирован
+      if (warningEl) warningEl.style.display = 'none';
     }
   },
 
@@ -742,6 +831,21 @@ const dashboardModule = {
     console.log('🗑️ Cache cleared');
   },
   // Обновление данных
+
+  // Автообновление таймера quarterly каждую минуту
+  startQuarterlyTimer() {
+    // Останавливаем предыдущий таймер если есть
+    if (this.quarterlyTimer) {
+      clearInterval(this.quarterlyTimer);
+    }
+    
+    // Обновляем каждую минуту (60000 мс)
+    this.quarterlyTimer = setInterval(() => {
+      if (this.userData.quarterlyInfo) {
+        this.updateQuarterlyUI();
+      }
+    }, 60000);
+  },
   async refresh() {
     this.clearCache(); // Очищаем кэш при ручном обновлении
     await this.loadAllData();
