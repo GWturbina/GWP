@@ -54,10 +54,14 @@ const dashboardModule = {
       marketing: '0',
       leader: '0',
       investment: '0'
-    }
+    },
+    tokenRewards: {},
+    totalPossibleRewards: 0,
+    totalClaimedRewards: 0
   },
   
   // Таймер для автообновления quarterly
+  quarterlyTimer: null,
   quarterlyTimer: null,
 
   // ═══════════════════════════════════════════════════════════════
@@ -113,6 +117,7 @@ const dashboardModule = {
       this.loadBalances(),
       this.loadLevels(),
       this.loadTokenInfo(),
+      this.loadTokenRewards(),
       this.loadTransactionHistory()
     ]);
   },
@@ -245,7 +250,7 @@ const dashboardModule = {
         console.log('💾 Using cached token price:', priceInUSD);
       } else {
         // Запрашиваем новую цену
-        const tokenPrice = await this.contracts.token.currentPrice();
+        const tokenPrice = await this.contracts.token.getCurrentPrice();
         priceInUSD = Number(ethers.utils.formatEther(tokenPrice)).toFixed(6);
         
         // Сохраняем в кэш
@@ -265,6 +270,44 @@ const dashboardModule = {
     }
   },
 
+
+  // Награды за уровни (для страницы Tokens)
+  async loadTokenRewards() {
+    try {
+      const { address } = this.userData;
+      
+      // Получаем максимальный активированный уровень
+      const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
+      
+      this.userData.tokenRewards = {};
+      let totalClaimed = 0;
+      
+      for (let level = 1; level <= 12; level++) {
+        const isClaimed = level <= maxLevel;
+        const amount = CONFIG.TOKEN_REWARDS[level - 1];
+        
+        this.userData.tokenRewards[level] = {
+          claimed: isClaimed,
+          amount: amount
+        };
+        
+        if (isClaimed) {
+          totalClaimed += amount;
+        }
+      }
+      
+      this.userData.totalPossibleRewards = CONFIG.TOKEN_REWARDS.reduce((sum, r) => sum + r, 0);
+      this.userData.totalClaimedRewards = totalClaimed;
+      
+      console.log('🎁 Token rewards loaded:', {
+        claimed: totalClaimed,
+        total: this.userData.totalPossibleRewards
+      });
+      
+    } catch (error) {
+      console.error('Error loading token rewards:', error);
+    }
+  },
   // История транзакций
   async loadTransactionHistory() {
     try {
