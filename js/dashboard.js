@@ -417,7 +417,6 @@ const dashboardModule = {
     
     if (!await app.checkNetwork()) return;
 
-    try {
       // 1. ПРОВЕРКА РЕГИСТРАЦИИ
       if (!this.userData.isRegistered) {
         app.showNotification('Сначала зарегистрируйтесь', 'error');
