@@ -428,28 +428,7 @@ const dashboardModule = {
         return;
       }
       
-      // 2. ПРОВЕРКА QUARTERLY АКТИВНОСТИ (детально)
-      console.log(`🔍 Checking quarterly for level ${level}...`);
-      const isQuarterlyActive = await this.contracts.globalWay.isQuarterlyActive(app.state.userAddress);
-      console.log(`📊 Quarterly active: ${isQuarterlyActive}`);
-      
-      if (!isQuarterlyActive && level > 1) {
-        app.showNotification('Оплатите quarterly активность (0.075 BNB) перед покупкой уровней', 'error');
-        return;
-      }
-      
-      // Для уровня 1 - quarterly опционально, но лучше оплатить
-      if (!isQuarterlyActive && level === 1) {
-        const confirmed = confirm(
-          'Quarterly не оплачен!\n\n' +
-          'Для активации уровней 2-12 потребуется quarterly (0.075 BNB).\n\n' +
-          'Рекомендуется сначала оплатить quarterly.\n\n' +
-          'Продолжить активацию уровня 1 без quarterly?'
-        );
-        if (!confirmed) return;
-      }
-      
-      // 3. ПРОВЕРКА ПРЕДЫДУЩИХ УРОВНЕЙ (для уровней 4-12)
+      // 2. ПРОВЕРКА ПРЕДЫДУЩИХ УРОВНЕЙ (для уровней 4-12)
       if (level > 3) {
         const maxLevel = await this.contracts.globalWay.getUserMaxLevel(app.state.userAddress);
         if (maxLevel < level - 1) {
