@@ -147,37 +147,38 @@ const app = {
 
   // Подключение кошелька
   async connectWallet() {
-  try {
-    const result = await window.web3Manager.connectWallet();
-    
-    if (result.success) {
-      const address = result.address;
-      this.state.userAddress = address;
-      this.state.connected = true;
-      
-      // ✅ ПРОВЕРЯЕМ АДМИН ПРАВА
-      if (window.adminModule) {
-        await adminModule.checkRights();
+    try {
+      if (!window.web3Manager) {
+        this.showNotification('Web3 Manager не загружен', 'error');
+        return;
       }
+
+      this.showNotification('Подключение кошелька...', 'info');
       
-      // Загружаем данные
-      await this.loadUserData();
+      await window.web3Manager.connect();
       
-      // Обновляем UI
-      this.updateConnectionUI();
-      
-      // Загружаем текущую страницу
-      await this.loadCurrentPage();
-      
-      this.showNotification('Кошелек подключен! ✓', 'success');
-    } else {
-      this.showNotification(result.error || 'Ошибка подключения', 'error');
+      if (window.web3Manager.isConnected) {
+        this.state.userAddress = window.web3Manager.currentAccount;
+        
+        // Обновляем UI
+        this.updateWalletUI();
+        
+        // Загружаем данные
+        await this.loadUserData();
+        
+        // Автоматическая регистрация
+        await this.checkAndAutoRegister();
+        
+        // КРИТИЧНО: Перезагружаем текущую страницу
+        await this.loadCurrentPage();
+        
+        this.showNotification('Кошелек подключен!', 'success');
+      }
+    } catch (error) {
+      console.error('❌ Connect wallet error:', error);
+      this.showNotification('Ошибка подключения кошелька', 'error');
     }
-  } catch (error) {
-    console.error('Connect wallet error:', error);
-    this.showNotification('Ошибка подключения', 'error');
-  }
-}
+  },
 
   // Обновление UI кошелька
   updateWalletUI() {
