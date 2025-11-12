@@ -232,39 +232,44 @@ const dashboardModule = {
   },
 
   // ✅ ФИНАЛ: Информация о токенах с кэшем
+  // ✅ ФИНАЛ: Информация о токенах с фиксированной ценой
+  // ✅ ФИНАЛ: Информация о токенах с реальной ценой из tokenomics
   async loadTokenInfo() {
     try {
       const { address } = this.userData;
 
-      // Баланс токенов (всегда свежий)
+      // 1. Баланс токенов пользователя
       const tokenBalance = await this.contracts.token.balanceOf(address);
       const tokenAmount = ethers.utils.formatEther(tokenBalance);
 
-      // Цена токена (с кэшем на 30 сек)
-      let priceInUSD;
-      const now = Date.now();
+      // 2. ✅ ПРАВИЛЬНО: Вычисляем цену из баланса tokenomics адреса
+      // 5% от каждой покупки уровня идет на tokenomics → это определяет цену токена
+      const TOKENOMICS_ADDRESS = '0xbDC29886c91878C1ba9ce0626Da5E1961324354F';
+      const TOTAL_SUPPLY = 1000000000; // 1 миллиард токенов
       
-      if (this.cache.tokenPrice && (now - this.cache.tokenPriceTime) < this.cache.cacheDuration) {
-        // Используем кэш
-        priceInUSD = this.cache.tokenPrice;
-        console.log('💾 Using cached token price:', priceInUSD);
-      } else {
-        // Запрашиваем новую цену
-        const tokenPrice = await this.contracts.token.getCurrentPrice();
-        priceInUSD = Number(ethers.utils.formatEther(tokenPrice)).toFixed(6);
-        
-        // Сохраняем в кэш
-        this.cache.tokenPrice = priceInUSD;
-        this.cache.tokenPriceTime = now;
-        console.log('🔄 Updated token price cache:', priceInUSD);
-      }
+      const tokenomicsBalance = await this.web3Provider.getBalance(TOKENOMICS_ADDRESS);
+      const tokenomicsBalanceBNB = parseFloat(ethers.utils.formatEther(tokenomicsBalance));
+      
+      // Цена в BNB = баланс tokenomics / общее количество токенов
+      const priceInBNB = tokenomicsBalanceBNB / TOTAL_SUPPLY;
+      
+      // Цена в USD (BNB @ $600)
+      const BNB_PRICE_USD = 600;
+      const priceInUSD = (priceInBNB * BNB_PRICE_USD).toFixed(6);
+      
+      console.log('💰 Token balance:', tokenAmount, 'GWT');
+      console.log('📊 Tokenomics balance:', tokenomicsBalanceBNB.toFixed(18), 'BNB');
+      console.log('💵 Token price:', priceInBNB.toFixed(18), 'BNB');
+      console.log('💵 Token price:', priceInUSD, 'USD');
 
-      // Общая стоимость
-      const totalValue = (Number(tokenAmount) * Number(priceInUSD)).toFixed(2);
+      // 3. Общая стоимость портфеля
+      const totalValueUSD = (parseFloat(tokenAmount) * parseFloat(priceInUSD)).toFixed(2);
 
+      // 4. Обновляем UI
       document.getElementById('tokenAmount').textContent = `${app.formatNumber(tokenAmount, 2)} GWT`;
       document.getElementById('tokenPrice').textContent = `$${priceInUSD}`;
-      document.getElementById('tokenValue').textContent = `$${totalValue}`;
+      document.getElementById('tokenValue').textContent = `$${totalValueUSD}`;
+      
     } catch (error) {
       console.error('Error loading token info:', error);
     }
