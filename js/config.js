@@ -15,47 +15,44 @@ const CONFIG = {
 
   // ✅ ИСПРАВЛЕНО: НОВЫЕ адреса контрактов (деплой 10.11.2025)
   CONTRACTS: {
-    GlobalWay: '0x974fFA4e51458AA72C6262B59Af610844db27548',  // ✅ НОВЫЙ
-    GlobalWayHelper: '0x45bC9af2381CF2FB4fC638E21c0035f9c8C64D8B',  // ✅ НОВЫЙ
-    GlobalWayMarketing: '0xe1C604A8E8C2b885773cC4c67E483f29bfcCf91C',  // ✅ НОВЫЙ
-    GlobalWayQuarterly: '0x09fE6e69e9Eaf1c54dE953c0dC31edfD22115CC7',  // ✅ НОВЫЙ
-    GlobalWayLeaderPool: '0x8a6D429D12cE2bac90cAe52697e985948C4dE620',  // БЕЗ ИЗМЕНЕНИЙ
-    GlobalWayInvestment: '0xa17162c8aC8EE6AD7aA04C229aC266c7D421eA92',  // БЕЗ ИЗМЕНЕНИЙ
-    GlobalWayStats: '0xFA66Fa17a8e6232edD4e675F0732dAdDCd79aA9C',  // БЕЗ ИЗМЕНЕНИЙ
-    GlobalWayBridge: '0x93d0f02298C646BB10E6de3e79fb91f23702348F',  // БЕЗ ИЗМЕНЕНИЙ
-    GlobalWayGovernance: '0x197971D4cD31DE685c7Aa2F24bc2E4aA23A8ac59',  // БЕЗ ИЗМЕНЕНИЙ
-    GlobalWayTechAccounts: '0x616eDDa302bD4D47aC4B889BAF4c141f80A65D09',  // БЕЗ ИЗМЕНЕНИЙ
-    GWTToken: '0xdd263e6bC806A2DDf45b3F7212Ddcd4938724E4E'  // БЕЗ ИЗМЕНЕНИЙ
+    GlobalWay: '0x974fFA4e51458AA72C6262B59Af610844db27548',
+    GlobalWayHelper: '0x45bC9af2381CF2FB4fC638E21c0035f9c8C64D8B',
+    GlobalWayMarketing: '0xe1C604A8E8C2b885773cC4c67E483f29bfcCf91C',
+    GlobalWayQuarterly: '0x09fE6e69e9Eaf1c54dE953c0dC31edfD22115CC7',
+    GlobalWayLeaderPool: '0x8a6D429D12cE2bac90cAe52697e985948C4dE620',
+    GlobalWayInvestment: '0xa17162c8aC8EE6AD7aA04C229aC266c7D421eA92',
+    GlobalWayStats: '0xFA66Fa17a8e6232edD4e675F0732dAdDCd79aA9C',
+    GlobalWayBridge: '0x93d0f02298C646BB10E6de3e79fb91f23702348F',
+    GlobalWayGovernance: '0x197971D4cD31DE685c7Aa2F24bc2E4aA23A8ac59',
+    GlobalWayTechAccounts: '0x616eDDa302bD4D47aC4B889BAF4c141f80A65D09',
+    GWTToken: '0xdd263e6bC806A2DDf45b3F7212Ddcd4938724E4E'
   },
 
-  // Системные кошельки
   WALLETS: {
     treasury: '0xE58f778236C1D3cCecf14eC1274761559685a336',
     charity: '0x09c3bD32EB0617e29E41382b738c4E3Cc932A611',
     tokenomics: '0xbDC29886c91878C1ba9ce0626Da5E1961324354F'
   },
 
-  // Администраторы
   ADMIN: {
     owner: '0x7261b8aeaee2f806f64001596a67d68f2055acd2',
     
-    // ✅ ИСПРАВЛЕНО: Основатели с ID
     founders: [
       {
         address: '0x03284a899147f5a07f82c622f34df92198671635',
-        id: '7777777'  // Позиция 1 в матрице
+        id: '7777777'
       },
       {
         address: '0x9b49bd9c9458615e11c051afd1ebe983563b67ee',
-        id: '5555555'  // Позиция 2 в матрице
+        id: '5555555'
       },
       {
         address: '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7',
-        id: '9999999'  // Позиция 3 в матрице
+        id: '9999999'
       },
       {
         address: '0xa3496caCC8523421Dd151f1d92A456c2daFa28c2',
-        id: '2290631'  // ✅ ИСПРАВЛЕНО: Добавлен ID - Позиция 4 в матрице
+        id: '2290631'
       }
     ],
     
@@ -188,3 +185,17 @@ const CONFIG = {
     logo: 'assets/icons/logo-32x32.png'
   }
 };
+
+// ✅ ДОБАВЛЕНО: Экспорт в window для совместимости
+if (typeof window !== 'undefined') {
+  window.CONFIG = CONFIG;
+  
+  // ✅ КРИТИЧНО: Создаем алиас contractsConfig для обратной совместимости
+  window.contractsConfig = CONFIG.CONTRACTS;
+  
+  console.log('✅ Config loaded:', {
+    network: CONFIG.NETWORK.name,
+    contracts: Object.keys(CONFIG.CONTRACTS).length,
+    admin: CONFIG.ADMIN.owner
+  });
+}
