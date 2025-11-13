@@ -163,9 +163,6 @@ const app = {
         // Обновляем UI
         this.updateWalletUI();
         
-        // ✅ ДОПОЛНИТЕЛЬНО: Проверяем админ доступ сразу после подключения
-        this.checkAdminAccess();
-        
         // Загружаем данные
         await this.loadUserData();
         
@@ -220,10 +217,6 @@ const app = {
   async checkWalletConnection() {
     if (window.web3Manager && window.web3Manager.isConnected) {
       this.state.userAddress = window.web3Manager.currentAccount;
-      
-      // ✅ ДОПОЛНИТЕЛЬНО: Проверяем админ доступ сразу
-      this.checkAdminAccess();
-      
       await this.loadUserData();
       
       // АВТОМАТИЧЕСКАЯ регистрация (если ID нет)
@@ -260,90 +253,10 @@ const app = {
           maxLevel: this.state.maxLevel
         });
       }
-
-      // ✅ КРИТИЧНО: Проверяем права доступа к админке
-      this.checkAdminAccess();
     } catch (error) {
       console.error('❌ Error loading user data:', error);
     }
   },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ПРОВЕРКА ПРАВ ДОСТУПА К АДМИНКЕ
-  // ═══════════════════════════════════════════════════════════════
-  checkAdminAccess() {
-    console.log('🔐 Checking admin access...');
-    
-    if (!this.state.userAddress) {
-      console.log('❌ No user address for admin check');
-      return;
-    }
-
-    const currentAddress = this.state.userAddress.toLowerCase();
-    console.log('🔍 Checking address:', currentAddress);
-
-    // Проверяем Owner
-    const isOwner = currentAddress === CONFIG.ADMIN.owner.toLowerCase();
-    
-    // Проверяем Founders (ТОЛЬКО первые 3 из 4!)
-    const allowedFounders = CONFIG.ADMIN.founders
-      .slice(0, 3) // Берём только первые 3
-      .map(f => f.address?.toLowerCase())
-      .filter(addr => addr);
-    
-    const isFounder = allowedFounders.includes(currentAddress);
-    
-    // Доступ есть если Owner ИЛИ один из первых 3 Founders
-    const hasAdminAccess = isOwner || isFounder;
-
-    if (hasAdminAccess) {
-      console.log('✅ Admin access detected:', isOwner ? 'Owner' : 'Founder');
-      this.showAdminButton();
-    } else {
-      console.log('ℹ️ No admin access for:', currentAddress);
-      this.hideAdminButton();
-    }
-  },
-
-  // Показать кнопку админки (УСИЛЕННАЯ ВЕРСИЯ - обходит CSS !important)
-  showAdminButton() {
-    const adminBtn = document.querySelector('[data-page="admin"]');
-    console.log('🔍 Admin button element:', adminBtn);
-    
-    if (adminBtn) {
-      console.log('📍 Current display:', adminBtn.style.display);
-      console.log('📍 Current classes:', adminBtn.className);
-      
-      // 🔥 УСИЛЕННОЕ РЕШЕНИЕ #1: Используем !important
-      adminBtn.style.setProperty('display', 'flex', 'important');
-      
-      // 🔥 УСИЛЕННОЕ РЕШЕНИЕ #2: Убираем класс admin-only который может скрывать
-      adminBtn.classList.remove('admin-only');
-      
-      // 🔥 УСИЛЕННОЕ РЕШЕНИЕ #3: Добавляем класс admin-visible
-      adminBtn.classList.add('admin-visible');
-      
-      // 🔥 УСИЛЕННОЕ РЕШЕНИЕ #4: Дополнительные стили для гарантии видимости
-      adminBtn.style.visibility = 'visible';
-      adminBtn.style.opacity = '1';
-      
-      console.log('✅ Admin button styles applied');
-      console.log('📍 New display:', adminBtn.style.display);
-      console.log('📍 New classes:', adminBtn.className);
-      console.log('🔓 Admin button shown');
-    } else {
-      console.error('❌ Admin button element NOT FOUND!');
-    }
-  },
-
-  // Скрыть кнопку админки
-  hideAdminButton() {
-    const adminBtn = document.querySelector('[data-page="admin"]');
-    if (adminBtn) {
-      adminBtn.style.display = 'none'; // Скрываем кнопку
-    }
-  },
-
 
   // ═══════════════════════════════════════════════════════════════
   // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ (БЕСПЛАТНАЯ!)
@@ -530,17 +443,10 @@ const app = {
         page.classList.remove('active');
       });
 
-      // 2. Показываем нужную страницу (УСИЛЕННАЯ ВЕРСИЯ)
+      // 2. Показываем нужную страницу
       const pageElement = document.getElementById(pageName);
       if (pageElement) {
         pageElement.classList.add('active');
-        
-        // 🔥 УСИЛЕННОЕ РЕШЕНИЕ: Гарантируем видимость через !important
-        pageElement.style.setProperty('display', 'block', 'important');
-        pageElement.style.setProperty('visibility', 'visible', 'important');
-        pageElement.style.setProperty('opacity', '1', 'important');
-        
-        console.log(`✅ Page ${pageName} forced visible`);
       } else {
         console.error(`❌ Page element #${pageName} not found!`);
       }
