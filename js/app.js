@@ -3,20 +3,16 @@
 // ═══════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
-// GlobalWay DApp - PRODUCTION READY v2.0
+// GlobalWay DApp - PRODUCTION READY v2.1
 // Date: 2025-11-12
 // Status: ✅ 100% COMPLETE
 // 
 // Changes in this version:
-// - All critical bugs fixed
-// - All important issues resolved
-// - Loading states added
-// - CONFIG validation
-// - Better UX messages
-// - Caching optimization
-// - Final polish applied
+// - Added activation modal after registration
+// - Fixed level activation buttons
+// - Improved user state management
+// - Better error handling
 // ═══════════════════════════════════════════════════════════════
-
 
 const app = {
   // Состояние приложения
@@ -29,7 +25,8 @@ const app = {
     contracts: {},
     pageModules: {},
     isLandingSkipped: false,
-    navigationInitialized: false  // ✅ НОВЫЙ флаг
+    navigationInitialized: false,
+    activationModalShown: false  // ✅ НОВОЕ: Флаг чтобы не показывать модальное окно много раз
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -84,6 +81,7 @@ const app = {
       return false;
     }
   },
+
   async init() {
     console.log('🚀 Initializing GlobalWay DApp...');
     
@@ -169,6 +167,9 @@ const app = {
         // Автоматическая регистрация
         await this.checkAndAutoRegister();
         
+        // ✅ ДОБАВЛЕНО: Проверяем нужно ли показать модальное окно активации
+        this.checkAndShowActivationModal();
+        
         // КРИТИЧНО: Перезагружаем текущую страницу
         await this.loadCurrentPage();
         
@@ -221,6 +222,9 @@ const app = {
       
       // АВТОМАТИЧЕСКАЯ регистрация (если ID нет)
       await this.checkAndAutoRegister();
+      
+      // ✅ ДОБАВЛЕНО: Проверяем нужно ли показать модальное окно активации
+      this.checkAndShowActivationModal();
     }
   },
 
@@ -268,7 +272,7 @@ const app = {
     return params.get('ref') || params.get('sponsor') || null;
   },
 
-    // ✅ ИСПРАВЛЕНО: Регистрация и присвоение ID (рабочая версия)
+  // ✅ ИСПРАВЛЕНО: Регистрация и присвоение ID (рабочая версия)
   async checkAndAutoRegister() {
     if (!this.state.userAddress) return;
 
@@ -322,6 +326,12 @@ const app = {
           this.state.userID = userID;
           console.log('✅ User already has ID:', userID);
         }
+        
+        // ✅ ДОБАВЛЕНО: После регистрации проверяем нужно ли показать модальное окно
+        setTimeout(() => {
+          this.checkAndShowActivationModal();
+        }, 1000);
+        
         return; // Прерываем функцию - пользователь уже в системе
       }
       
@@ -376,6 +386,11 @@ const app = {
       this.showNotification(`✅ Регистрация завершена!\nВаш ID: GW${newID}`, 'success');
       console.log('✅ ID assigned:', newID);
 
+      // ✅ ДОБАВЛЕНО: После успешной регистрации показываем модальное окно активации
+      setTimeout(() => {
+        this.showActivationModal();
+      }, 1500);
+
     } catch (error) {
       console.error('❌ Registration error:', error);
       
@@ -429,6 +444,168 @@ const app = {
 
     // Fallback на Owner
     return CONFIG.ADMIN.owner;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // МОДАЛЬНОЕ ОКНО АКТИВАЦИИ
+  // ═══════════════════════════════════════════════════════════════
+
+  // ✅ НОВОЕ: Проверка условий и показ модального окна активации
+  checkAndShowActivationModal() {
+    // Условия показа модального окна:
+    // 1. Пользователь зарегистрирован
+    // 2. Нет активных уровней (maxLevel === 0)
+    // 3. Модальное окно еще не показывалось
+    if (this.state.isRegistered && 
+        this.state.maxLevel === 0 && 
+        !this.state.activationModalShown) {
+      
+      console.log('🎯 Conditions met for activation modal');
+      
+      // Ждем немного чтобы интерфейс успел обновиться
+      setTimeout(() => {
+        this.showActivationModal();
+      }, 2000);
+    }
+  },
+
+  // ✅ НОВОЕ: Показ модального окна активации
+  showActivationModal() {
+    if (this.state.activationModalShown) {
+      console.log('⚠️ Activation modal already shown');
+      return;
+    }
+
+    console.log('🎯 Showing activation modal...');
+    
+    // Создаем модальное окно если его нет
+    if (!document.getElementById('activationModal')) {
+      this.createActivationModal();
+    }
+    
+    // Показываем модальное окно
+    this.showModal('activationModal');
+    this.state.activationModalShown = true;
+  },
+
+  // ✅ НОВОЕ: Создание модального окна активации
+  createActivationModal() {
+    console.log('🔧 Creating activation modal...');
+    
+    const modalHTML = `
+      <div id="activationModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+          <span class="close">&times;</span>
+          
+          <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
+            <h2 style="color: #2c3e50; margin-bottom: 10px;">Добро пожаловать в GlobalWay!</h2>
+            <p style="color: #7f8c8d; margin-bottom: 5px;">Ваш ID: <strong style="color: #e74c3c;">GW${this.state.userID}</strong></p>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">Регистрация успешно завершена!</p>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #27ae60; margin-bottom: 15px;">🚀 Начните зарабатывать!</h3>
+              <p style="margin-bottom: 10px;"><strong>Активируйте первый уровень чтобы:</strong></p>
+              <ul style="text-align: left; margin: 0 20px;">
+                <li>Открыть реферальную систему</li>
+                <li>Получить доступ к матрице</li>
+                <li>Начать получать выплаты</li>
+                <li>Участвовать в рангах и бонусах</li>
+              </ul>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #ffeaa7;">
+              <p style="margin: 0; color: #856404;">
+                <strong>Уровень 1:</strong> 0.0015 BNB
+              </p>
+            </div>
+            
+            <button id="activateLevel1Btn" class="btn-primary" style="padding: 15px 30px; font-size: 18px; margin: 10px; width: 100%;">
+              АКТИВИРОВАТЬ УРОВЕНЬ 1
+            </button>
+            
+            <button id="viewPackagesBtn" class="btn-secondary" style="padding: 12px 25px; font-size: 16px; margin: 10px; width: 100%;">
+              Посмотреть пакеты
+            </button>
+            
+            <p style="font-size: 12px; color: #95a5a6; margin-top: 20px;">
+              После активации откроется полный доступ ко всем функциям платформы
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Добавляем обработчики
+    const activateBtn = document.getElementById('activateLevel1Btn');
+    const packagesBtn = document.getElementById('viewPackagesBtn');
+    
+    if (activateBtn) {
+      activateBtn.onclick = async () => {
+        await this.activateUserLevel(1, '0.0015', activateBtn);
+      };
+    }
+    
+    if (packagesBtn) {
+      packagesBtn.onclick = () => {
+        this.closeModal('activationModal');
+        this.showPage('packages');
+      };
+    }
+    
+    console.log('✅ Activation modal created');
+  },
+
+  // ✅ НОВОЕ: Функция активации уровня
+  async activateUserLevel(level, price, button) {
+    try {
+      console.log(`🔄 Activating level ${level} for ${price} BNB...`);
+      
+      button.disabled = true;
+      button.textContent = '⏳ Обработка...';
+      
+      const globalWaySigned = await this.getSignedContract('GlobalWay');
+      const priceInWei = ethers.utils.parseEther(price);
+      
+      const tx = await globalWaySigned.activateLevel(level, {
+        value: priceInWei,
+        gasLimit: 300000
+      });
+      
+      this.showNotification(`Активация уровня ${level}...`, 'info');
+      await tx.wait();
+      
+      this.closeModal('activationModal');
+      this.showNotification(`✅ Уровень ${level} успешно активирован!`, 'success');
+      
+      // Обновляем данные пользователя
+      await this.loadUserData();
+      
+      // Обновляем текущую страницу
+      if (this.state.currentPage && this.state.pageModules[this.state.currentPage]) {
+        const module = this.state.pageModules[this.state.currentPage];
+        if (typeof module.refresh === 'function') {
+          await module.refresh();
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Activation error:', error);
+      button.disabled = false;
+      button.textContent = `АКТИВИРОВАТЬ УРОВЕНЬ ${level}`;
+      
+      if (error.code === 4001) {
+        this.showNotification('❌ Транзакция отменена', 'error');
+      } else if (error.message.includes('Level already active')) {
+        this.showNotification('❌ Уровень уже активирован', 'error');
+      } else if (error.message.includes('Previous level not active')) {
+        this.showNotification('❌ Сначала активируйте предыдущий уровень', 'error');
+      } else {
+        this.showNotification('❌ Ошибка активации: ' + error.message, 'error');
+      }
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -762,12 +939,12 @@ const app = {
   // Форматирование BNB
   formatBNB(wei) {
     if (!wei) return '0';
-    return ethers.formatEther(wei);
+    return ethers.utils.formatEther(wei);
   },
 
   // Конвертация в Wei
   parseEther(amount) {
-    return ethers.parseEther(amount.toString());
+    return ethers.utils.parseEther(amount.toString());
   },
 
   // Проверка сети
