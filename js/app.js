@@ -253,10 +253,62 @@ const app = {
           maxLevel: this.state.maxLevel
         });
       }
+
+      // ✅ КРИТИЧНО: Проверяем права доступа к админке
+      this.checkAdminAccess();
     } catch (error) {
       console.error('❌ Error loading user data:', error);
     }
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПРОВЕРКА ПРАВ ДОСТУПА К АДМИНКЕ
+  // ═══════════════════════════════════════════════════════════════
+  checkAdminAccess() {
+    if (!this.state.userAddress) return;
+
+    const currentAddress = this.state.userAddress.toLowerCase();
+
+    // Проверяем Owner
+    const isOwner = currentAddress === CONFIG.ADMIN.owner.toLowerCase();
+    
+    // Проверяем Founders (ТОЛЬКО первые 3 из 4!)
+    const allowedFounders = CONFIG.ADMIN.founders
+      .slice(0, 3) // Берём только первые 3
+      .map(f => f.address?.toLowerCase())
+      .filter(addr => addr);
+    
+    const isFounder = allowedFounders.includes(currentAddress);
+    
+    // Доступ есть если Owner ИЛИ один из первых 3 Founders
+    const hasAdminAccess = isOwner || isFounder;
+
+    if (hasAdminAccess) {
+      console.log('✅ Admin access detected:', isOwner ? 'Owner' : 'Founder');
+      this.showAdminButton();
+    } else {
+      console.log('ℹ️ No admin access for:', currentAddress);
+      this.hideAdminButton();
+    }
+  },
+
+  // Показать кнопку админки
+  showAdminButton() {
+    const adminBtn = document.querySelector('[data-page="admin"]');
+    if (adminBtn) {
+      adminBtn.style.display = 'flex'; // Показываем кнопку
+      console.log('🔓 Admin button shown');
+    }
+  },
+
+  // Скрыть кнопку админки
+  hideAdminButton() {
+    const adminBtn = document.querySelector('[data-page="admin"]');
+    if (adminBtn) {
+      adminBtn.style.display = 'none'; // Скрываем кнопку
+    }
+  },
+
 
   // ═══════════════════════════════════════════════════════════════
   // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ (БЕСПЛАТНАЯ!)
