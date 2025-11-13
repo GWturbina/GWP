@@ -163,6 +163,9 @@ const app = {
         // Обновляем UI
         this.updateWalletUI();
         
+        // ✅ ДОПОЛНИТЕЛЬНО: Проверяем админ доступ сразу после подключения
+        this.checkAdminAccess();
+        
         // Загружаем данные
         await this.loadUserData();
         
@@ -217,6 +220,10 @@ const app = {
   async checkWalletConnection() {
     if (window.web3Manager && window.web3Manager.isConnected) {
       this.state.userAddress = window.web3Manager.currentAccount;
+      
+      // ✅ ДОПОЛНИТЕЛЬНО: Проверяем админ доступ сразу
+      this.checkAdminAccess();
+      
       await this.loadUserData();
       
       // АВТОМАТИЧЕСКАЯ регистрация (если ID нет)
@@ -265,9 +272,15 @@ const app = {
   // ПРОВЕРКА ПРАВ ДОСТУПА К АДМИНКЕ
   // ═══════════════════════════════════════════════════════════════
   checkAdminAccess() {
-    if (!this.state.userAddress) return;
+    console.log('🔐 Checking admin access...');
+    
+    if (!this.state.userAddress) {
+      console.log('❌ No user address for admin check');
+      return;
+    }
 
     const currentAddress = this.state.userAddress.toLowerCase();
+    console.log('🔍 Checking address:', currentAddress);
 
     // Проверяем Owner
     const isOwner = currentAddress === CONFIG.ADMIN.owner.toLowerCase();
@@ -295,9 +308,15 @@ const app = {
   // Показать кнопку админки
   showAdminButton() {
     const adminBtn = document.querySelector('[data-page="admin"]');
+    console.log('🔍 Admin button element:', adminBtn);
+    
     if (adminBtn) {
+      console.log('📍 Current display:', adminBtn.style.display);
       adminBtn.style.display = 'flex'; // Показываем кнопку
+      console.log('✅ Admin button display set to: flex');
       console.log('🔓 Admin button shown');
+    } else {
+      console.error('❌ Admin button element NOT FOUND!');
     }
   },
 
