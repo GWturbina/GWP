@@ -268,7 +268,7 @@ const app = {
     return params.get('ref') || params.get('sponsor') || null;
   },
 
-    // ✅ ИСПРАВЛЕНО: Регистрация и присвоение ID
+    // ✅ ИСПРАВЛЕНО: Регистрация и присвоение ID (рабочая версия)
   async checkAndAutoRegister() {
     if (!this.state.userAddress) return;
 
@@ -305,7 +305,11 @@ const app = {
           }
           
           const helperSigned = await this.getSignedContract('GlobalWayHelper');
-          const assignTx = await helperSigned.assignUserID({ gasLimit: 300000 });
+          console.log('📝 Calling assignUserID()...');
+          
+          // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильный вызов assignUserID
+          // Функция НЕ принимает параметров, gasLimit передается как опция
+          const assignTx = await helperSigned.assignUserID();
           
           this.showNotification('Присвоение ID...', 'info');
           await assignTx.wait();
@@ -360,7 +364,7 @@ const app = {
       // ✅ СРАЗУ присваиваем ID после регистрации
       console.log('🆔 Assigning user ID after registration...');
       const helperSigned = await this.getSignedContract('GlobalWayHelper');
-      const assignTx = await helperSigned.assignUserID({ gasLimit: 300000 });
+      const assignTx = await helperSigned.assignUserID();
       
       this.showNotification('Присвоение ID...', 'info');
       await assignTx.wait();
