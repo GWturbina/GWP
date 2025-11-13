@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Admin Module
 // Админ панель: управление пользователями, board members, финансы
-// ТОЛЬКО для Owner + 3 Founders
+// ТОЛЬКО для Owner + 3 Founders + Guardians из контракта
 // ═══════════════════════════════════════════════════════════════════
 
 const adminModule = {
@@ -12,6 +12,7 @@ const adminModule = {
   access: {
     isOwner: false,
     isFounder: false,
+    isGuardian: false,
     level: 'No Access'
   },
 
@@ -33,15 +34,17 @@ const adminModule = {
   async init() {
     console.log('⚙️ Initializing Admin Panel...');
     
-    // СТРОГАЯ ПРОВЕРКА ПРАВ
-    if (!this.checkRights()) {
-      this.showAccessDenied();
-      return;
-    }
-
     try {
-      // Загружаем контракты
+      // Сначала загружаем контракты
       await this.loadContracts();
+      
+      // СТРОГАЯ ПРОВЕРКА ПРАВ (через смарт-контракт)
+      const hasAccess = await this.checkRights();
+      
+      if (!hasAccess) {
+        this.showAccessDenied();
+        return;
+      }
 
       // Загружаем данные
       await this.loadAllData();
@@ -57,9 +60,9 @@ const adminModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ПРОВЕРКА ПРАВ ДОСТУПА
+  // ПРОВЕРКА ПРАВ ДОСТУПА (ЧЕРЕЗ СМАРТ-КОНТРАКТ + CONFIG)
   // ═══════════════════════════════════════════════════════════════
-  checkRights() {
+  async checkRights() {
     if (!app.state.userAddress) {
       console.error('❌ No wallet connected');
       return false;
@@ -67,29 +70,48 @@ const adminModule = {
 
     const currentAddress = app.state.userAddress.toLowerCase();
 
-    // Список разрешенных адресов: Owner + 3 Founders
-    const allowedAddresses = [
-      CONFIG.ADMIN.owner.toLowerCase(),
-      CONFIG.ADMIN.founders[0]?.address?.toLowerCase(),
-      CONFIG.ADMIN.founders[1]?.address?.toLowerCase(),
-      CONFIG.ADMIN.founders[2]?.address?.toLowerCase()
-    ].filter(addr => addr); // Убираем undefined
+    // 1️⃣ Проверяем Owner из CONFIG
+    const isOwner = currentAddress === CONFIG.ADMIN.owner.toLowerCase();
+    
+    // 2️⃣ Проверяем Founders из CONFIG (первые 3)
+    const allowedFounders = CONFIG.ADMIN.founders
+      .slice(0, 3)
+      .map(f => f.address?.toLowerCase())
+      .filter(addr => addr);
+    
+    const isFounder = allowedFounders.includes(currentAddress);
+    
+    // 3️⃣ КРИТИЧНО: Проверяем через смарт-контракт GlobalWayGovernance
+    let isGuardian = false;
+    try {
+      isGuardian = await this.contracts.governance.isGuardian(app.state.userAddress);
+      console.log('🔐 Guardian check from contract:', isGuardian);
+    } catch (error) {
+      console.error('❌ Error checking guardian status:', error);
+    }
 
-    const hasAccess = allowedAddresses.includes(currentAddress);
+    // ✅ Доступ есть если:
+    // - Owner из CONFIG
+    // - Founder из CONFIG (первые 3)
+    // - Guardian из смарт-контракта
+    const hasAccess = isOwner || isFounder || isGuardian;
 
     if (!hasAccess) {
       console.error('❌ ADMIN ACCESS DENIED for:', app.state.userAddress);
-      console.log('✅ Allowed addresses:', allowedAddresses);
+      console.log('   Owner:', isOwner);
+      console.log('   Founder:', isFounder);
+      console.log('   Guardian:', isGuardian);
       return false;
     }
 
     // Определяем уровень прав
-    this.access.isOwner = currentAddress === CONFIG.ADMIN.owner.toLowerCase();
-    this.access.isFounder = CONFIG.ADMIN.founders
-      .slice(0, 3)
-      .some(f => f.address?.toLowerCase() === currentAddress);
+    this.access.isOwner = isOwner;
+    this.access.isFounder = isFounder;
+    this.access.isGuardian = isGuardian;
     
-    this.access.level = this.access.isOwner ? 'Owner' : 'Founder';
+    this.access.level = isOwner ? 'Owner' : 
+                       isFounder ? 'Founder' : 
+                       'Guardian';
 
     console.log('✅ Admin access granted:', this.access.level);
     console.log('🔐 Address:', app.state.userAddress);
@@ -116,7 +138,7 @@ const adminModule = {
       <div style="text-align: center; padding: 50px;">
         <h2>🔒 Доступ Запрещен</h2>
         <p style="color: #ff4444; font-weight: bold; margin: 20px 0;">
-          Админ панель доступна только 4 адресам.
+          Админ панель доступна только Owner, Founders и Guardians.
         </p>
         <p>Ваш адрес: <code>${app.state.userAddress || 'Не подключен'}</code></p>
         
@@ -127,6 +149,7 @@ const adminModule = {
             <li>🔥 <strong>Founder 1 (ID: 7777777):</strong> <code>${CONFIG.ADMIN.founders[0]?.address || 'N/A'}</code></li>
             <li>🔥 <strong>Founder 2 (ID: 5555555):</strong> <code>${CONFIG.ADMIN.founders[1]?.address || 'N/A'}</code></li>
             <li>🔥 <strong>Founder 3 (ID: 9999999):</strong> <code>${CONFIG.ADMIN.founders[2]?.address || 'N/A'}</code></li>
+            <li>🛡️ <strong>+ Guardians из контракта GlobalWayGovernance</strong></li>
           </ul>
         </div>
         
@@ -239,167 +262,55 @@ const adminModule = {
   // БЕСПЛАТНАЯ АКТИВАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   async freeActivate() {
-    if (!this.access.isFounder && !this.access.isOwner) {
-      app.showNotification('Только Owner/Founders могут активировать', 'error');
-      return;
-    }
+    const addressInput = document.getElementById('freeActivateAddress');
+    const levelInput = document.getElementById('freeActivateLevel');
 
-    const addressInput = document.getElementById('activationAddress');
-    const sponsorInput = document.getElementById('activationSponsor');
-
-    if (!addressInput || !sponsorInput) return;
-
-    const userAddress = addressInput.value.trim();
-    const sponsorAddress = sponsorInput.value.trim();
-
-    if (!userAddress || !sponsorAddress) {
-      app.showNotification('Заполните все поля', 'error');
-      return;
-    }
-
-    if (!ethers.isAddress(userAddress) || !ethers.isAddress(sponsorAddress)) {
-      app.showNotification('Неверный формат адреса', 'error');
-      return;
-    }
-
-    try {
-      app.showNotification('Активация пользователя...', 'info');
-
-      const contract = await app.getSignedContract('GlobalWay');
-      
-      // Регистрация
-      const tx = await contract.adminRegister(userAddress, sponsorAddress);
-      await tx.wait();
-
-      app.showNotification('Пользователь активирован! ✓', 'success');
-      
-      addressInput.value = '';
-      sponsorInput.value = '';
-
-      await this.loadStats();
-
-    } catch (error) {
-      console.error('Free activate error:', error);
-      app.showNotification('Ошибка активации: ' + error.message, 'error');
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // УПРАВЛЕНИЕ BOARD MEMBERS
-  // ═══════════════════════════════════════════════════════════════
-  async addBoardMember() {
-    if (!this.access.isOwner) {
-      app.showNotification('Только Owner может добавлять членов совета', 'error');
-      return;
-    }
-
-    const addressInput = document.getElementById('addBoardAddress');
-    const reasonInput = document.getElementById('addBoardReason');
-
-    if (!addressInput || !reasonInput) return;
+    if (!addressInput || !levelInput) return;
 
     const address = addressInput.value.trim();
-    const reason = reasonInput.value.trim();
+    const level = parseInt(levelInput.value);
 
-    if (!address || !reason) {
+    if (!address || !level) {
       app.showNotification('Заполните все поля', 'error');
       return;
     }
 
     if (!ethers.isAddress(address)) {
-      app.showNotification('Неверный формат адреса', 'error');
+      app.showNotification('Неверный адрес', 'error');
       return;
     }
 
-    try {
-      app.showNotification('Добавление члена совета...', 'info');
-
-      const contract = await app.getSignedContract('GlobalWayGovernance');
-      const tx = await contract.addBoardMember(address);
-      await tx.wait();
-
-      app.showNotification('Член совета добавлен! ✓', 'success');
-      
-      addressInput.value = '';
-      reasonInput.value = '';
-
-      await this.loadBoardMembers();
-
-    } catch (error) {
-      console.error('Add board member error:', error);
-      
-      let msg = 'Ошибка добавления';
-      if (error.message.includes('Already board member')) {
-        msg = 'Адрес уже является членом совета';
-      } else if (error.message.includes('not owner')) {
-        msg = 'Только owner может добавлять членов';
-      }
-      
-      app.showNotification(msg, 'error');
-    }
-  },
-
-  async removeBoardMember() {
-    if (!this.access.isOwner) {
-      app.showNotification('Только Owner может удалять членов совета', 'error');
-      return;
-    }
-
-    const addressInput = document.getElementById('removeBoardAddress');
-    const reasonInput = document.getElementById('removeBoardReason');
-
-    if (!addressInput || !reasonInput) return;
-
-    const address = addressInput.value.trim();
-    const reason = reasonInput.value.trim();
-
-    if (!address || !reason) {
-      app.showNotification('Заполните все поля', 'error');
-      return;
-    }
-
-    if (!ethers.isAddress(address)) {
-      app.showNotification('Неверный формат адреса', 'error');
+    if (level < 1 || level > 12) {
+      app.showNotification('Уровень должен быть от 1 до 12', 'error');
       return;
     }
 
     const confirmed = confirm(
-      `Удалить члена совета?\n\n` +
-      `Адрес: ${address}\n` +
-      `Причина: ${reason}\n\n` +
-      `Это действие требует голосования.`
+      `Активировать уровень ${level} для пользователя ${app.formatAddress(address)} бесплатно?`
     );
 
     if (!confirmed) return;
 
     try {
-      app.showNotification('Удаление члена совета...', 'info');
+      app.showNotification('Активация уровня...', 'info');
 
-      const contract = await app.getSignedContract('GlobalWayGovernance');
-      const tx = await contract.removeBoardMember(address);
+      const contract = await app.getSignedContract('GlobalWay');
+      const tx = await contract.adminActivateLevel(address, level);
       await tx.wait();
 
-      app.showNotification('Член совета удален! ✓', 'success');
+      app.showNotification(`Уровень ${level} активирован! 🎉`, 'success');
       
       addressInput.value = '';
-      reasonInput.value = '';
-
-      await this.loadBoardMembers();
+      levelInput.value = '';
 
     } catch (error) {
-      console.error('Remove board member error:', error);
-      
-      let msg = 'Ошибка удаления';
-      if (error.message.includes('Not board member')) {
-        msg = 'Адрес не является членом совета';
-      }
-      
-      app.showNotification(msg, 'error');
+      console.error('Free activation error:', error);
+      app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // УПРАВЛЕНИЕ КОНТРАКТОМ
+  // КОНТРОЛЬ КОНТРАКТА
   // ═══════════════════════════════════════════════════════════════
   async pauseContract() {
     if (!this.access.isOwner) {
@@ -407,18 +318,14 @@ const adminModule = {
       return;
     }
 
-    const confirmed = confirm('Приостановить контракт?\n\nВсе функции будут заблокированы.');
+    const confirmed = confirm('Приостановить работу контракта?');
     if (!confirmed) return;
 
     try {
-      app.showNotification('Приостановка контракта...', 'info');
-
       const contract = await app.getSignedContract('GlobalWay');
       const tx = await contract.pause();
       await tx.wait();
-
-      app.showNotification('Контракт приостановлен! ⏸️', 'success');
-
+      app.showNotification('Контракт приостановлен', 'success');
     } catch (error) {
       console.error('Pause error:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
@@ -435,14 +342,10 @@ const adminModule = {
     if (!confirmed) return;
 
     try {
-      app.showNotification('Возобновление контракта...', 'info');
-
       const contract = await app.getSignedContract('GlobalWay');
       const tx = await contract.unpause();
       await tx.wait();
-
-      app.showNotification('Контракт возобновлен! ▶️', 'success');
-
+      app.showNotification('Контракт возобновлён', 'success');
     } catch (error) {
       console.error('Unpause error:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
@@ -450,35 +353,35 @@ const adminModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // УПРАВЛЕНИЕ ID
+  // ID MANAGEMENT
   // ═══════════════════════════════════════════════════════════════
   async assignId() {
-    const addressInput = document.getElementById('assignIdAddress');
+    const addressInput = document.getElementById('assignIdUserAddress');
     if (!addressInput) return;
 
     const address = addressInput.value.trim();
 
     if (!address) {
-      app.showNotification('Введите адрес', 'error');
+      app.showNotification('Введите адрес пользователя', 'error');
       return;
     }
 
     if (!ethers.isAddress(address)) {
-      app.showNotification('Неверный формат адреса', 'error');
+      app.showNotification('Неверный адрес', 'error');
       return;
     }
 
     try {
-      app.showNotification('Присвоение ID...', 'info');
+      app.showNotification('Назначение ID...', 'info');
 
-      const contract = await app.getSignedContract('GlobalWayHelper');
+      const contract = await app.getSignedContract('GlobalWay');
       const tx = await contract.assignUserID(address);
-      await tx.wait();
+      const receipt = await tx.wait();
 
-      // Получаем новый ID
-      const userID = await contract.getUserID(address);
+      // Получаем назначенный ID
+      const userID = await this.contracts.helper.getUserID(address);
 
-      app.showNotification(`ID присвоен! GW${userID} ✓`, 'success');
+      app.showNotification(`ID назначен: GW${userID} ✅`, 'success');
       
       addressInput.value = '';
       await this.loadStats();
@@ -490,35 +393,122 @@ const adminModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ПОИСК ПОЛЬЗОВАТЕЛЯ
+  // BOARD MEMBERS MANAGEMENT
   // ═══════════════════════════════════════════════════════════════
-  async lookupUser() {
-    const input = document.getElementById('lookupInput');
-    if (!input) return;
-
-    const query = input.value.trim();
-    if (!query) {
-      app.showNotification('Введите ID или адрес', 'error');
+  async addBoardMember() {
+    if (!this.access.isOwner) {
+      app.showNotification('Только Owner может добавлять членов совета', 'error');
       return;
     }
 
-    const resultsEl = document.getElementById('lookupResults');
-    if (!resultsEl) return;
+    const addressInput = document.getElementById('boardMemberAddress');
+    if (!addressInput) return;
+
+    const address = addressInput.value.trim();
+
+    if (!address) {
+      app.showNotification('Введите адрес', 'error');
+      return;
+    }
+
+    if (!ethers.isAddress(address)) {
+      app.showNotification('Неверный адрес', 'error');
+      return;
+    }
+
+    const confirmed = confirm(`Добавить ${app.formatAddress(address)} в совет директоров?`);
+    if (!confirmed) return;
 
     try {
-      resultsEl.innerHTML = '<div class="loading">Поиск...</div>';
+      app.showNotification('Добавление члена совета...', 'info');
 
-      let address;
+      const contract = await app.getSignedContract('GlobalWayGovernance');
+      const tx = await contract.addBoardMember(address);
+      await tx.wait();
 
-      // Проверяем - это адрес или ID?
-      if (ethers.isAddress(query)) {
-        address = query;
-      } else {
-        // Убираем GW если есть
-        const id = query.replace(/^GW/i, '');
-        address = await this.contracts.helper.getAddressByID(id);
+      app.showNotification('Член совета добавлен! ✅', 'success');
+      
+      addressInput.value = '';
+      await this.loadBoardMembers();
+
+    } catch (error) {
+      console.error('Add board member error:', error);
+      app.showNotification('Ошибка: ' + error.message, 'error');
+    }
+  },
+
+  async removeBoardMember() {
+    if (!this.access.isOwner) {
+      app.showNotification('Только Owner может удалять членов совета', 'error');
+      return;
+    }
+
+    const addressInput = document.getElementById('removeBoardMemberAddress');
+    if (!addressInput) return;
+
+    const address = addressInput.value.trim();
+
+    if (!address) {
+      app.showNotification('Введите адрес', 'error');
+      return;
+    }
+
+    if (!ethers.isAddress(address)) {
+      app.showNotification('Неверный адрес', 'error');
+      return;
+    }
+
+    const confirmed = confirm(
+      `⚠️ Удалить ${app.formatAddress(address)} из совета директоров?\n\nЭто действие нельзя отменить!`
+    );
+    if (!confirmed) return;
+
+    try {
+      app.showNotification('Удаление члена совета...', 'info');
+
+      const contract = await app.getSignedContract('GlobalWayGovernance');
+      const tx = await contract.removeBoardMember(address);
+      await tx.wait();
+
+      app.showNotification('Член совета удалён! ✅', 'success');
+      
+      addressInput.value = '';
+      await this.loadBoardMembers();
+
+    } catch (error) {
+      console.error('Remove board member error:', error);
+      app.showNotification('Ошибка: ' + error.message, 'error');
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // USER LOOKUP
+  // ═══════════════════════════════════════════════════════════════
+  async lookupUser() {
+    const inputEl = document.getElementById('lookupInput');
+    const resultsEl = document.getElementById('lookupResults');
+
+    if (!inputEl || !resultsEl) return;
+
+    const input = inputEl.value.trim();
+    if (!input) {
+      app.showNotification('Введите адрес или ID', 'error');
+      return;
+    }
+
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = '<div class="loading">🔍 Поиск...</div>';
+
+    try {
+      let address = input;
+
+      // Если введён ID (формат GW1234567 или просто 1234567)
+      if (input.toUpperCase().startsWith('GW') || !input.startsWith('0x')) {
+        const numericID = input.toUpperCase().replace('GW', '');
         
-        if (address === ethers.ZeroAddress) {
+        try {
+          address = await this.contracts.helper.getAddressByID(numericID);
+        } catch (error) {
           resultsEl.innerHTML = '<div class="no-data">❌ ID не найден</div>';
           return;
         }
