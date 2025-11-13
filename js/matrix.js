@@ -11,6 +11,7 @@ const matrixModule = {
   state: {
     currentDepth: 1,      // Текущая глубина для таблицы (1-12)
     currentRoot: null,    // Корень дерева (по умолчанию - пользователь)
+    navigationHistory: [], // История навигации (для кнопки "Назад")
     matrixData: [],       // Данные для таблицы
     stats: {
       totalActive: 0,
@@ -45,7 +46,11 @@ const matrixModule = {
       await this.loadAllData();
 
       // Инициализируем UI
+      // Создаем панель навигации
+      this.createNavigationBar();
       this.initUI();
+      // Обновляем кнопку назад
+      this.updateBackButton();
 
       console.log('✅ Matrix Module loaded successfully');
     } catch (error) {
@@ -539,8 +544,12 @@ const matrixModule = {
         console.log('═══════════════════════════════════════');
         
         // Переключаемся на найденного пользователя
+        // Сохраняем текущий корень в историю
+        this.state.navigationHistory.push(this.state.currentRoot);
         this.state.currentRoot = searchAddress;
         await this.loadMatrixVisualization();
+        // Обновляем кнопку назад
+        this.updateBackButton();
       } else {
         app.showNotification(
           `⚠️ GW${searchID} НЕ найден в вашей матрице\n` +
@@ -580,8 +589,12 @@ const matrixModule = {
 
       // Кнопка "Посмотреть матрицу" - меняет корень на этого пользователя
       document.getElementById('viewMatrixBtn').onclick = () => {
+        // Сохраняем текущий корень в историю
+        this.state.navigationHistory.push(this.state.currentRoot);
         this.state.currentRoot = address;
         this.loadMatrixVisualization();
+        // Обновляем кнопку назад
+        this.updateBackButton();
         app.closeModal('positionModal');
       };
 
@@ -764,6 +777,91 @@ const matrixModule = {
   async refresh() {
     await this.loadAllData();
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  // НАВИГАЦИЯ "НАЗАД"
+  // ═══════════════════════════════════════════════════════════════
+
+  // Создать панель навигации с кнопкой "Назад"
+  createNavigationBar() {
+    const container = document.querySelector('.matrix-container');
+    if (!container) {
+      console.warn('Matrix container not found');
+      return;
+    }
+
+    // Проверяем, не создана ли уже панель
+    if (document.querySelector('.matrix-navigation')) {
+      console.log('Navigation bar already exists');
+      return;
+    }
+
+    const navBar = document.createElement('div');
+    navBar.className = 'matrix-navigation';
+    navBar.innerHTML = `
+      <button class="matrix-back-btn" id="matrixBackBtn" disabled>
+        <span class="arrow">↑</span>
+        <span>Назад</span>
+      </button>
+      <div class="matrix-current-root">
+        <span>Текущий корень:</span> <span id="currentRootDisplay">${app.formatAddress(this.state.currentRoot)}</span>
+      </div>
+    `;
+
+    // Вставляем перед интерактивной матрицей
+    const matrixViz = container.querySelector('.matrix-visualization');
+    if (matrixViz) {
+      container.insertBefore(navBar, matrixViz);
+      console.log('✅ Navigation bar created');
+    }
+
+    // Обработчик кнопки назад
+    const backBtn = document.getElementById('matrixBackBtn');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        this.navigateBack();
+      });
+    }
+  },
+
+  // Обновить отображение кнопки назад
+  updateBackButton() {
+    const backBtn = document.getElementById('matrixBackBtn');
+    const rootDisplay = document.getElementById('currentRootDisplay');
+    
+    if (backBtn) {
+      backBtn.disabled = this.state.navigationHistory.length === 0;
+      console.log(`🔙 History length: ${this.state.navigationHistory.length}`);
+    }
+    
+    if (rootDisplay) {
+      rootDisplay.textContent = app.formatAddress(this.state.currentRoot);
+    }
+  },
+
+  // Перейти назад по истории
+  async navigateBack() {
+    if (this.state.navigationHistory.length === 0) {
+      console.log('⚠️ Nowhere to go back');
+      return;
+    }
+
+    // Берем предыдущий адрес из истории
+    const previousRoot = this.state.navigationHistory.pop();
+    
+    console.log(`⬆️ Navigating back to: ${previousRoot}`);
+    
+    // Устанавливаем новый корень БЕЗ добавления в историю
+    this.state.currentRoot = previousRoot;
+    
+    // Перезагружаем данные
+    await this.loadAllData();
+    
+    // Обновляем кнопку
+    this.updateBackButton();
+    
+    app.showNotification('Возврат назад', 'success');
+  },
 };
 
 // Экспорт в window
