@@ -1467,3 +1467,429 @@ body.pwa-standalone .install-app-btn {
     font-size: 28px;
   }
 }
+/* ===============================
+   ПРОФЕССИОНАЛЬНЫЕ УЛУЧШЕНИЯ CSS
+   Единый стиль для всех элементов
+   =============================== */
+
+/* ═══════════════════════════════════════
+   1. HEADER - ПРОФЕССИОНАЛЬНЫЙ ВИД
+   ═══════════════════════════════════════ */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: rgba(0, 26, 51, 0.98);
+  border-bottom: 2px solid var(--border-gold);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  min-height: 70px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background: rgba(0, 50, 100, 0.4);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-gold);
+}
+
+#walletAddress {
+  background: transparent;
+  color: var(--gold);
+  padding: 0;
+  border: none;
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+#connectBtn {
+  background: linear-gradient(135deg, #28a745, #20833d);
+  color: white;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: 2px solid #28a745;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  min-width: 110px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+#connectBtn:hover {
+  background: linear-gradient(135deg, #34ce57, #28a745);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.5);
+  border-color: #34ce57;
+}
+
+#connectBtn.connected {
+  background: linear-gradient(135deg, var(--gold), #ffed4e);
+  color: var(--cosmic-black);
+  border-color: var(--gold);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+/* ═══════════════════════════════════════
+   2. DASHBOARD - КРАСИВЫЕ ПОЛЯ
+   ═══════════════════════════════════════ */
+
+.info-card {
+  background: linear-gradient(135deg, rgba(0, 26, 51, 0.95), rgba(0, 50, 100, 0.85));
+  border: 2px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+}
+
+.info-card:hover {
+  border-color: var(--gold);
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-2px);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.info-value {
+  color: var(--gold);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════════════
+   3. REFERRAL LINK - КРАСИВАЯ ФОРМА
+   ═══════════════════════════════════════ */
+
+.referral-section {
+  background: var(--bg-card);
+  border: 2px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.referral-section h3 {
+  color: var(--gold);
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-md);
+  font-weight: 700;
+}
+
+.referral-input-group {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: stretch;
+}
+
+.referral-input {
+  flex: 1;
+  background: rgba(0, 50, 100, 0.6);
+  color: var(--text-light);
+  border: 2px solid var(--border-gold);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-sm);
+  transition: all 0.3s ease;
+}
+
+.referral-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.copy-btn,
+.btn-copy {
+  background: linear-gradient(135deg, var(--gold), #ffed4e);
+  color: var(--cosmic-black);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.copy-btn:hover,
+.btn-copy:hover {
+  background: linear-gradient(135deg, #ffed4e, var(--gold));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
+}
+
+.copy-btn:active,
+.btn-copy:active {
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════
+   4. LEVEL REWARDS - КРАСИВАЯ СЕТКА
+   ═══════════════════════════════════════ */
+
+.level-rewards-section {
+  background: var(--bg-card);
+  border: 2px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.level-rewards-section h3 {
+  color: var(--gold);
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-lg);
+  font-weight: 700;
+  text-align: center;
+}
+
+.level-rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.level-reward-card {
+  background: linear-gradient(135deg, rgba(0, 26, 51, 0.9), rgba(0, 50, 100, 0.7));
+  border: 2px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+.level-reward-card:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.15), transparent);
+  transition: left 0.5s ease;
+}
+
+.level-reward-card:hover:before {
+  left: 100%;
+}
+
+.level-reward-card:hover {
+  border-color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+}
+
+.level-reward-card.unlocked {
+  border-color: var(--success);
+  background: linear-gradient(135deg, rgba(0, 26, 51, 0.9), rgba(40, 167, 69, 0.1));
+}
+
+.level-reward-card .level-number {
+  color: var(--gold);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+}
+
+.level-reward-card .level-amount {
+  color: var(--text-light);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.level-reward-card .level-status {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.level-reward-card.unlocked .level-status {
+  color: var(--success);
+}
+
+/* ═══════════════════════════════════════
+   5. PROJECTS - КРАСИВАЯ КНОПКА
+   ═══════════════════════════════════════ */
+
+.project-btn,
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold), #ffed4e);
+  color: var(--cosmic-black);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+  text-align: center;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.project-btn:hover,
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ffed4e, var(--gold));
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
+}
+
+.project-btn.disabled,
+.btn-primary:disabled {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  border-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════
+   6. RANK BADGE - КРАСИВЫЙ СТИЛЬ
+   ═══════════════════════════════════════ */
+
+.rank-display {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-weight: 700;
+  font-size: var(--font-size-md);
+}
+
+.rank-display.bronze {
+  border-color: #cd7f32;
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.2), rgba(184, 115, 51, 0.1));
+  color: #cd7f32;
+}
+
+.rank-display.silver {
+  border-color: #c0c0c0;
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(168, 168, 168, 0.1));
+  color: #c0c0c0;
+}
+
+.rank-display.gold {
+  border-color: var(--gold);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 237, 78, 0.1));
+  color: var(--gold);
+}
+
+.rank-display.platinum {
+  border-color: #e5e4e2;
+  background: linear-gradient(135deg, rgba(229, 228, 226, 0.2), rgba(184, 184, 184, 0.1));
+  color: #e5e4e2;
+}
+
+/* ═══════════════════════════════════════
+   7. RESPONSIVE - МОБИЛЬНЫЕ УСТРОЙСТВА
+   ═══════════════════════════════════════ */
+
+@media (max-width: 992px) {
+  .level-rewards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: var(--spacing-sm) var(--spacing-md);
+    min-height: 60px;
+  }
+  
+  .wallet-info {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  #connectBtn {
+    min-width: 90px;
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-xs);
+  }
+  
+  .level-rewards-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .referral-input-group {
+    flex-direction: column;
+  }
+  
+  .copy-btn,
+  .btn-copy {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+  
+  .info-value {
+    font-size: var(--font-size-md);
+  }
+}
+
+@media (max-width: 480px) {
+  #walletAddress {
+    font-size: 10px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
