@@ -305,15 +305,31 @@ const app = {
     }
   },
 
-  // Показать кнопку админки
+  // Показать кнопку админки (УСИЛЕННАЯ ВЕРСИЯ - обходит CSS !important)
   showAdminButton() {
     const adminBtn = document.querySelector('[data-page="admin"]');
     console.log('🔍 Admin button element:', adminBtn);
     
     if (adminBtn) {
       console.log('📍 Current display:', adminBtn.style.display);
-      adminBtn.style.display = 'flex'; // Показываем кнопку
-      console.log('✅ Admin button display set to: flex');
+      console.log('📍 Current classes:', adminBtn.className);
+      
+      // 🔥 УСИЛЕННОЕ РЕШЕНИЕ #1: Используем !important
+      adminBtn.style.setProperty('display', 'flex', 'important');
+      
+      // 🔥 УСИЛЕННОЕ РЕШЕНИЕ #2: Убираем класс admin-only который может скрывать
+      adminBtn.classList.remove('admin-only');
+      
+      // 🔥 УСИЛЕННОЕ РЕШЕНИЕ #3: Добавляем класс admin-visible
+      adminBtn.classList.add('admin-visible');
+      
+      // 🔥 УСИЛЕННОЕ РЕШЕНИЕ #4: Дополнительные стили для гарантии видимости
+      adminBtn.style.visibility = 'visible';
+      adminBtn.style.opacity = '1';
+      
+      console.log('✅ Admin button styles applied');
+      console.log('📍 New display:', adminBtn.style.display);
+      console.log('📍 New classes:', adminBtn.className);
       console.log('🔓 Admin button shown');
     } else {
       console.error('❌ Admin button element NOT FOUND!');
