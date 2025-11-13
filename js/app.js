@@ -307,9 +307,8 @@ const app = {
           const helperSigned = await this.getSignedContract('GlobalWayHelper');
           console.log('📝 Calling assignUserID()...');
           
-          // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильный вызов assignUserID
-          // Функция НЕ принимает параметров, gasLimit передается как опция
-          const assignTx = await helperSigned.assignUserID();
+          // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Передаем адрес пользователя как параметр
+          const assignTx = await helperSigned.assignUserID(this.state.userAddress);
           
           this.showNotification('Присвоение ID...', 'info');
           await assignTx.wait();
@@ -364,7 +363,9 @@ const app = {
       // ✅ СРАЗУ присваиваем ID после регистрации
       console.log('🆔 Assigning user ID after registration...');
       const helperSigned = await this.getSignedContract('GlobalWayHelper');
-      const assignTx = await helperSigned.assignUserID();
+      
+      // ✅ ИСПРАВЛЕНО: Передаем адрес пользователя
+      const assignTx = await helperSigned.assignUserID(this.state.userAddress);
       
       this.showNotification('Присвоение ID...', 'info');
       await assignTx.wait();
