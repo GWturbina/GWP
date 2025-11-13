@@ -1582,4 +1582,243 @@ textarea:focus {
   }
 }
 
+/* ===============================
+   PROFESSIONAL LEVEL REWARDS 
+   Адаптировано под существующую HTML структуру
+   =============================== */
 
+.level-rewards {
+  margin: var(--spacing-xl) 0;
+  padding: var(--spacing-xl);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-gold);
+  position: relative;
+  overflow: hidden;
+}
+
+.level-rewards:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), #ffed4e, var(--gold));
+}
+
+.level-rewards h3 {
+  color: var(--gold);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-xl);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* СЕТКА ДЛЯ СУЩЕСТВУЮЩЕЙ СТРУКТУРЫ */
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* СТИЛИ ДЛЯ СУЩЕСТВУЮЩИХ ЭЛЕМЕНТОВ */
+.reward-item {
+  background: linear-gradient(135deg, var(--bg-card), rgba(255, 215, 0, 0.05));
+  border: 2px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Эффект блеска */
+.reward-item:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.reward-item:hover:before {
+  left: 100%;
+}
+
+.reward-item:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-gold);
+  border-color: var(--gold);
+  background: linear-gradient(135deg, var(--bg-card), rgba(255, 215, 0, 0.1));
+}
+
+/* СТИЛИ ДЛЯ ТЕКСТА ВНУТРИ */
+.reward-item .reward-level {
+  display: block;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 2px;
+}
+
+.reward-item .reward-amount {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-light);
+  font-family: monospace;
+  margin-bottom: 4px;
+}
+
+/* СТИЛИ ДЛЯ СТАТУСА (✓ Разблокировано) */
+.reward-item .reward-status {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--success);
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(40, 167, 69, 0.1);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+/* ЭФФЕКТ ЛАМПОЧКИ ДЛЯ РАЗБЛОКИРОВАННЫХ */
+.reward-item.reward-unlocked {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.15), rgba(40, 167, 69, 0.08));
+  border-color: var(--success);
+  animation: rewardGlow 2s ease-in-out infinite;
+}
+
+@keyframes rewardGlow {
+  0%, 100% { 
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 25px rgba(40, 167, 69, 0.6);
+  }
+}
+
+/* ЭФФЕКТ ДЛЯ ЗАБЛОКИРОВАННЫХ (если понадобится) */
+.reward-item.reward-locked {
+  background: linear-gradient(135deg, rgba(108, 117, 125, 0.1), rgba(108, 117, 125, 0.05));
+  border-color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.reward-item.reward-locked .reward-status {
+  color: var(--text-secondary);
+  background: rgba(108, 117, 125, 0.1);
+  border-color: rgba(108, 117, 125, 0.3);
+}
+
+/* ОБЩАЯ СУММА */
+.rewards-total {
+  text-align: center;
+  padding: var(--spacing-lg);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.08));
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--gold);
+  margin-top: var(--spacing-lg);
+}
+
+.rewards-total strong {
+  color: var(--gold);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+/* ===============================
+   PROFESSIONAL TOKEN SECTIONS
+   =============================== */
+
+.token-balance,
+.token-stats,
+.token-trading,
+.token-pools {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  border: 2px solid var(--border-gold);
+  margin: var(--spacing-lg) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.token-balance:before,
+.token-stats:before,
+.token-trading:before,
+.token-pools:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), #ffed4e, var(--gold));
+}
+
+.token-balance h3,
+.token-stats h3,
+.token-trading h3,
+.token-pools h3 {
+  color: var(--gold);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-xl);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 768px) {
+  .rewards-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: var(--spacing-sm);
+  }
+  
+  .reward-item {
+    min-height: 90px;
+    padding: var(--spacing-sm);
+  }
+  
+  .reward-item .reward-level {
+    font-size: var(--font-size-md);
+  }
+  
+  .reward-item .reward-amount {
+    font-size: var(--font-size-xs);
+  }
+  
+  .reward-item .reward-status {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rewards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .reward-item {
+    min-height: 80px;
+  }
+  
+  .level-rewards,
+  .token-balance,
+  .token-stats,
+  .token-trading,
+  .token-pools {
+    padding: var(--spacing-lg);
+  }
+}
