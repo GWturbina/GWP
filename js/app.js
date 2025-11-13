@@ -268,7 +268,7 @@ const app = {
     return params.get('ref') || params.get('sponsor') || null;
   },
 
-    // ✅ ИСПРАВЛЕНО: Регистрация с правильными параметрами
+    // ✅ ИСПРАВЛЕНО: Регистрация и присвоение ID
   async checkAndAutoRegister() {
     if (!this.state.userAddress) return;
 
@@ -279,77 +279,103 @@ const app = {
       // Проверяем зарегистрирован ли пользователь
       const isRegistered = await globalWay.isUserRegistered(this.state.userAddress);
       
-      if (!isRegistered) {
-        console.log('🆕 User not registered');
-        
-        // ✅ Подтверждение регистрации
-        const wantsToRegister = confirm(
-          'Добро пожаловать в GlobalWay!\n\n' +
-          'Для начала работы необходимо зарегистрироваться.\n' +
-          'Регистрация БЕСПЛАТНАЯ и займет несколько секунд.\n\n' +
-          'Зарегистрироваться сейчас?'
-        );
-        
-        if (!wantsToRegister) {
-          this.showNotification('Регистрация отменена', 'info');
-          return;
-        }
-        
-        console.log('🆕 Starting registration...');
-        
-        // ✅ ИСПРАВЛЕНО: Получаем адрес спонсора и передаем в register()
-        const sponsorAddress = await this.getSponsorAddress();
-        console.log('🎯 Using sponsor:', sponsorAddress);
-        
-        // Проверяем что спонсор валиден
-        if (!sponsorAddress || sponsorAddress === ethers.ZeroAddress) {
-          throw new Error('Invalid sponsor address: ' + sponsorAddress);
-        }
-        
-        // ✅ ИСПРАВЛЕНО: Передаем sponsorAddress как первый параметр
-        const globalWaySigned = await this.getSignedContract('GlobalWay');
-        const registerTx = await globalWaySigned.register(sponsorAddress, { gasLimit: 500000 });
-        
-        this.showNotification('Регистрация...', 'info');
-        await registerTx.wait();
-        console.log('✅ Registered in GlobalWay');
-        
-        // Обновляем состояние
+      // ✅ СЛУЧАЙ 1: Пользователь УЖЕ зарегистрирован, но без ID
+      if (isRegistered) {
+        console.log('✅ User is already registered');
         this.state.isRegistered = true;
+        
+        // Проверяем есть ли ID
+        const userID = await helper.getUserID(this.state.userAddress);
+        console.log('🆔 Current user ID:', userID);
+        
+        if (!userID || userID === '') {
+          console.log('🆔 User registered but no ID - assigning...');
+          
+          // ✅ Подтверждаем присвоение ID
+          const assignConfirm = confirm(
+            'Регистрация обнаружена! 🎉\n\n' +
+            'Для завершения нужно присвоить ваш уникальный ID.\n' +
+            'Это бесплатно и займет несколько секунд.\n\n' +
+            'Присвоить ID сейчас?'
+          );
+          
+          if (!assignConfirm) {
+            this.showNotification('Присвоение ID отменено', 'info');
+            return;
+          }
+          
+          const helperSigned = await this.getSignedContract('GlobalWayHelper');
+          const assignTx = await helperSigned.assignUserID({ gasLimit: 300000 });
+          
+          this.showNotification('Присвоение ID...', 'info');
+          await assignTx.wait();
+          
+          const newID = await helper.getUserID(this.state.userAddress);
+          this.state.userID = newID;
+          
+          this.showNotification(`✅ ID присвоен!\nВаш ID: GW${newID}`, 'success');
+          console.log('✅ ID assigned:', newID);
+        } else {
+          this.state.userID = userID;
+          console.log('✅ User already has ID:', userID);
+        }
+        return; // Прерываем функцию - пользователь уже в системе
       }
       
-      // Проверяем есть ли уже ID
-      const userID = await helper.getUserID(this.state.userAddress);
+      // ✅ СЛУЧАЙ 2: Пользователь НЕ зарегистрирован
+      console.log('🆕 User not registered');
       
-      if (userID && userID !== '') {
-        console.log('✅ User already has ID:', userID);
-        this.state.userID = userID;
+      const wantsToRegister = confirm(
+        'Добро пожаловать в GlobalWay!\n\n' +
+        'Для начала работы необходимо зарегистрироваться.\n' +
+        'Регистрация БЕСПЛАТНАЯ и займет несколько секунд.\n\n' +
+        'Зарегистрироваться сейчас?'
+      );
+      
+      if (!wantsToRegister) {
+        this.showNotification('Регистрация отменена', 'info');
         return;
       }
-
-      // ШАГ 2: Присваиваем ID (только если пользователь зарегистрирован)
-      if (this.state.isRegistered) {
-        console.log('🆔 Assigning user ID...');
-        const helperSigned = await this.getSignedContract('GlobalWayHelper');
-        const assignTx = await helperSigned.assignUserID({ gasLimit: 300000 });
-        
-        this.showNotification('Присвоение ID...', 'info');
-        await assignTx.wait();
-
-        // Получаем новый ID
-        const newID = await helper.getUserID(this.state.userAddress);
-        this.state.userID = newID;
-
-        this.showNotification(`✅ Регистрация завершена!\nВаш ID: GW${newID}`, 'success');
-        await this.loadUserData();
-        console.log('✅ ID assigned:', newID);
+      
+      console.log('🆕 Starting registration...');
+      
+      // Регистрируем пользователя
+      const sponsorAddress = await this.getSponsorAddress();
+      console.log('🎯 Using sponsor:', sponsorAddress);
+      
+      if (!sponsorAddress || sponsorAddress === ethers.ZeroAddress) {
+        throw new Error('Invalid sponsor address: ' + sponsorAddress);
       }
+      
+      const globalWaySigned = await this.getSignedContract('GlobalWay');
+      const registerTx = await globalWaySigned.register(sponsorAddress, { gasLimit: 500000 });
+      
+      this.showNotification('Регистрация...', 'info');
+      await registerTx.wait();
+      console.log('✅ Registered in GlobalWay');
+      
+      // Обновляем состояние
+      this.state.isRegistered = true;
+      
+      // ✅ СРАЗУ присваиваем ID после регистрации
+      console.log('🆔 Assigning user ID after registration...');
+      const helperSigned = await this.getSignedContract('GlobalWayHelper');
+      const assignTx = await helperSigned.assignUserID({ gasLimit: 300000 });
+      
+      this.showNotification('Присвоение ID...', 'info');
+      await assignTx.wait();
+
+      const newID = await helper.getUserID(this.state.userAddress);
+      this.state.userID = newID;
+
+      this.showNotification(`✅ Регистрация завершена!\nВаш ID: GW${newID}`, 'success');
+      console.log('✅ ID assigned:', newID);
 
     } catch (error) {
       console.error('❌ Registration error:', error);
       
       if (error.code === 4001) {
-        this.showNotification('Регистрация отменена пользователем', 'info');
+        this.showNotification('Действие отменено пользователем', 'info');
       } else if (error.message.includes('Already registered')) {
         console.log('⚠️ User already registered, continuing...');
         this.state.isRegistered = true;
@@ -358,7 +384,7 @@ const app = {
       } else if (error.message.includes('Invalid sponsor address')) {
         this.showNotification('Ошибка: неверный адрес спонсора', 'error');
       } else {
-        this.showNotification('Ошибка регистрации: ' + error.message, 'error');
+        this.showNotification('Ошибка: ' + error.message, 'error');
       }
       
       console.log('⚠️ User can still browse but needs manual registration');
