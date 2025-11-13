@@ -268,7 +268,7 @@ const app = {
     return params.get('ref') || params.get('sponsor') || null;
   },
 
-  // ✅ ИСПРАВЛЕНО #6: Регистрация с подтверждением
+    // ✅ ИСПРАВЛЕНО: Регистрация с правильными параметрами
   async checkAndAutoRegister() {
     if (!this.state.userAddress) return;
 
@@ -282,7 +282,7 @@ const app = {
       if (!isRegistered) {
         console.log('🆕 User not registered');
         
-        // ✅ ДОБАВЛЕНО: Подтверждение регистрации
+        // ✅ Подтверждение регистрации
         const wantsToRegister = confirm(
           'Добро пожаловать в GlobalWay!\n\n' +
           'Для начала работы необходимо зарегистрироваться.\n' +
@@ -297,13 +297,25 @@ const app = {
         
         console.log('🆕 Starting registration...');
         
-        // ШАГ 1: Регистрируем через GlobalWay
+        // ✅ ИСПРАВЛЕНО: Получаем адрес спонсора и передаем в register()
+        const sponsorAddress = await this.getSponsorAddress();
+        console.log('🎯 Using sponsor:', sponsorAddress);
+        
+        // Проверяем что спонсор валиден
+        if (!sponsorAddress || sponsorAddress === ethers.ZeroAddress) {
+          throw new Error('Invalid sponsor address: ' + sponsorAddress);
+        }
+        
+        // ✅ ИСПРАВЛЕНО: Передаем sponsorAddress как первый параметр
         const globalWaySigned = await this.getSignedContract('GlobalWay');
-        const registerTx = await globalWaySigned.register({ gasLimit: 500000 });
+        const registerTx = await globalWaySigned.register(sponsorAddress, { gasLimit: 500000 });
         
         this.showNotification('Регистрация...', 'info');
         await registerTx.wait();
         console.log('✅ Registered in GlobalWay');
+        
+        // Обновляем состояние
+        this.state.isRegistered = true;
       }
       
       // Проверяем есть ли уже ID
@@ -315,29 +327,38 @@ const app = {
         return;
       }
 
-      // ШАГ 2: Присваиваем ID
-      console.log('🆔 Assigning user ID...');
-      const helperSigned = await this.getSignedContract('GlobalWayHelper');
-      const assignTx = await helperSigned.assignUserID({ gasLimit: 300000 });
-      
-      this.showNotification('Присвоение ID...', 'info');
-      await assignTx.wait();
+      // ШАГ 2: Присваиваем ID (только если пользователь зарегистрирован)
+      if (this.state.isRegistered) {
+        console.log('🆔 Assigning user ID...');
+        const helperSigned = await this.getSignedContract('GlobalWayHelper');
+        const assignTx = await helperSigned.assignUserID({ gasLimit: 300000 });
+        
+        this.showNotification('Присвоение ID...', 'info');
+        await assignTx.wait();
 
-      // Получаем ID
-      const newID = await helper.getUserID(this.state.userAddress);
-      this.state.userID = newID;
+        // Получаем новый ID
+        const newID = await helper.getUserID(this.state.userAddress);
+        this.state.userID = newID;
 
-      this.showNotification(`✅ Регистрация завершена!\nВаш ID: GW${newID}`, 'success');
-      await this.loadUserData();
-      console.log('✅ ID assigned:', newID);
+        this.showNotification(`✅ Регистрация завершена!\nВаш ID: GW${newID}`, 'success');
+        await this.loadUserData();
+        console.log('✅ ID assigned:', newID);
+      }
 
     } catch (error) {
       console.error('❌ Registration error:', error);
       
       if (error.code === 4001) {
-        this.showNotification('Регистрация отменена', 'info');
+        this.showNotification('Регистрация отменена пользователем', 'info');
+      } else if (error.message.includes('Already registered')) {
+        console.log('⚠️ User already registered, continuing...');
+        this.state.isRegistered = true;
+      } else if (error.message.includes('Sponsor not registered')) {
+        this.showNotification('Ошибка: спонсор не зарегистрирован', 'error');
+      } else if (error.message.includes('Invalid sponsor address')) {
+        this.showNotification('Ошибка: неверный адрес спонсора', 'error');
       } else {
-        this.showNotification('Ошибка регистрации. Попробуйте позже.', 'error');
+        this.showNotification('Ошибка регистрации: ' + error.message, 'error');
       }
       
       console.log('⚠️ User can still browse but needs manual registration');
