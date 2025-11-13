@@ -11,6 +11,7 @@ const matrixModule = {
   state: {
     currentDepth: 1,      // Текущая глубина для таблицы (1-12)
     currentRoot: null,    // Корень дерева (по умолчанию - пользователь)
+    navigationHistory: [], // История для кнопки Назад
     matrixData: [],       // Данные для таблицы
     stats: {
       totalActive: 0,
@@ -40,9 +41,11 @@ const matrixModule = {
 
       // Создаем 12 кнопок уровней
       this.createDepthButtons();
+      this.createNavigationBar();
 
       // Загружаем все данные
       await this.loadAllData();
+      this.updateBackButton();
 
       // Инициализируем UI
       this.initUI();
@@ -539,9 +542,11 @@ const matrixModule = {
         console.log('═══════════════════════════════════════');
         
         // Переключаемся на найденного пользователя
+        this.state.navigationHistory.push(this.state.currentRoot);
         this.state.currentRoot = searchAddress;
         await this.loadMatrixVisualization();
       } else {
+        this.updateBackButton();
         app.showNotification(
           `⚠️ GW${searchID} НЕ найден в вашей матрице\n` +
           `(Он в позиции ${matrixPosition}, но в другой ветке)\n` +
@@ -580,9 +585,11 @@ const matrixModule = {
 
       // Кнопка "Посмотреть матрицу" - меняет корень на этого пользователя
       document.getElementById('viewMatrixBtn').onclick = () => {
+        this.state.navigationHistory.push(this.state.currentRoot);
         this.state.currentRoot = address;
         this.loadMatrixVisualization();
         app.closeModal('positionModal');
+        this.updateBackButton();
       };
 
       // Показываем модалку
@@ -763,6 +770,59 @@ const matrixModule = {
   // Обновление данных
   async refresh() {
     await this.loadAllData();
+  },
+
+  // Кнопка Назад в матрице
+  createNavigationBar() {
+    const container = document.querySelector('.matrix-container');
+    if (!container) return;
+    if (document.querySelector('.matrix-navigation')) return;
+
+    const navBar = document.createElement('div');
+    navBar.className = 'matrix-navigation';
+    navBar.innerHTML = `
+      <button class="matrix-back-btn" id="matrixBackBtn" disabled>
+        <span class="arrow">↑</span>
+        <span>Назад</span>
+      </button>
+      <div class="matrix-current-root">
+        <span>Корень:</span> <span id="currentRootDisplay">${app.formatAddress(this.state.currentRoot)}</span>
+      </div>
+    `;
+
+    const matrixViz = container.querySelector('.matrix-visualization');
+    if (matrixViz) {
+      container.insertBefore(navBar, matrixViz);
+    }
+
+    document.getElementById('matrixBackBtn').addEventListener('click', () => {
+      this.navigateBack();
+    });
+  },
+
+  updateBackButton() {
+    const backBtn = document.getElementById('matrixBackBtn');
+    const rootDisplay = document.getElementById('currentRootDisplay');
+    
+    if (backBtn) {
+      backBtn.disabled = this.state.navigationHistory.length === 0;
+    }
+    
+    if (rootDisplay) {
+      rootDisplay.textContent = app.formatAddress(this.state.currentRoot);
+    }
+  },
+
+  async navigateBack() {
+    if (this.state.navigationHistory.length === 0) return;
+
+    const previousRoot = this.state.navigationHistory.pop();
+    this.state.currentRoot = previousRoot;
+    
+    await this.loadAllData();
+    this.updateBackButton();
+    
+    app.showNotification('Возврат назад', 'success');
   }
 };
 
