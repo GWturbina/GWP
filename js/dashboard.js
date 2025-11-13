@@ -78,129 +78,22 @@ const dashboardModule = {
 
       this.userData.address = app.state.userAddress;
 
-      // В методе init() после строки с загрузкой userData добавьте:
+      // Загружаем контракты
+      await this.loadContracts();
 
-// ✅ ПРОВЕРКА РЕГИСТРАЦИИ И ПОКАЗ ФОРМЫ
-async checkRegistration() {
-  try {
-    const { address } = this.userData;
-    
-    // Проверяем зарегистрирован ли пользователь в контракте
-    const isRegistered = await this.contracts.main.isRegistered(address);
-    
-    console.log('🔍 Registration check:', { address, isRegistered });
-    
-    if (isRegistered) {
-      // Пользователь зарегистрирован - показываем основную информацию
-      this.showUserInfo();
-    } else {
-      // Пользователь НЕ зарегистрирован - показываем форму регистрации
-      this.showRegistrationForm();
-    }
-  } catch (error) {
-    console.error('Error checking registration:', error);
-    // В случае ошибки тоже показываем форму регистрации
-    this.showRegistrationForm();
-  }
-},
-
-// ✅ ПОКАЗ ФОРМЫ РЕГИСТРАЦИИ
-showRegistrationForm() {
-  console.log('📝 Showing registration form');
-  
-  // Показываем секцию регистрации
-  document.getElementById('registrationSection').style.display = 'block';
-  
-  // Скрываем секцию информации пользователя
-  document.getElementById('userInfoSection').style.display = 'none';
-  
-  // Скрываем секции которые требуют регистрации
-  document.getElementById('quarterlySection').style.display = 'none';
-  document.getElementById('levelsSection').style.display = 'none';
-  
-  // Заполняем данные в форме регистрации
-  document.getElementById('regUserAddress').textContent = 
-    this.userData.address.substring(0, 6) + '...' + this.userData.address.substring(38);
-  
-  // Инициализируем обработчик кнопки регистрации
-  this.initRegisterButton();
-},
-
-// ✅ ПОКАЗ ИНФОРМАЦИИ ПОЛЬЗОВАТЕЛЯ (после регистрации)
-showUserInfo() {
-  console.log('👤 Showing user info');
-  
-  // Скрываем секцию регистрации
-  document.getElementById('registrationSection').style.display = 'none';
-  
-  // Показываем секцию информации пользователя
-  document.getElementById('userInfoSection').style.display = 'block';
-  
-  // Показываем секции которые требуют регистрации
-  document.getElementById('quarterlySection').style.display = 'block';
-  document.getElementById('levelsSection').style.display = 'block';
-},
-
-// ✅ ИНИЦИАЛИЗАЦИЯ КНОПКИ РЕГИСТРАЦИИ
-initRegisterButton() {
-  const registerBtn = document.getElementById('registerBtn');
-  const sponsorInput = document.getElementById('sponsorID');
-  
-  if (!registerBtn) return;
-  
-  registerBtn.onclick = async () => {
-    try {
-      const sponsorId = sponsorInput.value.trim();
-      
-      // Валидация спонсорского ID
-      if (!sponsorId || sponsorId.length !== 7 || !/^\d+$/.test(sponsorId)) {
-        alert('❌ Please enter a valid 7-digit Sponsor ID');
-        return;
-      }
-      
-      console.log('🚀 Starting registration with sponsor:', sponsorId);
-      
-      // Показываем индикатор загрузки
-      registerBtn.innerHTML = '⏳ Registering...';
-      registerBtn.disabled = true;
-      
-      // Вызов контракта для регистрации
-      const tx = await this.contracts.main.register(sponsorId);
-      
-      console.log('📦 Registration transaction sent:', tx.hash);
-      
-      // Ждем подтверждения транзакции
-      await tx.wait();
-      
-      console.log('✅ Registration confirmed!');
-      
-      // Обновляем интерфейс
-      this.showUserInfo();
-      
-      // Перезагружаем данные
+      // Загружаем данные
       await this.loadAllData();
-      
-      alert('🎉 Registration successful!');
-      
+
+      // Инициализируем UI
+      this.initUI();
+      this.startQuarterlyTimer();
+
+      console.log('✅ Dashboard loaded');
     } catch (error) {
-      console.error('❌ Registration error:', error);
-      
-      // Восстанавливаем кнопку
-      registerBtn.innerHTML = '🚀 Зарегистрироваться';
-      registerBtn.disabled = false;
-      
-      // Показываем ошибку пользователю
-      if (error.message.includes('user already registered')) {
-        alert('✅ You are already registered!');
-        this.showUserInfo();
-      } else if (error.message.includes('reverted')) {
-        alert('❌ Registration failed: ' + error.message);
-      } else {
-        alert('❌ Registration error: ' + error.message);
-      }
+      console.error('❌ Dashboard init error:', error);
+      app.showNotification('Ошибка загрузки dashboard', 'error');
     }
-  };
-},
+  },
 
   // Загрузка контрактов
   async loadContracts() {
