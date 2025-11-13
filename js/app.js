@@ -3,15 +3,15 @@
 // ═══════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
-// GlobalWay DApp - PRODUCTION READY v2.1
+// GlobalWay DApp - PRODUCTION READY v2.2
 // Date: 2025-11-12
 // Status: ✅ 100% COMPLETE
 // 
 // Changes in this version:
-// - Added activation modal after registration
-// - Fixed level activation buttons
-// - Improved user state management
-// - Better error handling
+// - Fixed activation modal design (cosmic theme)
+// - Fixed level activation conditions
+// - Added proper error handling
+// - Improved user experience
 // ═══════════════════════════════════════════════════════════════
 
 const app = {
@@ -26,61 +26,12 @@ const app = {
     pageModules: {},
     isLandingSkipped: false,
     navigationInitialized: false,
-    activationModalShown: false  // ✅ НОВОЕ: Флаг чтобы не показывать модальное окно много раз
+    activationModalShown: false
   },
 
   // ═══════════════════════════════════════════════════════════════
   // ИНИЦИАЛИЗАЦИЯ
   // ═══════════════════════════════════════════════════════════════
-
-  // ✅ ФИНАЛ: Валидация конфигурации
-  validateConfig() {
-    try {
-      // Проверка NETWORK
-      if (!CONFIG.NETWORK || !CONFIG.NETWORK.chainId || !CONFIG.NETWORK.rpcUrl) {
-        console.error('❌ Missing NETWORK config');
-        return false;
-      }
-      
-      // Проверка CONTRACTS
-      if (!CONFIG.CONTRACTS) {
-        console.error('❌ Missing CONTRACTS config');
-        return false;
-      }
-      
-      const requiredContracts = [
-        'GlobalWay', 'GlobalWayHelper', 'GlobalWayMarketing', 
-        'GlobalWayLeaderPool', 'GlobalWayInvestment', 'GlobalWayQuarterly',
-        'GlobalWayBridge', 'GlobalWayStats', 'GWTToken'
-      ];
-      
-      for (const contract of requiredContracts) {
-        if (!CONFIG.CONTRACTS[contract]) {
-          console.error(`❌ Missing contract: ${contract}`);
-          return false;
-        }
-        
-        // Проверка что адрес валидный (начинается с 0x и 42 символа)
-        const addr = CONFIG.CONTRACTS[contract];
-        if (!addr.startsWith('0x') || addr.length !== 42) {
-          console.error(`❌ Invalid address for ${contract}: ${addr}`);
-          return false;
-        }
-      }
-      
-      // Проверка ADMIN
-      if (!CONFIG.ADMIN || !CONFIG.ADMIN.owner) {
-        console.warn('⚠️ Missing ADMIN config');
-      }
-      
-      console.log('✅ CONFIG validation passed');
-      return true;
-      
-    } catch (error) {
-      console.error('❌ CONFIG validation error:', error);
-      return false;
-    }
-  },
 
   async init() {
     console.log('🚀 Initializing GlobalWay DApp...');
@@ -90,7 +41,6 @@ const app = {
       this.initConnectButton();
       await this.checkWalletConnection();
 
-      // ПРИМУСОВО: Якщо немає hash і кошелек не підключений - показуємо лендінг
       if (!window.location.hash && !this.state.isLandingSkipped) {
         console.log('🔄 Forcing landing page...');
         const landing = document.getElementById('landing');
@@ -111,7 +61,6 @@ const app = {
         const landing = document.getElementById('landing');
         if (landing) landing.classList.remove('active');
         
-        // ✅ ИСПРАВЛЕНО: Всегда инициализируем навигацию при показе DApp
         this.initNavigation();
         
         if (hash && hash !== '') this.state.currentPage = hash;
@@ -133,7 +82,6 @@ const app = {
     }
   },
 
-  // Инициализация кнопки Connect
   initConnectButton() {
     const connectBtn = document.getElementById('connectBtn');
     if (connectBtn) {
@@ -143,7 +91,6 @@ const app = {
     }
   },
 
-  // Подключение кошелька
   async connectWallet() {
     try {
       if (!window.web3Manager) {
@@ -158,19 +105,10 @@ const app = {
       if (window.web3Manager.isConnected) {
         this.state.userAddress = window.web3Manager.currentAccount;
         
-        // Обновляем UI
         this.updateWalletUI();
-        
-        // Загружаем данные
         await this.loadUserData();
-        
-        // Автоматическая регистрация
         await this.checkAndAutoRegister();
-        
-        // ✅ ДОБАВЛЕНО: Проверяем нужно ли показать модальное окно активации
         this.checkAndShowActivationModal();
-        
-        // КРИТИЧНО: Перезагружаем текущую страницу
         await this.loadCurrentPage();
         
         this.showNotification('Кошелек подключен!', 'success');
@@ -181,7 +119,6 @@ const app = {
     }
   },
 
-  // Обновление UI кошелька
   updateWalletUI() {
     const walletAddress = document.getElementById('walletAddress');
     const connectBtn = document.getElementById('connectBtn');
@@ -198,7 +135,6 @@ const app = {
     }
   },
 
-  // Ждем загрузки Web3
   async waitForWeb3() {
     return new Promise((resolve) => {
       if (window.web3Manager) {
@@ -214,16 +150,11 @@ const app = {
     });
   },
 
-  // Проверка подключения кошелька
   async checkWalletConnection() {
     if (window.web3Manager && window.web3Manager.isConnected) {
       this.state.userAddress = window.web3Manager.currentAccount;
       await this.loadUserData();
-      
-      // АВТОМАТИЧЕСКАЯ регистрация (если ID нет)
       await this.checkAndAutoRegister();
-      
-      // ✅ ДОБАВЛЕНО: Проверяем нужно ли показать модальное окно активации
       this.checkAndShowActivationModal();
     }
   },
@@ -236,19 +167,14 @@ const app = {
       const { userAddress } = this.state;
       if (!userAddress) return;
 
-      // Получаем контракты
       const globalWay = await this.getContract('GlobalWay');
       const helper = await this.getContract('GlobalWayHelper');
 
-      // Проверяем регистрацию
       this.state.isRegistered = await globalWay.isUserRegistered(userAddress);
 
       if (this.state.isRegistered) {
-        // Получаем ID пользователя
         const userID = await helper.getUserID(userAddress);
         this.state.userID = userID === '' ? null : userID;
-
-        // Получаем максимальный уровень
         this.state.maxLevel = await globalWay.getUserMaxLevel(userAddress);
 
         console.log('✅ User data loaded:', {
@@ -263,16 +189,14 @@ const app = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ (БЕСПЛАТНАЯ!)
+  // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   
-  // Получить реферальный код из URL
   getReferralFromURL() {
     const params = new URLSearchParams(window.location.search);
     return params.get('ref') || params.get('sponsor') || null;
   },
 
-  // ✅ ИСПРАВЛЕНО: Регистрация и присвоение ID (рабочая версия)
   async checkAndAutoRegister() {
     if (!this.state.userAddress) return;
 
@@ -280,22 +204,18 @@ const app = {
       const globalWay = await this.getContract('GlobalWay');
       const helper = await this.getContract('GlobalWayHelper');
       
-      // Проверяем зарегистрирован ли пользователь
       const isRegistered = await globalWay.isUserRegistered(this.state.userAddress);
       
-      // ✅ СЛУЧАЙ 1: Пользователь УЖЕ зарегистрирован, но без ID
       if (isRegistered) {
         console.log('✅ User is already registered');
         this.state.isRegistered = true;
         
-        // Проверяем есть ли ID
         const userID = await helper.getUserID(this.state.userAddress);
         console.log('🆔 Current user ID:', userID);
         
         if (!userID || userID === '') {
           console.log('🆔 User registered but no ID - assigning...');
           
-          // ✅ Подтверждаем присвоение ID
           const assignConfirm = confirm(
             'Регистрация обнаружена! 🎉\n\n' +
             'Для завершения нужно присвоить ваш уникальный ID.\n' +
@@ -311,7 +231,6 @@ const app = {
           const helperSigned = await this.getSignedContract('GlobalWayHelper');
           console.log('📝 Calling assignUserID()...');
           
-          // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Передаем адрес пользователя как параметр
           const assignTx = await helperSigned.assignUserID(this.state.userAddress);
           
           this.showNotification('Присвоение ID...', 'info');
@@ -327,15 +246,13 @@ const app = {
           console.log('✅ User already has ID:', userID);
         }
         
-        // ✅ ДОБАВЛЕНО: После регистрации проверяем нужно ли показать модальное окно
         setTimeout(() => {
           this.checkAndShowActivationModal();
         }, 1000);
         
-        return; // Прерываем функцию - пользователь уже в системе
+        return;
       }
       
-      // ✅ СЛУЧАЙ 2: Пользователь НЕ зарегистрирован
       console.log('🆕 User not registered');
       
       const wantsToRegister = confirm(
@@ -352,7 +269,6 @@ const app = {
       
       console.log('🆕 Starting registration...');
       
-      // Регистрируем пользователя
       const sponsorAddress = await this.getSponsorAddress();
       console.log('🎯 Using sponsor:', sponsorAddress);
       
@@ -367,14 +283,11 @@ const app = {
       await registerTx.wait();
       console.log('✅ Registered in GlobalWay');
       
-      // Обновляем состояние
       this.state.isRegistered = true;
       
-      // ✅ СРАЗУ присваиваем ID после регистрации
       console.log('🆔 Assigning user ID after registration...');
       const helperSigned = await this.getSignedContract('GlobalWayHelper');
       
-      // ✅ ИСПРАВЛЕНО: Передаем адрес пользователя
       const assignTx = await helperSigned.assignUserID(this.state.userAddress);
       
       this.showNotification('Присвоение ID...', 'info');
@@ -386,7 +299,6 @@ const app = {
       this.showNotification(`✅ Регистрация завершена!\nВаш ID: GW${newID}`, 'success');
       console.log('✅ ID assigned:', newID);
 
-      // ✅ ДОБАВЛЕНО: После успешной регистрации показываем модальное окно активации
       setTimeout(() => {
         this.showActivationModal();
       }, 1500);
@@ -411,12 +323,10 @@ const app = {
     }
   },
 
-  // Получить адрес спонсора из URL или использовать Owner
   async getSponsorAddress() {
     const refCode = this.getReferralFromURL();
     
     if (!refCode) {
-      // Нет реф. кода - используем Owner
       return CONFIG.ADMIN.owner;
     }
 
@@ -424,17 +334,13 @@ const app = {
       const helper = await this.getContract('GlobalWayHelper');
       let sponsorAddress = null;
 
-      // Проверяем - это ID или адрес?
       if (refCode.startsWith('GW') || /^\d+$/.test(refCode)) {
-        // Это ID
         const id = refCode.replace(/^GW/i, '');
         sponsorAddress = await helper.getAddressByID(id);
       } else if (refCode.startsWith('0x')) {
-        // Это адрес
         sponsorAddress = refCode;
       }
 
-      // Проверяем что спонсор существует
       if (sponsorAddress && sponsorAddress !== ethers.ZeroAddress) {
         return sponsorAddress;
       }
@@ -442,7 +348,6 @@ const app = {
       console.error('Error getting sponsor:', error);
     }
 
-    // Fallback на Owner
     return CONFIG.ADMIN.owner;
   },
 
@@ -450,26 +355,19 @@ const app = {
   // МОДАЛЬНОЕ ОКНО АКТИВАЦИИ
   // ═══════════════════════════════════════════════════════════════
 
-  // ✅ НОВОЕ: Проверка условий и показ модального окна активации
   checkAndShowActivationModal() {
-    // Условия показа модального окна:
-    // 1. Пользователь зарегистрирован
-    // 2. Нет активных уровней (maxLevel === 0)
-    // 3. Модальное окно еще не показывалось
     if (this.state.isRegistered && 
         this.state.maxLevel === 0 && 
         !this.state.activationModalShown) {
       
       console.log('🎯 Conditions met for activation modal');
       
-      // Ждем немного чтобы интерфейс успел обновиться
       setTimeout(() => {
         this.showActivationModal();
       }, 2000);
     }
   },
 
-  // ✅ НОВОЕ: Показ модального окна активации
   showActivationModal() {
     if (this.state.activationModalShown) {
       console.log('⚠️ Activation modal already shown');
@@ -478,57 +376,61 @@ const app = {
 
     console.log('🎯 Showing activation modal...');
     
-    // Создаем модальное окно если его нет
     if (!document.getElementById('activationModal')) {
       this.createActivationModal();
     }
     
-    // Показываем модальное окно
     this.showModal('activationModal');
     this.state.activationModalShown = true;
   },
 
-  // ✅ НОВОЕ: Создание модального окна активации
   createActivationModal() {
     console.log('🔧 Creating activation modal...');
     
     const modalHTML = `
-      <div id="activationModal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
-          <span class="close">&times;</span>
+      <div id="activationModal" class="modal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(10, 15, 35, 0.95); backdrop-filter: blur(10px);">
+        <div class="modal-content" style="background: linear-gradient(135deg, #0a1a2f 0%, #152642 100%); margin: 5% auto; padding: 0; border: 1px solid #2a4a7a; border-radius: 20px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 215, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1); overflow: hidden;">
+          <span class="close" style="color: #ffd700; float: right; font-size: 28px; font-weight: bold; position: absolute; right: 20px; top: 15px; cursor: pointer; z-index: 10001; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);">&times;</span>
           
-          <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
-            <h2 style="color: #2c3e50; margin-bottom: 10px;">Добро пожаловать в GlobalWay!</h2>
-            <p style="color: #7f8c8d; margin-bottom: 5px;">Ваш ID: <strong style="color: #e74c3c;">GW${this.state.userID}</strong></p>
-            <p style="color: #7f8c8d; margin-bottom: 20px;">Регистрация успешно завершена!</p>
-            
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #27ae60; margin-bottom: 15px;">🚀 Начните зарабатывать!</h3>
-              <p style="margin-bottom: 10px;"><strong>Активируйте первый уровень чтобы:</strong></p>
-              <ul style="text-align: left; margin: 0 20px;">
-                <li>Открыть реферальную систему</li>
-                <li>Получить доступ к матрице</li>
-                <li>Начать получать выплаты</li>
-                <li>Участвовать в рангах и бонусах</li>
+          <div style="background: linear-gradient(135deg, #1e3a5c 0%, #2a4a7a 100%); padding: 30px 20px 20px; text-align: center; border-bottom: 1px solid #2a4a7a; position: relative;">
+            <div style="width: 100%; height: 3px; background: linear-gradient(90deg, #ffd700, #ffed4e, #ffd700); position: absolute; top: 0; left: 0;"></div>
+            <div style="font-size: 48px; margin-bottom: 15px; filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));">🚀</div>
+            <h2 style="color: #ffffff; margin: 0 0 10px; font-size: 22px; font-weight: 600;">Добро пожаловать в GlobalWay!</h2>
+            <p style="color: #a0b3d9; margin: 0; font-size: 14px;">Ваш ID: <span style="color: #ffd700; font-weight: bold;">GW${this.state.userID}</span></p>
+          </div>
+          
+          <div style="padding: 25px;">
+            <div style="margin-bottom: 25px;">
+              <h3 style="color: #ffd700; margin: 0 0 10px; font-size: 18px; font-weight: 600;">🎯 Начните зарабатывать!</h3>
+              <p style="color: #a0b3d9; margin: 0 0 15px; font-size: 14px; line-height: 1.4;">Активируйте первый уровень чтобы открыть все возможности платформы</p>
+              
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                <li style="color: #ffffff; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #2a4a7a;">📊 Реферальная система</li>
+                <li style="color: #ffffff; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #2a4a7a;">🌐 Матричная структура</li>
+                <li style="color: #ffffff; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #2a4a7a;">💰 Выплаты и бонусы</li>
+                <li style="color: #ffffff; padding: 8px 0; font-size: 14px;">🏆 Ранговая система</li>
               </ul>
             </div>
             
-            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #ffeaa7;">
-              <p style="margin: 0; color: #856404;">
-                <strong>Уровень 1:</strong> 0.0015 BNB
-              </p>
+            <div style="margin-bottom: 25px;">
+              <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; padding: 20px; text-align: center;">
+                <div style="color: #ffd700; font-size: 18px; font-weight: 600; margin-bottom: 5px;">Уровень 1</div>
+                <div style="color: #ffffff; font-size: 24px; font-weight: bold; margin-bottom: 5px;">0.0015 BNB</div>
+                <div style="color: #a0b3d9; font-size: 14px;">+5 GWT токенов</div>
+              </div>
             </div>
             
-            <button id="activateLevel1Btn" class="btn-primary" style="padding: 15px 30px; font-size: 18px; margin: 10px; width: 100%;">
-              АКТИВИРОВАТЬ УРОВЕНЬ 1
-            </button>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+              <button id="activateLevel1Btn" style="background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #0a1a2f; padding: 15px 20px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-align: center; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);">
+                🚀 АКТИВИРОВАТЬ УРОВЕНЬ 1
+              </button>
+              
+              <button id="viewPackagesBtn" style="background: transparent; color: #ffd700; border: 2px solid #ffd700; padding: 12px 20px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-align: center;">
+                📦 Посмотреть пакеты
+              </button>
+            </div>
             
-            <button id="viewPackagesBtn" class="btn-secondary" style="padding: 12px 25px; font-size: 16px; margin: 10px; width: 100%;">
-              Посмотреть пакеты
-            </button>
-            
-            <p style="font-size: 12px; color: #95a5a6; margin-top: 20px;">
+            <p style="color: #7a8fb9; font-size: 12px; text-align: center; margin: 0; line-height: 1.4;">
               После активации откроется полный доступ ко всем функциям платформы
             </p>
           </div>
@@ -538,13 +440,22 @@ const app = {
     
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     
-    // Добавляем обработчики
     const activateBtn = document.getElementById('activateLevel1Btn');
     const packagesBtn = document.getElementById('viewPackagesBtn');
     
     if (activateBtn) {
       activateBtn.onclick = async () => {
         await this.activateUserLevel(1, '0.0015', activateBtn);
+      };
+      
+      activateBtn.onmouseover = function() {
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 6px 20px rgba(255, 215, 0, 0.5)';
+      };
+      
+      activateBtn.onmouseout = function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.3)';
       };
     }
     
@@ -553,15 +464,78 @@ const app = {
         this.closeModal('activationModal');
         this.showPage('packages');
       };
+      
+      packagesBtn.onmouseover = function() {
+        this.style.background = 'rgba(255, 215, 0, 0.1)';
+        this.style.transform = 'translateY(-2px)';
+      };
+      
+      packagesBtn.onmouseout = function() {
+        this.style.background = 'transparent';
+        this.style.transform = 'translateY(0)';
+      };
     }
     
     console.log('✅ Activation modal created');
   },
 
-  // ✅ НОВОЕ: Функция активации уровня
+  async checkActivationConditions() {
+    try {
+      const userAddress = app.state.userAddress;
+      console.log('🔍 Checking activation conditions...');
+      
+      const globalWay = await this.getContract('GlobalWay');
+      
+      const isRegistered = await globalWay.isUserRegistered(userAddress);
+      console.log('✅ Registered:', isRegistered);
+      
+      const sponsor = await globalWay.getUserSponsor(userAddress);
+      console.log('🎯 Sponsor:', sponsor);
+      
+      const isLevel1Active = await globalWay.isLevelActive(userAddress, 1);
+      console.log('🔘 Level 1 active:', isLevel1Active);
+      
+      const isQuarterlyActive = await globalWay.isQuarterlyActive(userAddress);
+      console.log('📅 Quarterly active:', isQuarterlyActive);
+      
+      const level1Price = await globalWay.levelPrices(1);
+      console.log('💰 Level 1 price:', ethers.utils.formatEther(level1Price), 'BNB');
+      
+      if (!isRegistered) {
+        console.log('❌ User not registered');
+        return false;
+      }
+      if (isLevel1Active) {
+        console.log('❌ Level 1 already active');
+        return false;
+      }
+      if (!isQuarterlyActive) {
+        console.log('❌ Quarterly not active');
+        return false;
+      }
+      if (sponsor === '0x0000000000000000000000000000000000000000') {
+        console.log('❌ Invalid sponsor');
+        return false;
+      }
+      
+      console.log('✅ All conditions met for activation');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Check conditions error:', error);
+      return false;
+    }
+  },
+
   async activateUserLevel(level, price, button) {
     try {
       console.log(`🔄 Activating level ${level} for ${price} BNB...`);
+      
+      const canActivate = await this.checkActivationConditions();
+      if (!canActivate) {
+        app.showNotification('❌ Не выполнены условия для активации', 'error');
+        return;
+      }
       
       button.disabled = true;
       button.textContent = '⏳ Обработка...';
@@ -571,19 +545,17 @@ const app = {
       
       const tx = await globalWaySigned.activateLevel(level, {
         value: priceInWei,
-        gasLimit: 300000
+        gasLimit: 500000
       });
       
-      this.showNotification(`Активация уровня ${level}...`, 'info');
+      app.showNotification(`Активация уровня ${level}...`, 'info');
       await tx.wait();
       
       this.closeModal('activationModal');
-      this.showNotification(`✅ Уровень ${level} успешно активирован!`, 'success');
+      app.showNotification(`✅ Уровень ${level} успешно активирован!`, 'success');
       
-      // Обновляем данные пользователя
       await this.loadUserData();
       
-      // Обновляем текущую страницу
       if (this.state.currentPage && this.state.pageModules[this.state.currentPage]) {
         const module = this.state.pageModules[this.state.currentPage];
         if (typeof module.refresh === 'function') {
@@ -597,13 +569,15 @@ const app = {
       button.textContent = `АКТИВИРОВАТЬ УРОВЕНЬ ${level}`;
       
       if (error.code === 4001) {
-        this.showNotification('❌ Транзакция отменена', 'error');
+        app.showNotification('❌ Транзакция отменена', 'error');
       } else if (error.message.includes('Level already active')) {
-        this.showNotification('❌ Уровень уже активирован', 'error');
+        app.showNotification('❌ Уровень уже активирован', 'error');
       } else if (error.message.includes('Previous level not active')) {
-        this.showNotification('❌ Сначала активируйте предыдущий уровень', 'error');
+        app.showNotification('❌ Сначала активируйте предыдущий уровень', 'error');
+      } else if (error.message.includes('execution reverted')) {
+        app.showNotification('❌ Ошибка контракта. Проверьте условия активации', 'error');
       } else {
-        this.showNotification('❌ Ошибка активации: ' + error.message, 'error');
+        app.showNotification('❌ Ошибка активации: ' + error.message, 'error');
       }
     }
   },
@@ -612,7 +586,6 @@ const app = {
   // НАВИГАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   initNavigation() {
-    // ✅ ИСПРАВЛЕНО: Проверяем, не была ли навигация уже инициализирована
     if (this.state.navigationInitialized) {
       console.log('✅ Navigation already initialized, skipping...');
       return;
@@ -620,7 +593,6 @@ const app = {
 
     console.log('🔧 Initializing navigation...');
 
-    // Навигационное меню
     const navLinks = document.querySelectorAll('[data-page]');
     console.log(`📍 Found ${navLinks.length} navigation links`);
     
@@ -633,16 +605,13 @@ const app = {
       });
     });
 
-    // Определяем текущую страницу из URL
     const hash = window.location.hash.substring(1);
     if (hash) {
       this.state.currentPage = hash;
     } else {
-      // ✅ ИСПРАВЛЕНО: Если нет hash, устанавливаем dashboard по умолчанию
       this.state.currentPage = 'dashboard';
     }
 
-    // ✅ НОВОЕ: Помечаем что навигация инициализирована
     this.state.navigationInitialized = true;
     console.log('✅ Navigation initialized successfully');
   },
@@ -651,7 +620,6 @@ const app = {
     console.log(`📄 Loading page: ${pageName}`);
     
     try {
-      // ✅ НОВОЕ: Убеждаемся что DApp видим и навигация инициализирована
       const dapp = document.getElementById('dapp');
       if (dapp && !dapp.classList.contains('active')) {
         dapp.classList.add('active');
@@ -662,17 +630,14 @@ const app = {
         landing.classList.remove('active');
       }
 
-      // ✅ НОВОЕ: Инициализируем навигацию если еще не было
       if (!this.state.navigationInitialized) {
         this.initNavigation();
       }
 
-      // 1. Скрываем все страницы
       document.querySelectorAll('.page-content').forEach(page => {
         page.classList.remove('active');
       });
 
-      // 2. Показываем нужную страницу
       const pageElement = document.getElementById(pageName);
       if (pageElement) {
         pageElement.classList.add('active');
@@ -680,7 +645,6 @@ const app = {
         console.error(`❌ Page element #${pageName} not found!`);
       }
 
-      // 3. Обновляем активный пункт меню
       document.querySelectorAll('.nav-btn').forEach(link => {
         link.classList.remove('active');
         if (link.getAttribute('data-page') === pageName) {
@@ -688,11 +652,9 @@ const app = {
         }
       });
 
-      // 4. Обновляем URL
       window.location.hash = pageName;
       this.state.currentPage = pageName;
 
-      // 5. Загружаем модуль страницы
       await this.loadPageModule(pageName);
 
     } catch (error) {
@@ -707,7 +669,6 @@ const app = {
   async loadPageModule(pageName) {
     console.log(`🔧 Loading module for page: ${pageName}`);
     
-    // Если модуль уже загружен, просто инициализируем
     if (this.state.pageModules[pageName]) {
       console.log(`✅ Module ${pageName} already loaded, re-initializing...`);
       if (typeof this.state.pageModules[pageName].init === 'function') {
@@ -716,7 +677,6 @@ const app = {
       return;
     }
 
-    // Загружаем модуль динамически
     try {
       const moduleName = `${pageName}Module`;
       console.log(`🔍 Looking for window.${moduleName}...`);
@@ -735,7 +695,6 @@ const app = {
         }
       } else {
         console.warn(`❌ Module ${moduleName} not found in window object`);
-        console.log('Available modules:', Object.keys(window).filter(k => k.endsWith('Module')));
       }
     } catch (error) {
       console.error(`❌ Error loading module ${pageName}:`, error);
@@ -750,7 +709,6 @@ const app = {
   // РАБОТА С КОНТРАКТАМИ
   // ═══════════════════════════════════════════════════════════════
   async getContract(contractName) {
-    // Если контракт уже загружен
     if (this.state.contracts[contractName]) {
       return this.state.contracts[contractName];
     }
@@ -761,12 +719,9 @@ const app = {
         throw new Error(`Contract ${contractName} not found in config`);
       }
 
-      // Загружаем ABI
       const response = await fetch(`./contracts/abis/${contractName}.json`);
       const contractData = await response.json();
       
-      // Создаем контракт
-      // Создаем контракт с signer если доступен
       const providerOrSigner = window.web3Manager?.signer || window.web3Manager?.provider;
       
       if (!providerOrSigner) {
@@ -779,7 +734,6 @@ const app = {
         providerOrSigner
       );
 
-      // Сохраняем в кеш
       this.state.contracts[contractName] = contract;
       
       console.log(`✅ Contract ${contractName} loaded`);
@@ -790,7 +744,6 @@ const app = {
     }
   },
 
-  // Получить контракт с подписью (для транзакций)
   async getSignedContract(contractName) {
     const contract = await this.getContract(contractName);
     const signer = window.web3Manager.signer;
@@ -798,78 +751,17 @@ const app = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ВЫВОД СРЕДСТВ (ОБЩАЯ ФУНКЦИЯ)
-  // ═══════════════════════════════════════════════════════════════
-  async withdrawFromContract(poolType) {
-    if (!this.state.userAddress) {
-      this.showNotification('Подключите кошелек', 'error');
-      return;
-    }
-
-    try {
-      let contractName, functionName;
-
-      switch (poolType) {
-        case 'marketing':
-          contractName = 'GlobalWayMarketing';
-          functionName = 'withdraw';
-          break;
-        case 'leader':
-          contractName = 'GlobalWayLeaderPool';
-          functionName = 'claimRankBonus';
-          break;
-        case 'investment':
-          contractName = 'GlobalWayInvestment';
-          functionName = 'withdraw';
-          break;
-        default:
-          throw new Error('Unknown pool type');
-      }
-
-      this.showNotification('Подготовка транзакции...', 'info');
-
-      const contract = await this.getSignedContract(contractName);
-      const tx = await contract[functionName]();
-      
-      this.showNotification('Ожидание подтверждения...', 'info');
-      await tx.wait();
-      
-      this.showNotification('Вывод успешен! 🎉', 'success');
-      
-      // Обновляем данные на странице
-      if (this.state.pageModules[this.state.currentPage]) {
-        const module = this.state.pageModules[this.state.currentPage];
-        if (typeof module.refresh === 'function') {
-          await module.refresh();
-        }
-      }
-
-    } catch (error) {
-      console.error('❌ Withdrawal error:', error);
-      if (error.code === 4001) {
-        this.showNotification('Транзакция отклонена', 'error');
-      } else {
-        this.showNotification('Ошибка вывода средств', 'error');
-      }
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
   // УВЕДОМЛЕНИЯ
   // ═══════════════════════════════════════════════════════════════
   showNotification(message, type = 'info') {
-    // Создаем элемент уведомления
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
 
-    // Добавляем на страницу
     document.body.appendChild(notification);
 
-    // Показываем с анимацией
     setTimeout(() => notification.classList.add('show'), 10);
 
-    // Убираем через 3 секунды
     setTimeout(() => {
       notification.classList.remove('show');
       setTimeout(() => notification.remove(), 300);
@@ -884,13 +776,11 @@ const app = {
     if (modal) {
       modal.style.display = 'block';
       
-      // Закрытие по клику на крестик
       const closeBtn = modal.querySelector('.close');
       if (closeBtn) {
         closeBtn.onclick = () => this.closeModal(modalId);
       }
 
-      // Закрытие по клику вне модалки
       modal.onclick = (event) => {
         if (event.target === modal) {
           this.closeModal(modalId);
@@ -910,7 +800,6 @@ const app = {
   // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
   // ═══════════════════════════════════════════════════════════════
   
-  // Копирование в буфер обмена
   async copyToClipboard(text) {
     try {
       await navigator.clipboard.writeText(text);
@@ -921,13 +810,11 @@ const app = {
     }
   },
 
-  // Форматирование адреса (0x1234...5678)
   formatAddress(address) {
     if (!address) return '';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   },
 
-  // Форматирование числа с разделителями
   formatNumber(number, decimals = 4) {
     if (!number) return '0';
     return Number(number).toLocaleString('en-US', {
@@ -936,18 +823,15 @@ const app = {
     });
   },
 
-  // Форматирование BNB
   formatBNB(wei) {
     if (!wei) return '0';
     return ethers.utils.formatEther(wei);
   },
 
-  // Конвертация в Wei
   parseEther(amount) {
     return ethers.utils.parseEther(amount.toString());
   },
 
-  // Проверка сети
   async checkNetwork() {
     if (!window.web3Manager) return false;
     
@@ -959,11 +843,9 @@ const app = {
     return true;
   },
 
-  // Обновление данных пользователя
   async refreshUserData() {
     await this.loadUserData();
     
-    // Обновляем текущую страницу
     if (this.state.pageModules[this.state.currentPage]) {
       const module = this.state.pageModules[this.state.currentPage];
       if (typeof module.refresh === 'function') {
@@ -977,18 +859,15 @@ const app = {
 // ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
 // ═══════════════════════════════════════════════════════════════════
 
-// Обработчик изменения аккаунта
 window.addEventListener('accountsChanged', async (accounts) => {
   console.log('👤 Account changed');
   app.state.userAddress = accounts[0] || null;
   await app.refreshUserData();
 });
 
-// Обработчик изменения сети
 window.addEventListener('chainChanged', async () => {
   console.log('🔗 Chain changed');
   window.location.reload();
 });
 
-// Экспорт в window для доступа из других модулей
 window.app = app;
