@@ -530,10 +530,17 @@ const app = {
         page.classList.remove('active');
       });
 
-      // 2. Показываем нужную страницу
+      // 2. Показываем нужную страницу (УСИЛЕННАЯ ВЕРСИЯ)
       const pageElement = document.getElementById(pageName);
       if (pageElement) {
         pageElement.classList.add('active');
+        
+        // 🔥 УСИЛЕННОЕ РЕШЕНИЕ: Гарантируем видимость через !important
+        pageElement.style.setProperty('display', 'block', 'important');
+        pageElement.style.setProperty('visibility', 'visible', 'important');
+        pageElement.style.setProperty('opacity', '1', 'important');
+        
+        console.log(`✅ Page ${pageName} forced visible`);
       } else {
         console.error(`❌ Page element #${pageName} not found!`);
       }
