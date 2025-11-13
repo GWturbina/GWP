@@ -34,7 +34,6 @@ const CONFIG = {
     tokenomics: '0xbDC29886c91878C1ba9ce0626Da5E1961324354F'
   },
 
-  // ✅ ADMIN: Owner + 3 Founders с доступом к админке
   ADMIN: {
     owner: '0x7261b8aeaee2f806f64001596a67d68f2055acd2',
     
@@ -57,7 +56,6 @@ const CONFIG = {
       }
     ],
     
-    // Board members (для голосования)
     board: [
       '0x11c4FA4126f9B373c4b9A2D43986Cd331E32d2fA',
       '0x0AB97e3934b1Afc9F1F6447CCF676E4f1D8B9639',
@@ -175,18 +173,26 @@ const CONFIG = {
     4500   // 12
   ],
 
-  QUARTERLY_COST: '0.075',
-  
+QUARTERLY_COST: '0.075',
   DEEP_LINKS: {
     safepal: 'safepal://wc?uri=',
     metamask: 'https://metamask.app.link/dapp/'
   },
-  
   QR_CONFIG: {
     size: 256,
     logo: 'assets/icons/logo-32x32.png'
+  },
+  
+  // ✅ ДОБАВЛЯЕМ ADMIN ВНУТРИ ОБЪЕКТА CONFIG (перед закрывающей скобкой)
+  ADMIN: {
+    owner: '0x03284A899147f5a07F82C622F34DF92198671635',
+    founders: [
+      { address: '0x03284A899147f5a07F82C622F34DF92198671635' },
+      { address: '0x9b49bD9c9458615e11C051afd1EBe983563b67EE' },
+      { address: '0xc2b58114cBc873cf360f7A673e4d8EE25d1431e7' }
+    ]
   }
-};
+}; // ← ТЕПЕРЬ закрываем CONFIG
 
 // ✅ ЭКСПОРТ В WINDOW
 if (typeof window !== 'undefined') {
