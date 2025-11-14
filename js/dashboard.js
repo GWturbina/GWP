@@ -534,131 +534,171 @@ const dashboardModule = {
   // ДЕЙСТВИЯ
   // ═══════════════════════════════════════════════════════════════
   
-  // ✅ ИСПРАВЛЕНО: Функция покупки уровня с правильными обработчиками
-  async buyLevel(level) {
-        // ✅ ДОБАВИТЬ ОТЛАДКУ
-    console.log(`🛒 buyLevel() CALLED with level: ${level}`);
-    console.log(`📍 User address: ${app.state.userAddress}`);
-    console.log(`📍 User registered: ${this.userData.isRegistered}`);
+// ✅ ИСПРАВЛЕНО: Функция покупки уровня с ДЕТАЛЬНОЙ ОТЛАДКОЙ
+async buyLevel(level) {
+    // ✅ ДЕТАЛЬНАЯ ОТЛАДКА
+    console.log(`=== 🛒 buyLevel() START for level ${level} ===`);
+    console.log(`📍 User: ${app.state.userAddress}`);
+    console.log(`📍 Registered: ${this.userData.isRegistered}`);
     
     if (!app.state.userAddress) {
-        console.log('❌ No user address');
+        console.log('❌ STOP: No user address');
         app.showNotification('Подключите кошелек', 'error');
         return;
     }
-
-    if (!app.state.userAddress) {
-      app.showNotification('Подключите кошелек', 'error');
-      return;
+    
+    if (!await app.checkNetwork()) {
+        console.log('❌ STOP: Wrong network');
+        return;
     }
     
-    if (!await app.checkNetwork()) return;
-
+    console.log('✅ Passed basic checks');
+    
     try {
-      // 1. ПРОВЕРКА РЕГИСТРАЦИИ
-      if (!this.userData.isRegistered) {
-        app.showNotification('Сначала зарегистрируйтесь', 'error');
-        return;
-      }
-      
-      // 2. ПРОВЕРКА QUARTERLY АКТИВНОСТИ
-      const isQuarterlyActive = await this.contracts.globalWay.isQuarterlyActive(app.state.userAddress);
-      if (!isQuarterlyActive) {
-        app.showNotification('Оплатите quarterly активность (0.075 BNB)', 'error');
-        return;
-      }
-      
-      // 3. ПРОВЕРКА ПРЕДЫДУЩИХ УРОВНЕЙ (для уровней 4-12)
-      if (level > 3) {
-        const maxLevel = await this.contracts.globalWay.getUserMaxLevel(app.state.userAddress);
-        if (maxLevel < level - 1) {
-          app.showNotification(`Сначала активируйте уровень ${level - 1}`, 'error');
-          return;
+        // 1. ПРОВЕРКА РЕГИСТРАЦИИ
+        console.log('🔍 Checking registration...');
+        if (!this.userData.isRegistered) {
+            console.log('❌ STOP: User not registered');
+            app.showNotification('Сначала зарегистрируйтесь', 'error');
+            return;
         }
-      }
-      
-      // 4. ПРОВЕРКА ЧТО УРОВЕНЬ ЕЩЕ НЕ АКТИВЕН
-      const isActive = await this.contracts.globalWay.isLevelActive(app.state.userAddress, level);
-      if (isActive) {
-        app.showNotification('Уровень уже активен', 'error');
-        return;
-      }
-      
-      // 5. ПРОВЕРКА БАЛАНСА
-      const price = CONFIG.LEVEL_PRICES[level - 1];
-      const priceWei = ethers.utils.parseEther(price);
-      const balance = await this.web3Provider.getBalance(app.state.userAddress);
-      
-      if (balance.lt(priceWei)) {
-        app.showNotification('Недостаточно BNB', 'error');
-        return;
-      }
-      
-      // 6. ПОДТВЕРЖДЕНИЕ ПОКУПКИ
-      const confirmed = confirm(
-        `Активировать уровень ${level}?\n\n` +
-        `Стоимость: ${price} BNB\n` +
-        `Награда: ${CONFIG.TOKEN_REWARDS[level - 1]} GWT токенов\n\n` +
-        `Продолжить?`
-      );
-      
-      if (!confirmed) {
-        return;
-      }
-      
-      // 7. ПОКУПКА С LOADING
-      console.log(`🛒 Buying level ${level}...`);
-      
-      // Disable все кнопки уровней
-      document.querySelectorAll('.level-btn').forEach(btn => btn.disabled = true);
-      
-      app.showNotification(`Покупка уровня ${level}...`, 'info');
-      
-      const contract = await app.getSignedContract('GlobalWay');
-      const tx = await contract.activateLevel(level, {
-        value: priceWei,
-        gasLimit: 500000
-      });
-      
-      console.log(`📝 Transaction hash: ${tx.hash}`);
-      app.showNotification(`Транзакция отправлена! Ожидание подтверждения...\nHash: ${tx.hash.slice(0,10)}...`, 'info');
-      
-      const receipt = await tx.wait();
-      console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
-      
-      // 8. УСПЕХ
-      app.showNotification(
-        `✅ Уровень ${level} активирован!\n🎁 Получено ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
-        'success'
-      );
-      
-      // 9. ОБНОВЛЕНИЕ ДАННЫХ
-      await this.refresh();
-      
+        
+        console.log('✅ User is registered');
+        
+        // 2. ПРОВЕРКА QUARTERLY АКТИВНОСТИ
+        console.log('🔍 Checking quarterly activity...');
+        const isQuarterlyActive = await this.contracts.globalWay.isQuarterlyActive(app.state.userAddress);
+        console.log(`📍 Quarterly active: ${isQuarterlyActive}`);
+        
+        if (!isQuarterlyActive) {
+            console.log('❌ STOP: Quarterly not active');
+            app.showNotification('Оплатите quarterly активность (0.075 BNB)', 'error');
+            return;
+        }
+        
+        console.log('✅ Quarterly is active');
+        
+        // 3. ПРОВЕРКА ПРЕДЫДУЩИХ УРОВНЕЙ
+        console.log('🔍 Checking previous levels...');
+        if (level > 1) {
+            const maxLevel = await this.contracts.globalWay.getUserMaxLevel(app.state.userAddress);
+            console.log(`📍 Current max level: ${maxLevel}`);
+            
+            if (maxLevel < level - 1) {
+                console.log(`❌ STOP: Need level ${level - 1} first`);
+                app.showNotification(`Сначала активируйте уровень ${level - 1}`, 'error');
+                return;
+            }
+        }
+        
+        console.log('✅ Previous levels check passed');
+        
+        // 4. ПРОВЕРКА ЧТО УРОВЕНЬ ЕЩЕ НЕ АКТИВЕН
+        console.log('🔍 Checking if level is already active...');
+        const isActive = await this.contracts.globalWay.isLevelActive(app.state.userAddress, level);
+        console.log(`📍 Level ${level} active: ${isActive}`);
+        
+        if (isActive) {
+            console.log('❌ STOP: Level already active');
+            app.showNotification('Уровень уже активен', 'error');
+            return;
+        }
+        
+        console.log('✅ Level is not active');
+        
+        // 5. ПРОВЕРКА БАЛАНСА
+        console.log('🔍 Checking balance...');
+        const price = CONFIG.LEVEL_PRICES[level - 1];
+        const priceWei = ethers.utils.parseEther(price);
+        const balance = await this.web3Provider.getBalance(app.state.userAddress);
+        console.log(`📍 Price: ${price} BNB (${priceWei.toString()} wei)`);
+        console.log(`📍 Balance: ${ethers.utils.formatEther(balance)} BNB`);
+        
+        if (balance.lt(priceWei)) {
+            console.log('❌ STOP: Insufficient balance');
+            app.showNotification('Недостаточно BNB', 'error');
+            return;
+        }
+        
+        console.log('✅ Balance is sufficient');
+        
+        // 6. ПОДТВЕРЖДЕНИЕ ПОКУПКИ
+        console.log('🔍 Asking for confirmation...');
+        const confirmed = confirm(
+            `Активировать уровень ${level}?\n\n` +
+            `Стоимость: ${price} BNB\n` +
+            `Награда: ${CONFIG.TOKEN_REWARDS[level - 1]} GWT токенов\n\n` +
+            `Продолжить?`
+        );
+        
+        if (!confirmed) {
+            console.log('❌ STOP: User cancelled');
+            return;
+        }
+        
+        console.log('✅ User confirmed purchase');
+        
+        // 7. ПОКУПКА С LOADING
+        console.log(`🛒 Starting purchase of level ${level}...`);
+        
+        // Disable все кнопки уровней
+        document.querySelectorAll('.level-btn').forEach(btn => btn.disabled = true);
+        
+        app.showNotification(`Покупка уровня ${level}...`, 'info');
+        
+        console.log('🔍 Getting signed contract...');
+        const contract = await app.getSignedContract('GlobalWay');
+        console.log('✅ Got signed contract');
+        
+        console.log('🔍 Sending transaction...');
+        const tx = await contract.activateLevel(level, {
+            value: priceWei,
+            gasLimit: 500000
+        });
+        
+        console.log(`📝 Transaction sent: ${tx.hash}`);
+        app.showNotification(`Транзакция отправлена! Ожидание подтверждения...\nHash: ${tx.hash.slice(0,10)}...`, 'info');
+        
+        console.log('🔍 Waiting for confirmation...');
+        const receipt = await tx.wait();
+        console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+        
+        // 8. УСПЕХ
+        app.showNotification(
+            `✅ Уровень ${level} активирован!\n🎁 Получено ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
+            'success'
+        );
+        
+        console.log('✅ Purchase completed successfully');
+        
+        // 9. ОБНОВЛЕНИЕ ДАННЫХ
+        await this.refresh();
+        
     } catch (error) {
-      console.error('❌ Buy level error:', error);
-      
-      if (error.code === 4001) {
-        app.showNotification('Транзакция отклонена', 'error');
-      } else if (error.message && error.message.includes('insufficient funds')) {
-        app.showNotification('Недостаточно средств', 'error');
-      } else if (error.message && error.message.includes('gas')) {
-        app.showNotification('Ошибка gas, попробуйте снова', 'error');
-      } else if (error.data && error.data.message) {
-        app.showNotification(`Ошибка: ${error.data.message}`, 'error');
-      } else {
-        app.showNotification('Ошибка покупки уровня', 'error');
-      }
-    } finally {
-      // Включаем обратно все кнопки
-      document.querySelectorAll('.level-btn').forEach(btn => {
-        // Проверяем активность через класс
-        if (!btn.classList.contains('active')) {
-          btn.disabled = false;
+        console.error('❌ Buy level error:', error);
+        
+        if (error.code === 4001) {
+            app.showNotification('Транзакция отклонена', 'error');
+        } else if (error.message && error.message.includes('insufficient funds')) {
+            app.showNotification('Недостаточно средств', 'error');
+        } else if (error.message && error.message.includes('gas')) {
+            app.showNotification('Ошибка gas, попробуйте снова', 'error');
+        } else if (error.data && error.data.message) {
+            app.showNotification(`Ошибка: ${error.data.message}`, 'error');
+        } else {
+            app.showNotification('Ошибка покупки уровня: ' + error.message, 'error');
         }
-      });
+    } finally {
+        // Включаем обратно все кнопки
+        document.querySelectorAll('.level-btn').forEach(btn => {
+            if (!btn.classList.contains('active')) {
+                btn.disabled = false;
+            }
+        });
     }
-  },
+    
+    console.log(`=== 🛒 buyLevel() END for level ${level} ===`);
+},
 
   // Quarterly оплата
   async payQuarterly() {
