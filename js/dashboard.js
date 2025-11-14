@@ -534,7 +534,7 @@ const dashboardModule = {
   // ДЕЙСТВИЯ
   // ═══════════════════════════════════════════════════════════════
   
-// ✅ ИСПРАВЛЕНО: Функция покупки уровня с ДЕТАЛЬНОЙ ОТЛАДКОЙ
+// ✅ ИСПРАВЛЕНО: Функция покупки уровня с ПРАВИЛЬНОЙ ПРОВЕРКОЙ QUARTERLY
 async buyLevel(level) {
     // ✅ ДЕТАЛЬНАЯ ОТЛАДКА
     console.log(`=== 🛒 buyLevel() START for level ${level} ===`);
@@ -565,18 +565,44 @@ async buyLevel(level) {
         
         console.log('✅ User is registered');
         
-        // 2. ПРОВЕРКА QUARTERLY АКТИВНОСТИ
-        console.log('🔍 Checking quarterly activity...');
+        // 2. ✅ ИСПРАВЛЕННАЯ ПРОВЕРКА QUARTERLY АКТИВНОСТИ
+        console.log('🔍 Checking quarterly requirements...');
+        const userMaxLevel = await this.contracts.globalWay.getUserMaxLevel(app.state.userAddress);
+        const userLevel1Active = await this.contracts.globalWay.isLevelActive(app.state.userAddress, 1);
         const isQuarterlyActive = await this.contracts.globalWay.isQuarterlyActive(app.state.userAddress);
+
+        console.log(`📍 User max level: ${userMaxLevel}`);
+        console.log(`📍 Level 1 active: ${userLevel1Active}`);
         console.log(`📍 Quarterly active: ${isQuarterlyActive}`);
-        
-        if (!isQuarterlyActive) {
-            console.log('❌ STOP: Quarterly not active');
-            app.showNotification('Оплатите quarterly активность (0.075 BNB)', 'error');
-            return;
+
+        // ✅ ПРАВИЛЬНАЯ ЛОГИКА: Quarterly требуется ТОЛЬКО если:
+        // - Уровень 1 уже активирован И прошло более 90 дней
+        if (userLevel1Active && !isQuarterlyActive) {
+            // Проверяем прошло ли 90 дней с активации уровня 1
+            const userData = await this.contracts.globalWay.users(app.state.userAddress);
+            const level1ActivationTime = userData.level1ActivationTime;
+            
+            if (level1ActivationTime > 0) {
+                const timeSinceActivation = Math.floor(Date.now() / 1000) - level1ActivationTime.toNumber();
+                const daysSinceActivation = Math.floor(timeSinceActivation / 86400);
+                
+                console.log(`📍 Days since level 1 activation: ${daysSinceActivation}`);
+                
+                if (daysSinceActivation >= 90) {
+                    console.log('❌ STOP: Quarterly payment required (90+ days since level 1)');
+                    app.showNotification('Оплатите quarterly активность (0.075 BNB) для продолжения', 'error');
+                    return;
+                } else {
+                    console.log(`✅ Quarterly not yet required (${90 - daysSinceActivation} days remaining)`);
+                }
+            }
         }
         
-        console.log('✅ Quarterly is active');
+        // ✅ РАЗРЕШАЕМ покупку если:
+        // - Покупаем уровень 1 (userLevel1Active = false) ИЛИ
+        // - Quarterly активен ИЛИ  
+        // - Еще не прошло 90 дней с активации уровня 1
+        console.log('✅ Quarterly requirements satisfied');
         
         // 3. ПРОВЕРКА ПРЕДЫДУЩИХ УРОВНЕЙ
         console.log('🔍 Checking previous levels...');
@@ -700,107 +726,145 @@ async buyLevel(level) {
     console.log(`=== 🛒 buyLevel() END for level ${level} ===`);
 },
 
-  // Quarterly оплата
-  async payQuarterly() {
+// ✅ ИСПРАВЛЕННАЯ QUARTERLY ОПЛАТА
+async payQuarterly() {
+    console.log('=== PAY QUARTERLY START ===');
+    
     if (!app.state.userAddress) {
-      app.showNotification('Подключите кошелек', 'error');
-      return;
+        console.log('❌ No user address');
+        app.showNotification('Подключите кошелек', 'error');
+        return;
     }
     
-    if (!await app.checkNetwork()) return;
+    if (!await app.checkNetwork()) {
+        console.log('❌ Wrong network');
+        return;
+    }
 
     try {
-      // 1. Проверка возможности оплаты
-      const [canPay, reason, timeLeft] = await this.contracts.quarterly.canPayQuarterly(app.state.userAddress);
-      
-      if (!canPay) {
-        app.showNotification(reason || 'Оплата пока недоступна', 'error');
-        return;
-      }
-      
-      // 2. Получаем текущий квартал
-      const [lastPayment, quarterCount] = await this.contracts.quarterly.getUserQuarterlyInfo(app.state.userAddress);
-      const quarter = Number(quarterCount);
-      
-      // 3. Проверка баланса
-      const cost = CONFIG.QUARTERLY_COST;
-      const costWei = ethers.utils.parseEther(cost);
-      const balance = await this.web3Provider.getBalance(app.state.userAddress);
-      
-      if (balance.lt(costWei)) {
-        app.showNotification('Недостаточно BNB', 'error');
-        return;
-      }
-      
-      // 4. Подтверждение оплаты
-      const confirmed = confirm(
-        `Оплатить quarterly активность?\n\n` +
-        `Квартал: ${quarter + 1}\n` +
-        `Стоимость: ${cost} BNB\n\n` +
-        `Продолжить?`
-      );
-      
-      if (!confirmed) {
-        return;
-      }
-      
-      // 5. Оплата с loading
-      const payBtn = document.getElementById('payActivityBtn');
-      if (payBtn) {
-        payBtn.disabled = true;
-        payBtn.textContent = 'Обработка...';
-      }
-      
-      app.showNotification('Оплата quarterly...', 'info');
+        // 1. Проверка возможности оплаты
+        console.log('🔍 Checking if can pay quarterly...');
+        const [canPay, reason, timeLeft] = await this.contracts.quarterly.canPayQuarterly(app.state.userAddress);
+        console.log('📍 Can pay:', canPay);
+        console.log('📍 Reason:', reason);
+        console.log('📍 Time left:', timeLeft.toString());
+        
+        if (!canPay) {
+            console.log('❌ Cannot pay quarterly:', reason);
+            app.showNotification(reason || 'Оплата пока недоступна', 'error');
+            return;
+        }
+        
+        // 2. Получаем текущий квартал
+        const [lastPayment, quarterCount, charityAccount, techAccount1, techAccount2, nextPaymentTime] = 
+            await this.contracts.quarterly.getUserQuarterlyInfo(app.state.userAddress);
+        const quarter = Number(quarterCount);
+        
+        console.log('📍 Current quarter:', quarter);
+        console.log('📍 Last payment:', lastPayment.toString());
+        console.log('📍 Next payment time:', nextPaymentTime.toString());
+        
+        // 3. Проверка баланса
+        const cost = CONFIG.QUARTERLY_COST;
+        const costWei = ethers.utils.parseEther(cost);
+        const balance = await this.web3Provider.getBalance(app.state.userAddress);
+        console.log(`📍 Cost: ${cost} BNB`);
+        console.log(`📍 Balance: ${ethers.utils.formatEther(balance)} BNB`);
+        
+        if (balance.lt(costWei)) {
+            console.log('❌ Insufficient balance');
+            app.showNotification('Недостаточно BNB', 'error');
+            return;
+        }
+        
+        // 4. Подтверждение оплаты
+        let confirmMessage = `Оплатить quarterly активность?\n\nКвартал: ${quarter + 1}\nСтоимость: ${cost} BNB\n\n`;
+        
+        if (quarter === 0) {
+            confirmMessage += `📝 Будет создан charity аккаунт\n\n`;
+        } else if (quarter === 1) {
+            confirmMessage += `🛠️ Будет создан технический аккаунт\n\n`;
+        } else if (quarter === 2) {
+            confirmMessage += `🛠️ Будет создан второй технический аккаунт\n\n`;
+        }
+        
+        confirmMessage += `Продолжить?`;
+        
+        const confirmed = confirm(confirmMessage);
+        
+        if (!confirmed) {
+            console.log('❌ User cancelled quarterly payment');
+            return;
+        }
+        
+        console.log('✅ User confirmed quarterly payment');
+        
+        // 5. Оплата с loading
+        const payBtn = document.getElementById('payActivityBtn');
+        if (payBtn) {
+            payBtn.disabled = true;
+            payBtn.textContent = 'Обработка...';
+        }
+        
+        app.showNotification('Оплата quarterly...', 'info');
 
-      const contract = await app.getSignedContract('GlobalWayQuarterly');
-      let tx;
-      
-      // Определяем функцию в зависимости от квартала
-      if (quarter === 0) {
-        // Первый квартал - с charity account
-        const charityRecipient = app.state.userAddress;
-        tx = await contract.payQuarterlyActivity(charityRecipient, {
-          value: costWei,
-          gasLimit: 800000
-        });
-      } else {
-        // Последующие кварталы
-        tx = await contract.payQuarterlyActivityRegular({
-          value: costWei,
-          gasLimit: 800000
-        });
-      }
+        const contract = await app.getSignedContract('GlobalWayQuarterly');
+        let tx;
+        
+        // Определяем функцию в зависимости от квартала
+        if (quarter === 0) {
+            // Первый квартал - с charity account
+            console.log('🔍 Paying quarterly with charity account...');
+            const charityRecipient = app.state.userAddress;
+            tx = await contract.payQuarterlyActivity(charityRecipient, {
+                value: costWei,
+                gasLimit: 800000
+            });
+        } else {
+            // Последующие кварталы
+            console.log('🔍 Paying quarterly regular...');
+            tx = await contract.payQuarterlyActivityRegular({
+                value: costWei,
+                gasLimit: 800000
+            });
+        }
 
-      app.showNotification('Ожидание подтверждения...', 'info');
-      await tx.wait();
+        console.log(`📝 Quarterly transaction sent: ${tx.hash}`);
+        app.showNotification('Ожидание подтверждения...', 'info');
+        
+        const receipt = await tx.wait();
+        console.log(`✅ Quarterly transaction confirmed in block ${receipt.blockNumber}`);
 
-      app.showNotification('✅ Quarterly оплачен!', 'success');
-      
-      // Обновляем данные
-      await this.refresh();
-      
+        app.showNotification('✅ Quarterly оплачен!', 'success');
+        
+        // Обновляем данные
+        await this.refresh();
+        
     } catch (error) {
-      console.error('Pay quarterly error:', error);
-      
-      if (error.code === 4001) {
-        app.showNotification('Транзакция отклонена', 'error');
-      } else if (error.message && error.message.includes('insufficient funds')) {
-        app.showNotification('Недостаточно средств', 'error');
-      } else if (error.data && error.data.message) {
-        app.showNotification(`Ошибка: ${error.data.message}`, 'error');
-      } else {
-        app.showNotification('Ошибка оплаты quarterly', 'error');
-      }
+        console.error('❌ Pay quarterly error:', error);
+        
+        if (error.code === 4001) {
+            app.showNotification('Транзакция отклонена', 'error');
+        } else if (error.message && error.message.includes('insufficient funds')) {
+            app.showNotification('Недостаточно средств', 'error');
+        } else if (error.message && error.message.includes('Too early')) {
+            app.showNotification('Слишком рано для оплаты quarterly', 'error');
+        } else if (error.data && error.data.message) {
+            app.showNotification(`Ошибка: ${error.data.message}`, 'error');
+        } else {
+            app.showNotification('Ошибка оплаты quarterly: ' + error.message, 'error');
+        }
     } finally {
-      // Включаем обратно кнопку
-      const payBtn = document.getElementById('payActivityBtn');
-      if (payBtn) {
-        payBtn.disabled = false;
-        payBtn.textContent = 'Оплатить Quarterly';
-      }
+        // Включаем обратно кнопку
+        const payBtn = document.getElementById('payActivityBtn');
+        if (payBtn) {
+            payBtn.disabled = false;
+            payBtn.textContent = 'Оплатить Quarterly';
+        }
     }
-  },
+    
+    console.log('=== PAY QUARTERLY END ===');
+},
 
   // ═══════════════════════════════════════════════════════════════
   // UI ИНИЦИАЛИЗАЦИЯ
