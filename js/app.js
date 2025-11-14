@@ -384,100 +384,111 @@ const app = {
     this.state.activationModalShown = true;
   },
 
-  createActivationModal() {
+createActivationModal() {
     console.log('🔧 Creating activation modal...');
     
     const modalHTML = `
-      <div id="activationModal" class="modal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(10, 15, 35, 0.95); backdrop-filter: blur(10px);">
-        <div class="modal-content" style="background: linear-gradient(135deg, #0a1a2f 0%, #152642 100%); margin: 5% auto; padding: 0; border: 1px solid #2a4a7a; border-radius: 20px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 215, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1); overflow: hidden;">
-          <span class="close" style="color: #ffd700; float: right; font-size: 28px; font-weight: bold; position: absolute; right: 20px; top: 15px; cursor: pointer; z-index: 10001; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);">&times;</span>
-          
-          <div style="background: linear-gradient(135deg, #1e3a5c 0%, #2a4a7a 100%); padding: 30px 20px 20px; text-align: center; border-bottom: 1px solid #2a4a7a; position: relative;">
-            <div style="width: 100%; height: 3px; background: linear-gradient(90deg, #ffd700, #ffed4e, #ffd700); position: absolute; top: 0; left: 0;"></div>
-            <div style="font-size: 48px; margin-bottom: 15px; filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));">🚀</div>
-            <h2 style="color: #ffffff; margin: 0 0 10px; font-size: 22px; font-weight: 600;">Добро пожаловать в GlobalWay!</h2>
-            <p style="color: #a0b3d9; margin: 0; font-size: 14px;">Ваш ID: <span style="color: #ffd700; font-weight: bold;">GW${this.state.userID}</span></p>
-          </div>
-          
-          <div style="padding: 25px;">
-            <div style="margin-bottom: 25px;">
-              <h3 style="color: #ffd700; margin: 0 0 10px; font-size: 18px; font-weight: 600;">🎯 Начните зарабатывать!</h3>
-              <p style="color: #a0b3d9; margin: 0 0 15px; font-size: 14px; line-height: 1.4;">Активируйте первый уровень чтобы открыть все возможности платформы</p>
-              
-              <ul style="list-style: none; padding: 0; margin: 0;">
-                <li style="color: #ffffff; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #2a4a7a;">📊 Реферальная система</li>
-                <li style="color: #ffffff; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #2a4a7a;">🌐 Матричная структура</li>
-                <li style="color: #ffffff; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #2a4a7a;">💰 Выплаты и бонусы</li>
-                <li style="color: #ffffff; padding: 8px 0; font-size: 14px;">🏆 Ранговая система</li>
-              </ul>
+    <div id="activationModal" class="modal cosmic-modal">
+        <div class="modal-content cosmic-card">
+            <div class="modal-header cosmic-header">
+                <div class="header-icon">🚀</div>
+                <h2>Добро пожаловать в GlobalWay!</h2>
+                <p>Ваш ID: <span class="user-id">GW${this.state.userID}</span></p>
             </div>
             
-            <div style="margin-bottom: 25px;">
-              <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 12px; padding: 20px; text-align: center;">
-                <div style="color: #ffd700; font-size: 18px; font-weight: 600; margin-bottom: 5px;">Уровень 1</div>
-                <div style="color: #ffffff; font-size: 24px; font-weight: bold; margin-bottom: 5px;">0.0015 BNB</div>
-                <div style="color: #a0b3d9; font-size: 14px;">+5 GWT токенов</div>
-              </div>
+            <div class="modal-body">
+                <div class="feature-section">
+                    <h3>🎯 Начните зарабатывать!</h3>
+                    <p>Активируйте первый уровень чтобы открыть все возможности платформы</p>
+                    
+                    <div class="features-grid">
+                        <div class="feature-item">
+                            <span class="feature-icon">📊</span>
+                            <span>Реферальная система</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">🌐</span>
+                            <span>Матричная структура</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">💰</span>
+                            <span>Выплаты и бонусы</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">🏆</span>
+                            <span>Ранговая система</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pricing-section">
+                    <div class="price-card">
+                        <div class="price-header">
+                            <span class="level-badge">Уровень 1</span>
+                            <span class="price-amount">0.0015 BNB</span>
+                        </div>
+                        <div class="price-details">
+                            <span class="token-reward">+5 GWT токенов</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="activateLevel1Btn" class="btn-gold">
+                        🚀 АКТИВИРОВАТЬ УРОВЕНЬ 1
+                    </button>
+                    
+                    <button id="viewPackagesBtn" class="btn-outline">
+                        📦 Посмотреть пакеты
+                    </button>
+                </div>
+                
+                <div class="modal-footer">
+                    <p>После активации откроется полный доступ ко всем функциям платформы</p>
+                </div>
             </div>
             
-            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-              <button id="activateLevel1Btn" style="background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #0a1a2f; padding: 15px 20px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-align: center; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);">
-                🚀 АКТИВИРОВАТЬ УРОВЕНЬ 1
-              </button>
-              
-              <button id="viewPackagesBtn" style="background: transparent; color: #ffd700; border: 2px solid #ffd700; padding: 12px 20px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-align: center;">
-                📦 Посмотреть пакеты
-              </button>
-            </div>
-            
-            <p style="color: #7a8fb9; font-size: 12px; text-align: center; margin: 0; line-height: 1.4;">
-              После активации откроется полный доступ ко всем функциям платформы
-            </p>
-          </div>
+            <span class="close-modal">&times;</span>
         </div>
-      </div>
+    </div>
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     
+    // Обработчики событий
     const activateBtn = document.getElementById('activateLevel1Btn');
     const packagesBtn = document.getElementById('viewPackagesBtn');
+    const closeBtn = document.querySelector('#activationModal .close-modal');
     
     if (activateBtn) {
-      activateBtn.onclick = async () => {
-        await this.activateUserLevel(1, '0.0015', activateBtn);
-      };
-      
-      activateBtn.onmouseover = function() {
-        this.style.transform = 'translateY(-2px)';
-        this.style.boxShadow = '0 6px 20px rgba(255, 215, 0, 0.5)';
-      };
-      
-      activateBtn.onmouseout = function() {
-        this.style.transform = 'translateY(0)';
-        this.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.3)';
-      };
+        activateBtn.onclick = async () => {
+            await this.activateUserLevel(1, '0.0015', activateBtn);
+        };
     }
     
     if (packagesBtn) {
-      packagesBtn.onclick = () => {
-        this.closeModal('activationModal');
-        this.showPage('packages');
-      };
-      
-      packagesBtn.onmouseover = function() {
-        this.style.background = 'rgba(255, 215, 0, 0.1)';
-        this.style.transform = 'translateY(-2px)';
-      };
-      
-      packagesBtn.onmouseout = function() {
-        this.style.background = 'transparent';
-        this.style.transform = 'translateY(0)';
-      };
+        packagesBtn.onclick = () => {
+            this.closeModal('activationModal');
+            this.showPage('dashboard');
+        };
     }
     
-    console.log('✅ Activation modal created');
-  },
+    if (closeBtn) {
+        closeBtn.onclick = () => this.closeModal('activationModal');
+    }
+    
+    // Закрытие по клику вне модалки
+    const modal = document.getElementById('activationModal');
+    if (modal) {
+        modal.onclick = (event) => {
+            if (event.target === modal) {
+                this.closeModal('activationModal');
+            }
+        };
+    }
+    
+    console.log('✅ Professional activation modal created');
+},
 
   async checkActivationConditions() {
     try {
