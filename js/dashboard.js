@@ -712,18 +712,14 @@ async buyLevel(level) {
         console.log('✅ Got signed contract');
         
         // ✅ УВЕЛИЧИВАЕМ GAS LIMIT И GAS PRICE для надежности
-        console.log('🔍 Sending transaction with optimized gas...');
-        
-        // Получаем текущий gas price
-        const feeData = await this.web3Provider.getFeeData();
-        const gasPrice = feeData.gasPrice.mul(120).div(100); // +20% для надежности
-        
-        console.log(`📍 Gas price: ${ethers.utils.formatUnits(gasPrice, 'gwei')} gwei`);
+        console.log('🔍 Sending transaction with fixed gas price...');
+        const gasPrice = ethers.utils.parseUnits('0.3', 'gwei'); // 0.3 gwei
+        console.log(`📍 Fixed gas price: ${ethers.utils.formatUnits(gasPrice, 'gwei')} gwei`);
         
         const tx = await contract.activateLevel(level, {
             value: priceWei,
-            gasLimit: 800000,  // Увеличили gas limit
-            gasPrice: gasPrice // Указываем gas price явно
+            gasLimit: 800000,
+            gasPrice: gasPrice
         });
         
         console.log(`📝 Transaction sent: ${tx.hash}`);
