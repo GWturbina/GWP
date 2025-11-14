@@ -192,43 +192,66 @@ const dashboardModule = {
     }
   },
 
-  // ✅ ИСПРАВЛЕНО: Информация об уровнях с правильными обработчиками
+// ✅ ИСПРАВЛЕНО: Правильные обработчики для кнопок уровней
   async loadLevels() {
-    try {
-      const { address } = this.userData;
-      const levelsContainer = document.getElementById('individualLevels');
-      if (!levelsContainer) return;
-
-      levelsContainer.innerHTML = '';
-
-      for (let level = 1; level <= 12; level++) {
-        const isActive = await this.contracts.globalWay.isLevelActive(address, level);
-        const price = CONFIG.LEVEL_PRICES[level - 1];
-
-        const levelBtn = document.createElement('button');
-        levelBtn.className = `level-btn ${isActive ? 'active' : ''}`;
-        levelBtn.innerHTML = `
-          <span class="level-number">${level}</span>
-          <span class="level-price">${price} BNB</span>
-        `;
-        
-        // ✅ ИСПРАВЛЕНО: Добавляем обработчик для неактивных уровней
-        if (!isActive) {
-          levelBtn.onclick = () => this.buyLevel(level);
-          levelBtn.style.cursor = 'pointer';
-        } else {
-          levelBtn.disabled = true;
-          levelBtn.style.cursor = 'default';
-          levelBtn.style.opacity = '0.7';
-        }
-
-        levelsContainer.appendChild(levelBtn);
+      try {
+          const { address } = this.userData;
+          const levelsContainer = document.getElementById('individualLevels');
+          if (!levelsContainer) return;
+  
+          levelsContainer.innerHTML = '';
+  
+          for (let level = 1; level <= 12; level++) {
+              const isActive = await this.contracts.globalWay.isLevelActive(address, level);
+              const price = CONFIG.LEVEL_PRICES[level - 1];
+  
+              const levelBtn = document.createElement('button');
+              levelBtn.className = `level-btn ${isActive ? 'active' : ''}`;
+              levelBtn.innerHTML = `
+                  <span class="level-number">${level}</span>
+                  <span class="level-price">${price} BNB</span>
+              `;
+              
+              // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильная привязка обработчика
+              if (!isActive) {
+                  // Сохраняем уровень в data-атрибут для надежности
+                  levelBtn.setAttribute('data-level', level);
+                  levelBtn.setAttribute('data-price', price);
+                  
+                  // ✅ ИСПРАВЛЕНО: Сохраняем уровень в замыкании
+                  const currentLevel = level; // Фиксируем значение
+                  
+                  // ДВА варианта обработчика для надежности
+                  levelBtn.addEventListener('click', (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log(`🎯 Level ${currentLevel} button clicked`);
+                      this.buyLevel(currentLevel);
+                  });
+                  
+                  // Дублируем для совместимости
+                  levelBtn.onclick = (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log(`🎯 Level ${currentLevel} onclick triggered`);
+                      this.buyLevel(currentLevel);
+                  };
+                  
+                  levelBtn.style.cursor = 'pointer';
+              } else {
+                  levelBtn.disabled = true;
+                  levelBtn.style.cursor = 'default';
+                  levelBtn.style.opacity = '0.7';
+              }
+  
+              levelsContainer.appendChild(levelBtn);
+          }
+  
+          console.log('✅ Level buttons initialized with DOUBLE handlers');
+  
+      } catch (error) {
+          console.error('❌ Error loading levels:', error);
       }
-
-      console.log('✅ Level buttons initialized with handlers');
-    } catch (error) {
-      console.error('Error loading levels:', error);
-    }
   },
 
   // Информация о токенах
@@ -513,6 +536,17 @@ const dashboardModule = {
   
   // ✅ ИСПРАВЛЕНО: Функция покупки уровня с правильными обработчиками
   async buyLevel(level) {
+        // ✅ ДОБАВИТЬ ОТЛАДКУ
+    console.log(`🛒 buyLevel() CALLED with level: ${level}`);
+    console.log(`📍 User address: ${app.state.userAddress}`);
+    console.log(`📍 User registered: ${this.userData.isRegistered}`);
+    
+    if (!app.state.userAddress) {
+        console.log('❌ No user address');
+        app.showNotification('Подключите кошелек', 'error');
+        return;
+    }
+
     if (!app.state.userAddress) {
       app.showNotification('Подключите кошелек', 'error');
       return;
