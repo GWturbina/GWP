@@ -1,7 +1,6 @@
-
 {
   "contractName": "GlobalWayStats",
-  "address": "0xFA66Fa17a8e6232edD4e675F0732dAdDCd79aA9C",
+  "address": "0x2B1Be8cc641fe0CfeAD7D8140b74857086429cce",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
