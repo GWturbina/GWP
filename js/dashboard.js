@@ -534,7 +534,7 @@ const dashboardModule = {
   // ДЕЙСТВИЯ
   // ═══════════════════════════════════════════════════════════════
   
-// ✅ ИСПРАВЛЕНО: Функция покупки уровня с ПРАВИЛЬНОЙ ПРОВЕРКОЙ QUARTERLY
+// ✅ ИСПРАВЛЕНО: Функция покупки уровня с ДИАГНОСТИКОЙ КОНТРАКТА
 async buyLevel(level) {
     // ✅ ДЕТАЛЬНАЯ ОТЛАДКА
     console.log(`=== 🛒 buyLevel() START for level ${level} ===`);
@@ -555,29 +555,47 @@ async buyLevel(level) {
     console.log('✅ Passed basic checks');
     
     try {
-        // 1. ПРОВЕРКА РЕГИСТРАЦИИ
-        console.log('🔍 Checking registration...');
-        if (!this.userData.isRegistered) {
-            console.log('❌ STOP: User not registered');
-            app.showNotification('Сначала зарегистрируйтесь', 'error');
+        // 0. ✅ ДИАГНОСТИКА КОНТРАКТА ПЕРЕД ПОКУПКОЙ
+        console.log('🔍 Running contract diagnostics...');
+        
+        // Проверяем paused статус контракта
+        const isPaused = await this.contracts.globalWay.paused();
+        console.log(`📍 Contract paused: ${isPaused}`);
+        if (isPaused) {
+            console.log('❌ STOP: Contract is paused');
+            app.showNotification('Контракт временно остановлен', 'error');
             return;
         }
         
-        console.log('✅ User is registered');
+        // Проверяем регистрацию через контракт
+        const isRegisteredInContract = await this.contracts.globalWay.isUserRegistered(app.state.userAddress);
+        console.log(`📍 Registered in contract: ${isRegisteredInContract}`);
+        if (!isRegisteredInContract) {
+            console.log('❌ STOP: Not registered in contract');
+            app.showNotification('Пользователь не зарегистрирован в контракте', 'error');
+            return;
+        }
         
-        // 2. ✅ ИСПРАВЛЕННАЯ ПРОВЕРКА QUARTERLY АКТИВНОСТИ
-        console.log('🔍 Checking quarterly requirements...');
-        const userMaxLevel = await this.contracts.globalWay.getUserMaxLevel(app.state.userAddress);
-        const userLevel1Active = await this.contracts.globalWay.isLevelActive(app.state.userAddress, 1);
+        // Проверяем спонсора
+        const sponsor = await this.contracts.globalWay.getUserSponsor(app.state.userAddress);
+        console.log(`📍 Sponsor: ${sponsor}`);
+        if (sponsor === '0x0000000000000000000000000000000000000000') {
+            console.log('❌ STOP: Invalid sponsor');
+            app.showNotification('Ошибка: неверный спонсор', 'error');
+            return;
+        }
+        
+        // Проверяем уровень 1 активность
+        const isLevel1Active = await this.contracts.globalWay.isLevelActive(app.state.userAddress, 1);
+        console.log(`📍 Level 1 active: ${isLevel1Active}`);
+        
+        // Проверяем quarterly через контракт
         const isQuarterlyActive = await this.contracts.globalWay.isQuarterlyActive(app.state.userAddress);
-
-        console.log(`📍 User max level: ${userMaxLevel}`);
-        console.log(`📍 Level 1 active: ${userLevel1Active}`);
         console.log(`📍 Quarterly active: ${isQuarterlyActive}`);
-
+        
         // ✅ ПРАВИЛЬНАЯ ЛОГИКА: Quarterly требуется ТОЛЬКО если:
         // - Уровень 1 уже активирован И прошло более 90 дней
-        if (userLevel1Active && !isQuarterlyActive) {
+        if (isLevel1Active && !isQuarterlyActive) {
             // Проверяем прошло ли 90 дней с активации уровня 1
             const userData = await this.contracts.globalWay.users(app.state.userAddress);
             const level1ActivationTime = userData.level1ActivationTime;
@@ -598,13 +616,19 @@ async buyLevel(level) {
             }
         }
         
-        // ✅ РАЗРЕШАЕМ покупку если:
-        // - Покупаем уровень 1 (userLevel1Active = false) ИЛИ
-        // - Quarterly активен ИЛИ  
-        // - Еще не прошло 90 дней с активации уровня 1
-        console.log('✅ Quarterly requirements satisfied');
+        console.log('✅ Contract diagnostics passed');
         
-        // 3. ПРОВЕРКА ПРЕДЫДУЩИХ УРОВНЕЙ
+        // 1. ПРОВЕРКА РЕГИСТРАЦИИ (дублируем для надежности)
+        console.log('🔍 Checking registration...');
+        if (!this.userData.isRegistered) {
+            console.log('❌ STOP: User not registered');
+            app.showNotification('Сначала зарегистрируйтесь', 'error');
+            return;
+        }
+        
+        console.log('✅ User is registered');
+        
+        // 2. ПРОВЕРКА ПРЕДЫДУЩИХ УРОВНЕЙ
         console.log('🔍 Checking previous levels...');
         if (level > 1) {
             const maxLevel = await this.contracts.globalWay.getUserMaxLevel(app.state.userAddress);
@@ -619,7 +643,7 @@ async buyLevel(level) {
         
         console.log('✅ Previous levels check passed');
         
-        // 4. ПРОВЕРКА ЧТО УРОВЕНЬ ЕЩЕ НЕ АКТИВЕН
+        // 3. ПРОВЕРКА ЧТО УРОВЕНЬ ЕЩЕ НЕ АКТИВЕН
         console.log('🔍 Checking if level is already active...');
         const isActive = await this.contracts.globalWay.isLevelActive(app.state.userAddress, level);
         console.log(`📍 Level ${level} active: ${isActive}`);
@@ -632,7 +656,7 @@ async buyLevel(level) {
         
         console.log('✅ Level is not active');
         
-        // 5. ПРОВЕРКА БАЛАНСА
+        // 4. ПРОВЕРКА БАЛАНСА
         console.log('🔍 Checking balance...');
         const price = CONFIG.LEVEL_PRICES[level - 1];
         const priceWei = ethers.utils.parseEther(price);
@@ -648,7 +672,7 @@ async buyLevel(level) {
         
         console.log('✅ Balance is sufficient');
         
-        // 6. ПОДТВЕРЖДЕНИЕ ПОКУПКИ
+        // 5. ПОДТВЕРЖДЕНИЕ ПОКУПКИ
         console.log('🔍 Asking for confirmation...');
         const confirmed = confirm(
             `Активировать уровень ${level}?\n\n` +
@@ -664,7 +688,7 @@ async buyLevel(level) {
         
         console.log('✅ User confirmed purchase');
         
-        // 7. ПОКУПКА С LOADING
+        // 6. ПОКУПКА С LOADING
         console.log(`🛒 Starting purchase of level ${level}...`);
         
         // Disable все кнопки уровней
@@ -676,20 +700,28 @@ async buyLevel(level) {
         const contract = await app.getSignedContract('GlobalWay');
         console.log('✅ Got signed contract');
         
-        console.log('🔍 Sending transaction...');
+        // ✅ УВЕЛИЧИВАЕМ GAS LIMIT для надежности
+        console.log('🔍 Sending transaction with increased gas...');
         const tx = await contract.activateLevel(level, {
             value: priceWei,
-            gasLimit: 500000
+            gasLimit: 800000  // Увеличили с 500000 до 800000
         });
         
         console.log(`📝 Transaction sent: ${tx.hash}`);
-        app.showNotification(`Транзакция отправлена! Ожидание подтверждения...\nHash: ${tx.hash.slice(0,10)}...`, 'info');
+        app.showNotification(`Транзакция отправлена! Ожидание подтверждения...`, 'info');
         
         console.log('🔍 Waiting for confirmation...');
         const receipt = await tx.wait();
         console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+        console.log('📍 Transaction receipt:', receipt);
         
-        // 8. УСПЕХ
+        // Проверяем статус транзакции
+        if (receipt.status === 0) {
+            console.log('❌ Transaction failed in blockchain');
+            throw new Error('Transaction reverted in contract');
+        }
+        
+        // 7. УСПЕХ
         app.showNotification(
             `✅ Уровень ${level} активирован!\n🎁 Получено ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
             'success'
@@ -697,7 +729,7 @@ async buyLevel(level) {
         
         console.log('✅ Purchase completed successfully');
         
-        // 9. ОБНОВЛЕНИЕ ДАННЫХ
+        // 8. ОБНОВЛЕНИЕ ДАННЫХ
         await this.refresh();
         
     } catch (error) {
@@ -709,8 +741,14 @@ async buyLevel(level) {
             app.showNotification('Недостаточно средств', 'error');
         } else if (error.message && error.message.includes('gas')) {
             app.showNotification('Ошибка gas, попробуйте снова', 'error');
+        } else if (error.message && error.message.includes('revert')) {
+            app.showNotification('Ошибка в контракте: транзакция отменена', 'error');
+        } else if (error.message && error.message.includes('paused')) {
+            app.showNotification('Контракт временно остановлен', 'error');
+        } else if (error.message && error.message.includes('Not registered')) {
+            app.showNotification('Пользователь не зарегистрирован', 'error');
         } else if (error.data && error.data.message) {
-            app.showNotification(`Ошибка: ${error.data.message}`, 'error');
+            app.showNotification(`Ошибка контракта: ${error.data.message}`, 'error');
         } else {
             app.showNotification('Ошибка покупки уровня: ' + error.message, 'error');
         }
