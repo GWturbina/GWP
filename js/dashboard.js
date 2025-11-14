@@ -535,7 +535,16 @@ const dashboardModule = {
   // ═══════════════════════════════════════════════════════════════
   
 // ✅ ИСПРАВЛЕНО: Функция покупки уровня с ДИАГНОСТИКОЙ КОНТРАКТА
+// ✅ ИСПРАВЛЕНО: Функция покупки уровня с ЗАЩИТОЙ ОТ ДУБЛИРОВАНИЯ
 async buyLevel(level) {
+    // ✅ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ ВЫЗОВОВ
+    if (this.buyLevelInProgress) {
+        console.log('⚠️ Buy level already in progress, skipping...');
+        return;
+    }
+    
+    this.buyLevelInProgress = true;
+    
     // ✅ ДЕТАЛЬНАЯ ОТЛАДКА
     console.log(`=== 🛒 buyLevel() START for level ${level} ===`);
     console.log(`📍 User: ${app.state.userAddress}`);
@@ -544,11 +553,13 @@ async buyLevel(level) {
     if (!app.state.userAddress) {
         console.log('❌ STOP: No user address');
         app.showNotification('Подключите кошелек', 'error');
+        this.buyLevelInProgress = false;
         return;
     }
     
     if (!await app.checkNetwork()) {
         console.log('❌ STOP: Wrong network');
+        this.buyLevelInProgress = false;
         return;
     }
     
@@ -700,11 +711,19 @@ async buyLevel(level) {
         const contract = await app.getSignedContract('GlobalWay');
         console.log('✅ Got signed contract');
         
-        // ✅ УВЕЛИЧИВАЕМ GAS LIMIT для надежности
-        console.log('🔍 Sending transaction with increased gas...');
+        // ✅ УВЕЛИЧИВАЕМ GAS LIMIT И GAS PRICE для надежности
+        console.log('🔍 Sending transaction with optimized gas...');
+        
+        // Получаем текущий gas price
+        const feeData = await this.web3Provider.getFeeData();
+        const gasPrice = feeData.gasPrice.mul(120).div(100); // +20% для надежности
+        
+        console.log(`📍 Gas price: ${ethers.utils.formatUnits(gasPrice, 'gwei')} gwei`);
+        
         const tx = await contract.activateLevel(level, {
             value: priceWei,
-            gasLimit: 800000  // Увеличили с 500000 до 800000
+            gasLimit: 800000,  // Увеличили gas limit
+            gasPrice: gasPrice // Указываем gas price явно
         });
         
         console.log(`📝 Transaction sent: ${tx.hash}`);
@@ -737,6 +756,8 @@ async buyLevel(level) {
         
         if (error.code === 4001) {
             app.showNotification('Транзакция отклонена', 'error');
+        } else if (error.message && error.message.includes('pending request')) {
+            app.showNotification('Дождитесь завершения предыдущей транзакции', 'error');
         } else if (error.message && error.message.includes('insufficient funds')) {
             app.showNotification('Недостаточно средств', 'error');
         } else if (error.message && error.message.includes('gas')) {
@@ -759,6 +780,9 @@ async buyLevel(level) {
                 btn.disabled = false;
             }
         });
+        
+        // ✅ СБРАСЫВАЕМ ФЛАГ ПРОГРЕССА
+        this.buyLevelInProgress = false;
     }
     
     console.log(`=== 🛒 buyLevel() END for level ${level} ===`);
