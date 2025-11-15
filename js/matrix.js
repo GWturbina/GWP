@@ -1,17 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Matrix Module (ПРАВИЛЬНАЯ ВЕРСИЯ)
-// Единая глобальная бинарная матрица с поиском слева направо
+// GlobalWay DApp - Matrix Module
+// 🔥 ИСПРАВЛЕНО: Читает матрицу НАПРЯМУЮ из GlobalWay
 // ═══════════════════════════════════════════════════════════════════
 
 const matrixModule = {
-  // Контракты
   contracts: {},
   
-  // Состояние
   state: {
-    currentDepth: 1,      // Текущая глубина для таблицы (1-12)
-    currentRoot: null,    // Корень дерева (по умолчанию - пользователь)
-    matrixData: [],       // Данные для таблицы
+    currentDepth: 1,
+    currentRoot: null,
+    matrixData: [],
     stats: {
       totalActive: 0,
       fromPartners: 0,
@@ -20,9 +18,6 @@ const matrixModule = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ИНИЦИАЛИЗАЦИЯ
-  // ═══════════════════════════════════════════════════════════════
   async init() {
     console.log('🔲 Initializing Matrix Module...');
     
@@ -32,19 +27,10 @@ const matrixModule = {
         return;
       }
 
-      // Устанавливаем корень = пользователь
       this.state.currentRoot = app.state.userAddress;
-
-      // Загружаем контракты
       await this.loadContracts();
-
-      // Создаем 12 кнопок уровней
       this.createDepthButtons();
-
-      // Загружаем все данные
       await this.loadAllData();
-
-      // Инициализируем UI
       this.initUI();
 
       console.log('✅ Matrix Module loaded successfully');
@@ -54,7 +40,6 @@ const matrixModule = {
     }
   },
 
-  // Загрузка контрактов
   async loadContracts() {
     this.contracts.globalWay = await app.getContract('GlobalWay');
     this.contracts.helper = await app.getContract('GlobalWayHelper');
@@ -62,19 +47,16 @@ const matrixModule = {
     this.contracts.quarterly = await app.getContract('GlobalWayQuarterly');
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ЗАГРУЗКА ДАННЫХ
-  // ═══════════════════════════════════════════════════════════════
   async loadAllData() {
     await Promise.all([
-      this.loadMatrixVisualization(),  // Визуализация 1-2-4
-      this.loadMatrixTable(),          // Таблица партнеров на текущей глубине
-      this.loadMatrixStats()           // Статистика из контракта
+      this.loadMatrixVisualization(),
+      this.loadMatrixTable(),
+      this.loadMatrixStats()
     ]);
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ВИЗУАЛИЗАЦИЯ 1-2-4 (Интерактивное дерево)
+  // 🔥 ИСПРАВЛЕНО: Читаем матрицу НАПРЯМУЮ из контракта
   // ═══════════════════════════════════════════════════════════════
   async loadMatrixVisualization() {
     try {
@@ -82,20 +64,104 @@ const matrixModule = {
       const isRegistered = await this.contracts.globalWay.isUserRegistered(address);
       
       if (!isRegistered) {
-        console.log("User not registered, skipping matrix visualization");
+        console.log("User not registered");
         return;
       }
 
       const { currentRoot } = this.state;
 
-      // Получаем ветку матрицы (depth=2 → 7 узлов: 1+2+4)
-      const nodes = await this.contracts.helper.getMatrixBranch(currentRoot, 2);
+      // Получаем позицию пользователя
+      const userPosition = await this.contracts.globalWay.getUserMatrixPosition(currentRoot);
+      
+      console.log(`📍 User matrix position:`, userPosition.toString());
+      
+      if (userPosition.toString() === "0") {
+        console.log("⚠️ User not in matrix");
+        return;
+      }
 
-      // Обновляем визуализацию
+      // 🔥 ЧИТАЕМ НАПРЯМУЮ: 7 позиций (1 корень + 2 уровня)
+      const rootPos = parseInt(userPosition.toString());
+      const nodes = await this.readMatrixDirect(rootPos, 2);
+
+      console.log(`✅ Loaded ${nodes.length} nodes directly`);
+
       await this.updateVisualization(nodes);
 
     } catch (error) {
-      console.error('Error loading matrix visualization:', error);
+      console.error('❌ Error loading matrix:', error);
+    }
+  },
+
+  // 🔥 НОВАЯ ФУНКЦИЯ: Читает позиции напрямую из GlobalWay
+  async readMatrixDirect(rootPos, depth) {
+    const nodes = [];
+    
+    // Позиция 0: корень
+    nodes.push(await this.getNodeAtPosition(rootPos));
+    
+    if (depth >= 1) {
+      // Позиции 1-2: первый уровень (дети корня)
+      const leftChild = rootPos * 2;
+      const rightChild = rootPos * 2 + 1;
+      
+      nodes.push(await this.getNodeAtPosition(leftChild));
+      nodes.push(await this.getNodeAtPosition(rightChild));
+    }
+    
+    if (depth >= 2) {
+      // Позиции 3-6: второй уровень (внуки)
+      const positions = [
+        leftChild * 2,     // левый-левый
+        leftChild * 2 + 1, // левый-правый
+        rightChild * 2,    // правый-левый
+        rightChild * 2 + 1 // правый-правый
+      ];
+      
+      for (const pos of positions) {
+        nodes.push(await this.getNodeAtPosition(pos));
+      }
+    }
+    
+    return nodes;
+  },
+
+  // Получить данные узла на позиции
+  async getNodeAtPosition(position) {
+    try {
+      const [userAddress] = await this.contracts.globalWay.getMatrixPosition(position);
+      
+      if (userAddress === ethers.constants.AddressZero || 
+          userAddress === '0x0000000000000000000000000000000000000000') {
+        return {
+          user: ethers.constants.AddressZero,
+          position: position,
+          userID: '',
+          maxLevel: 0,
+          isActive: false
+        };
+      }
+      
+      const userID = await this.contracts.helper.getUserID(userAddress);
+      const maxLevel = await this.contracts.globalWay.getUserMaxLevel(userAddress);
+      
+      return {
+        user: userAddress,
+        position: position,
+        userID: userID,
+        maxLevel: maxLevel.toString(),
+        isActive: maxLevel > 0
+      };
+      
+    } catch (error) {
+      console.error(`Error reading position ${position}:`, error);
+      return {
+        user: ethers.constants.AddressZero,
+        position: position,
+        userID: '',
+        maxLevel: 0,
+        isActive: false
+      };
     }
   },
 
