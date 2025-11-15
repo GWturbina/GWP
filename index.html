@@ -93,38 +93,38 @@ const matrixModule = {
     }
   },
 
+  // 🔥 НОВАЯ ФУНКЦИЯ: Читает позиции напрямую из GlobalWay
   async readMatrixDirect(rootPos, depth) {
-  const nodes = [];
-  
-  // Позиция 0: корень
-  nodes.push(await this.getNodeAtPosition(rootPos));
-  
-  // 🔥 ОБЪЯВЛЯЕМ ЗДЕСЬ - ДО ВСЕХ IF!
-  const leftChild = rootPos * 2;
-  const rightChild = rootPos * 2 + 1;
-  
-  if (depth >= 1) {
-    // Позиции 1-2: первый уровень
-    nodes.push(await this.getNodeAtPosition(leftChild));
-    nodes.push(await this.getNodeAtPosition(rightChild));
-  }
-  
-  if (depth >= 2) {
-    // Позиции 3-6: второй уровень
-    const positions = [
-      leftChild * 2,
-      leftChild * 2 + 1,
-      rightChild * 2,
-      rightChild * 2 + 1
-    ];
+    const nodes = [];
     
-    for (const pos of positions) {
-      nodes.push(await this.getNodeAtPosition(pos));
+    // Позиция 0: корень
+    nodes.push(await this.getNodeAtPosition(rootPos));
+    
+    if (depth >= 1) {
+      // Позиции 1-2: первый уровень (дети корня)
+      const leftChild = rootPos * 2;
+      const rightChild = rootPos * 2 + 1;
+      
+      nodes.push(await this.getNodeAtPosition(leftChild));
+      nodes.push(await this.getNodeAtPosition(rightChild));
     }
-  }
-  
-  return nodes;
-}
+    
+    if (depth >= 2) {
+      // Позиции 3-6: второй уровень (внуки)
+      const positions = [
+        leftChild * 2,     // левый-левый
+        leftChild * 2 + 1, // левый-правый
+        rightChild * 2,    // правый-левый
+        rightChild * 2 + 1 // правый-правый
+      ];
+      
+      for (const pos of positions) {
+        nodes.push(await this.getNodeAtPosition(pos));
+      }
+    }
+    
+    return nodes;
+  },
 
   // Получить данные узла на позиции
   async getNodeAtPosition(position) {
