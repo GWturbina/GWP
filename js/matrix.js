@@ -126,36 +126,39 @@ const matrixModule = {
   },
 
   // Обновление одной позиции в визуализации
-async loadMatrixVisualization() {
-  try {
-    const address = app.state.userAddress;
-    const isRegistered = await this.contracts.globalWay.isUserRegistered(address);
-    
-    if (!isRegistered) {
-      console.log("User not registered");
-      return;
+  async updatePosition(elementId, nodeData) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    const userAddress = nodeData.user;
+
+    if (userAddress === ethers.ZeroAddress) {
+      // Пустая позиция
+      element.querySelector('.position-id').textContent = 'Empty';
+      const posType = element.querySelector('.position-type');
+      if (posType) posType.textContent = 'Available';
+      element.classList.remove('partner', 'charity', 'technical');
+      element.classList.add('available');
+      element.onclick = null;
+    } else {
+      // Занятая позиция
+      const id = nodeData.userID !== '' ? `GW${nodeData.userID}` : app.formatAddress(userAddress);
+      element.querySelector('.position-id').textContent = id;
+      
+      const levelSpan = element.querySelector('.position-level');
+      if (levelSpan) {
+        levelSpan.textContent = `Level ${nodeData.maxLevel}`;
+      }
+
+      // Определяем тип позиции
+      const positionType = await this.getPositionType(userAddress);
+      element.classList.remove('available', 'partner', 'charity', 'technical');
+      element.classList.add(positionType);
+
+      // Клик - открыть модалку и возможность посмотреть его матрицу
+      element.onclick = () => this.showPositionModal(userAddress);
     }
-
-    const { currentRoot } = this.state;
-
-    // Получаем ПОЗИЦИЮ
-    const rootPos = await this.contracts.globalWay.getUserMatrixPosition(currentRoot);
-    
-    if (rootPos.toString() === "0") {
-      console.log("User not in matrix");
-      return;
-    }
-
-    // 🔥 КОНВЕРТИРУЕМ BigNumber в число!
-    const posNum = parseInt(rootPos.toString());
-    const nodes = await this.contracts.helper.getMatrixBranch(posNum, 2);
-
-    await this.updateVisualization(nodes);
-
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
+  },
 
   // ═══════════════════════════════════════════════════════════════
   // ТАБЛИЦА ПАРТНЕРОВ (ПРАВИЛЬНАЯ ЛОГИКА)
