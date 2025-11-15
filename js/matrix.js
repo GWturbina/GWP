@@ -1,14 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Matrix Module (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+// GlobalWay DApp - Matrix Module (ПРАВИЛЬНАЯ ВЕРСИЯ)
+// Единая глобальная бинарная матрица с поиском слева направо
 // ═══════════════════════════════════════════════════════════════════
 
 const matrixModule = {
+  // Контракты
   contracts: {},
   
+  // Состояние
   state: {
-    currentDepth: 1,
-    currentRoot: null,
-    matrixData: [],
+    currentDepth: 1,      // Текущая глубина для таблицы (1-12)
+    currentRoot: null,    // Корень дерева (по умолчанию - пользователь)
+    matrixData: [],       // Данные для таблицы
     stats: {
       totalActive: 0,
       fromPartners: 0,
@@ -17,6 +20,9 @@ const matrixModule = {
     }
   },
 
+  // ═══════════════════════════════════════════════════════════════
+  // ИНИЦИАЛИЗАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
   async init() {
     console.log('🔲 Initializing Matrix Module...');
     
@@ -26,10 +32,19 @@ const matrixModule = {
         return;
       }
 
+      // Устанавливаем корень = пользователь
       this.state.currentRoot = app.state.userAddress;
+
+      // Загружаем контракты
       await this.loadContracts();
+
+      // Создаем 12 кнопок уровней
       this.createDepthButtons();
+
+      // Загружаем все данные
       await this.loadAllData();
+
+      // Инициализируем UI
       this.initUI();
 
       console.log('✅ Matrix Module loaded successfully');
@@ -39,6 +54,7 @@ const matrixModule = {
     }
   },
 
+  // Загрузка контрактов
   async loadContracts() {
     this.contracts.globalWay = await app.getContract('GlobalWay');
     this.contracts.helper = await app.getContract('GlobalWayHelper');
@@ -46,16 +62,19 @@ const matrixModule = {
     this.contracts.quarterly = await app.getContract('GlobalWayQuarterly');
   },
 
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА ДАННЫХ
+  // ═══════════════════════════════════════════════════════════════
   async loadAllData() {
     await Promise.all([
-      this.loadMatrixVisualization(),
-      this.loadMatrixTable(),
-      this.loadMatrixStats()
+      this.loadMatrixVisualization(),  // Визуализация 1-2-4
+      this.loadMatrixTable(),          // Таблица партнеров на текущей глубине
+      this.loadMatrixStats()           // Статистика из контракта
     ]);
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // 🔥 ИСПРАВЛЕНО: Визуализация матрицы
+  // ВИЗУАЛИЗАЦИЯ 1-2-4 (Интерактивное дерево)
   // ═══════════════════════════════════════════════════════════════
   async loadMatrixVisualization() {
     try {
@@ -63,31 +82,20 @@ const matrixModule = {
       const isRegistered = await this.contracts.globalWay.isUserRegistered(address);
       
       if (!isRegistered) {
-        console.log("User not registered");
+        console.log("User not registered, skipping matrix visualization");
         return;
       }
 
       const { currentRoot } = this.state;
 
-      // 🔥 ИСПРАВЛЕНО: Получаем ПОЗИЦИЮ пользователя
-      const rootPos = await this.contracts.globalWay.getUserMatrixPosition(currentRoot);
-      
-      console.log(`📍 Root position for ${currentRoot}:`, rootPos.toString());
-      
-      if (rootPos.toString() === "0") {
-        console.log("⚠️ User not in matrix yet");
-        return;
-      }
+      // Получаем ветку матрицы (depth=2 → 7 узлов: 1+2+4)
+      const nodes = await this.contracts.helper.getMatrixBranch(currentRoot, 2);
 
-      // 🔥 ИСПРАВЛЕНО: Передаём ПОЗИЦИЮ, а не адрес!
-      const nodes = await this.contracts.helper.getMatrixBranch(rootPos, 2);
-      
-      console.log(`✅ Loaded ${nodes.length} nodes for position ${rootPos}`);
-
+      // Обновляем визуализацию
       await this.updateVisualization(nodes);
 
     } catch (error) {
-      console.error('❌ Error loading matrix visualization:', error);
+      console.error('Error loading matrix visualization:', error);
     }
   },
 
@@ -118,39 +126,36 @@ const matrixModule = {
   },
 
   // Обновление одной позиции в визуализации
-  async updatePosition(elementId, nodeData) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    const userAddress = nodeData.user;
-
-    if (userAddress === ethers.ZeroAddress) {
-      // Пустая позиция
-      element.querySelector('.position-id').textContent = 'Empty';
-      const posType = element.querySelector('.position-type');
-      if (posType) posType.textContent = 'Available';
-      element.classList.remove('partner', 'charity', 'technical');
-      element.classList.add('available');
-      element.onclick = null;
-    } else {
-      // Занятая позиция
-      const id = nodeData.userID !== '' ? `GW${nodeData.userID}` : app.formatAddress(userAddress);
-      element.querySelector('.position-id').textContent = id;
-      
-      const levelSpan = element.querySelector('.position-level');
-      if (levelSpan) {
-        levelSpan.textContent = `Level ${nodeData.maxLevel}`;
-      }
-
-      // Определяем тип позиции
-      const positionType = await this.getPositionType(userAddress);
-      element.classList.remove('available', 'partner', 'charity', 'technical');
-      element.classList.add(positionType);
-
-      // Клик - открыть модалку и возможность посмотреть его матрицу
-      element.onclick = () => this.showPositionModal(userAddress);
+async loadMatrixVisualization() {
+  try {
+    const address = app.state.userAddress;
+    const isRegistered = await this.contracts.globalWay.isUserRegistered(address);
+    
+    if (!isRegistered) {
+      console.log("User not registered");
+      return;
     }
-  },
+
+    const { currentRoot } = this.state;
+
+    // Получаем ПОЗИЦИЮ
+    const rootPos = await this.contracts.globalWay.getUserMatrixPosition(currentRoot);
+    
+    if (rootPos.toString() === "0") {
+      console.log("User not in matrix");
+      return;
+    }
+
+    // 🔥 КОНВЕРТИРУЕМ BigNumber в число!
+    const posNum = parseInt(rootPos.toString());
+    const nodes = await this.contracts.helper.getMatrixBranch(posNum, 2);
+
+    await this.updateVisualization(nodes);
+
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
 
   // ═══════════════════════════════════════════════════════════════
   // ТАБЛИЦА ПАРТНЕРОВ (ПРАВИЛЬНАЯ ЛОГИКА)
