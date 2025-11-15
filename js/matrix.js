@@ -82,20 +82,32 @@ const matrixModule = {
       const isRegistered = await this.contracts.globalWay.isUserRegistered(address);
       
       if (!isRegistered) {
-        console.log("User not registered, skipping matrix visualization");
+        console.log("User not registered");
         return;
       }
 
       const { currentRoot } = this.state;
 
-      // Получаем ветку матрицы (depth=2 → 7 узлов: 1+2+4)
-      const nodes = await this.contracts.helper.getMatrixBranch(currentRoot, 2);
+      // 🔥 ИСПРАВЛЕНО: Получаем ПОЗИЦИЮ в матрице
+      const userPosition = await this.contracts.globalWay.getUserMatrixPosition(currentRoot);
+      
+      console.log(`📍 Position:`, userPosition.toString());
+      
+      if (userPosition.toString() === "0") {
+        console.log("⚠️ Not in matrix");
+        return;
+      }
 
-      // Обновляем визуализацию
+      // 🔥 ИСПРАВЛЕНО: Конвертируем в число
+      const posNum = parseInt(userPosition.toString());
+      const nodes = await this.contracts.helper.getMatrixBranch(posNum, 2);
+
+      console.log(`✅ Loaded ${nodes.length} nodes`);
+
       await this.updateVisualization(nodes);
 
     } catch (error) {
-      console.error('Error loading matrix visualization:', error);
+      console.error('Error:', error);
     }
   },
 
