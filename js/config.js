@@ -13,47 +13,77 @@ const CONFIG = {
     }
   },
 
-  // ✅ ИСПРАВЛЕНО: НОВЫЕ адреса контрактов (деплой 10.11.2025)
+  // ✅ НОВЫЕ АДРЕСА КОНТРАКТОВ (деплой 15.11.2025)
   CONTRACTS: {
-    GlobalWay: '0x62b26B98E63e1F272684D8517Ec1e4365322A11b',
-    GlobalWayHelper: '0x8F408d8786D862509dD021A06CF6697dF802db3a',
-    GlobalWayMarketing: '0x1f3Addbb931270dEbF3c88d457Be1Ef7a7E43D5c',
-    GlobalWayQuarterly: '0xd62461F550895D76209DFd9cE7aa1845B099756C',
-    GlobalWayLeaderPool: '0xb585cF8a3237166ccC575293B4D8776E50f46ACd',
-    GlobalWayInvestment: '0xD8e8CB4e1c9498524F85A1924D2f8B58d16f7655',
-    GlobalWayStats: '0x2B1Be8cc641fe0CfeAD7D8140b74857086429cce',
-    GlobalWayBridge: '0xC6ec10e2801F6641FBC732fFF549a89E269F324f',
-    GlobalWayGovernance: '0xD2281a42bA1185F702C023eb2d759C5140598Ada',
-    GlobalWayTechAccounts: '0xA42d60977Fc3AcddFbA5F56fE55bAD2214A7F0dA',
-    GWTToken: '0x7dFd9ff1B4D2Cb6Cc830589d5a9556664B9D6C95'
+    GlobalWay: '0x115D37c4ee5a3c15fc3d0C05CB481728AcaBf036',
+    GlobalWayHelper: '0x20EA180B9945B7391925940DeaAB9e576BfB9c81',
+    GlobalWayMarketing: '0xd5906199C749643714C1FcB9E6217dF07A89edcd',
+    GlobalWayQuarterly: '0x0e65983DdAaC6c0B142787fF1cf79e0A75ca294A',
+    GlobalWayLeaderPool: '0x0CaD4395c1D074DC42Fe606907BED372C63406C3',
+    GlobalWayInvestment: '0xb141036899f4e32744ecF3520BD134f41acD6b26',
+    GlobalWayStats: '0xF493CDe52f9da6390cDd8f200109fDBF333080b3',
+    GlobalWayBridge: '0xe63f5bf69232E2e76E530F2797bBd81e4fafE512',
+    GlobalWayGovernance: '0x7f52082AfA3931f9404fBF856D676F9a4b604Bf6',
+    GlobalWayTechAccounts: '0x7A2Dee3679FC25C6a998a5198921E92D8907Bc31',
+    GWTToken: '0xa9d16942aCB90df6465B81f95c9a91f13F1700Ae'
   },
 
   WALLETS: {
     treasury: '0xE58f778236C1D3cCecf14eC1274761559685a336',
     charity: '0x09c3bD32EB0617e29E41382b738c4E3Cc932A611',
-    tokenomics: '0xbDC29886c91878C1ba9ce0626Da5E1961324354F'
+    tokenomics: '0xbDC29886c91878C1ba9ce0626Da5E1961324354F',
+    ops: '0x956C8350b874D01D32236Eb2944089B54C3b9670',
+    dev: '0xF8C5504dc1e5165a0748A3DC410384BfCBab13Dd'
   },
 
-  // ✅ ADMIN: Owner + 3 Founders с доступом к админке
+  // ✅ ADMIN: Owner + 3 Founders (с доступом к админке)
   ADMIN: {
     owner: '0x7261b8aeaee2f806f64001596a67d68f2055acd2',
     
-    founders: [
+    // ✅ ТОЛЬКО ЭТИ 3 FOUNDERS ИМЕЮТ ДОСТУП К АДМИНКЕ
+    adminFounders: [
       {
-        address: '0x03284a899147f5a07f82c622f34df92198671635',
-        id: '7777777'
+        address: '0x03284A899147f5a07F82C622F34DF92198671635',
+        id: '7777777',
+        name: 'Founder 1'
       },
       {
-        address: '0x9b49bd9c9458615e11c051afd1ebe983563b67ee',
-        id: '5555555'
+        address: '0x9b49bD9c9458615e11C051afd1EBe983563b67EE',
+        id: '5555555',
+        name: 'Founder 2'
       },
       {
-        address: '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7',
-        id: '9999999'
+        address: '0xc2b58114cBc873cf360f7A673e4d8EE25d1431e7',
+        id: '9999999',
+        name: 'Founder 3'
+      }
+    ],
+    
+    // ВСЕ 4 FOUNDERS (для справки)
+    allFounders: [
+      {
+        address: '0x03284A899147f5a07F82C622F34DF92198671635',
+        id: '7777777',
+        name: 'Founder 1',
+        hasAdminAccess: true
+      },
+      {
+        address: '0x9b49bD9c9458615e11C051afd1EBe983563b67EE',
+        id: '5555555',
+        name: 'Founder 2',
+        hasAdminAccess: true
+      },
+      {
+        address: '0xc2b58114cBc873cf360f7A673e4d8EE25d1431e7',
+        id: '9999999',
+        name: 'Founder 3',
+        hasAdminAccess: true
       },
       {
         address: '0xa3496caCC8523421Dd151f1d92A456c2daFa28c2',
-        id: '2290631'
+        id: '2290631',
+        name: 'Founder 4',
+        hasAdminAccess: false
       }
     ],
     
@@ -145,36 +175,39 @@ const CONFIG = {
     }
   ],
 
+  // ✅ ПРАВИЛЬНЫЕ ЦЕНЫ УРОВНЕЙ (в BNB)
   LEVEL_PRICES: [
-    '0.0015',  // 1
-    '0.003',   // 2
-    '0.006',   // 3
-    '0.012',   // 4
-    '0.024',   // 5
-    '0.048',   // 6
-    '0.096',   // 7
-    '0.192',   // 8
-    '0.384',   // 9
-    '0.768',   // 10
-    '1.536',   // 11
-    '3.072'    // 12
+    '0.005',   // Level 1
+    '0.01',    // Level 2
+    '0.02',    // Level 3
+    '0.04',    // Level 4
+    '0.08',    // Level 5
+    '0.16',    // Level 6
+    '0.32',    // Level 7
+    '0.64',    // Level 8
+    '1.28',    // Level 9
+    '2.56',    // Level 10
+    '5.12',    // Level 11
+    '10.24'    // Level 12
   ],
 
+  // ✅ ТОКЕНЫ ЗА УРОВНИ (GWT)
   TOKEN_REWARDS: [
-    5,     // 1
-    5,     // 2
-    10,    // 3
-    15,    // 4
-    35,    // 5
-    75,    // 6
-    150,   // 7
-    300,   // 8
-    600,   // 9
-    1200,  // 10
-    2400,  // 11
-    4500   // 12
+    5,     // Level 1
+    5,     // Level 2
+    10,    // Level 3
+    15,    // Level 4
+    35,    // Level 5
+    75,    // Level 6
+    150,   // Level 7
+    300,   // Level 8
+    600,   // Level 9
+    1200,  // Level 10
+    2400,  // Level 11
+    4500   // Level 12
   ],
 
+  // ✅ КВАРТАЛЬНАЯ ОПЛАТА
   QUARTERLY_COST: '0.075',
   
   DEEP_LINKS: {
@@ -196,6 +229,8 @@ if (typeof window !== 'undefined') {
   console.log('✅ Config loaded:', {
     network: CONFIG.NETWORK.name,
     contracts: Object.keys(CONFIG.CONTRACTS).length,
-    admin: CONFIG.ADMIN.owner
+    admin: CONFIG.ADMIN.owner,
+    adminFounders: CONFIG.ADMIN.adminFounders.length,
+    totalFounders: CONFIG.ADMIN.allFounders.length
   });
 }
