@@ -15,17 +15,17 @@ const CONFIG = {
 
   // ✅ ИСПРАВЛЕНО: НОВЫЕ адреса контрактов (деплой 10.11.2025)
   CONTRACTS: {
-    GlobalWay: '0x974fFA4e51458AA72C6262B59Af610844db27548',
-    GlobalWayHelper: '0x45bC9af2381CF2FB4fC638E21c0035f9c8C64D8B',
-    GlobalWayMarketing: '0xe1C604A8E8C2b885773cC4c67E483f29bfcCf91C',
-    GlobalWayQuarterly: '0x09fE6e69e9Eaf1c54dE953c0dC31edfD22115CC7',
-    GlobalWayLeaderPool: '0x8a6D429D12cE2bac90cAe52697e985948C4dE620',
-    GlobalWayInvestment: '0xa17162c8aC8EE6AD7aA04C229aC266c7D421eA92',
-    GlobalWayStats: '0xFA66Fa17a8e6232edD4e675F0732dAdDCd79aA9C',
-    GlobalWayBridge: '0x93d0f02298C646BB10E6de3e79fb91f23702348F',
-    GlobalWayGovernance: '0x197971D4cD31DE685c7Aa2F24bc2E4aA23A8ac59',
-    GlobalWayTechAccounts: '0x616eDDa302bD4D47aC4B889BAF4c141f80A65D09',
-    GWTToken: '0xdd263e6bC806A2DDf45b3F7212Ddcd4938724E4E'
+    GlobalWay: '0x62b26B98E63e1F272684D8517Ec1e4365322A11b',
+    GlobalWayHelper: '0x8F408d8786D862509dD021A06CF6697dF802db3a',
+    GlobalWayMarketing: '0x1f3Addbb931270dEbF3c88d457Be1Ef7a7E43D5c',
+    GlobalWayQuarterly: '0xd62461F550895D76209DFd9cE7aa1845B099756C',
+    GlobalWayLeaderPool: '0xb585cF8a3237166ccC575293B4D8776E50f46ACd',
+    GlobalWayInvestment: '0xD8e8CB4e1c9498524F85A1924D2f8B58d16f7655',
+    GlobalWayStats: '0x2B1Be8cc641fe0CfeAD7D8140b74857086429cce',
+    GlobalWayBridge: '0xC6ec10e2801F6641FBC732fFF549a89E269F324f',
+    GlobalWayGovernance: '0xD2281a42bA1185F702C023eb2d759C5140598Ada',
+    GlobalWayTechAccounts: '0xA42d60977Fc3AcddFbA5F56fE55bAD2214A7F0dA',
+    GWTToken: '0x7dFd9ff1B4D2Cb6Cc830589d5a9556664B9D6C95'
   },
 
   WALLETS: {
@@ -34,6 +34,7 @@ const CONFIG = {
     tokenomics: '0xbDC29886c91878C1ba9ce0626Da5E1961324354F'
   },
 
+  // ✅ ADMIN: Owner + 3 Founders с доступом к админке
   ADMIN: {
     owner: '0x7261b8aeaee2f806f64001596a67d68f2055acd2',
     
@@ -56,6 +57,7 @@ const CONFIG = {
       }
     ],
     
+    // Board members (для голосования)
     board: [
       '0x11c4FA4126f9B373c4b9A2D43986Cd331E32d2fA',
       '0x0AB97e3934b1Afc9F1F6447CCF676E4f1D8B9639',
@@ -173,26 +175,18 @@ const CONFIG = {
     4500   // 12
   ],
 
-QUARTERLY_COST: '0.075',
+  QUARTERLY_COST: '0.075',
+  
   DEEP_LINKS: {
     safepal: 'safepal://wc?uri=',
     metamask: 'https://metamask.app.link/dapp/'
   },
+  
   QR_CONFIG: {
     size: 256,
     logo: 'assets/icons/logo-32x32.png'
-  },
-  
-  // ✅ ДОБАВЛЯЕМ ADMIN ВНУТРИ ОБЪЕКТА CONFIG (перед закрывающей скобкой)
-  ADMIN: {
-    owner: '0x03284A899147f5a07F82C622F34DF92198671635',
-    founders: [
-      { address: '0x03284A899147f5a07F82C622F34DF92198671635' },
-      { address: '0x9b49bD9c9458615e11C051afd1EBe983563b67EE' },
-      { address: '0xc2b58114cBc873cf360f7A673e4d8EE25d1431e7' }
-    ]
   }
-}; // ← ТЕПЕРЬ закрываем CONFIG
+};
 
 // ✅ ЭКСПОРТ В WINDOW
 if (typeof window !== 'undefined') {
