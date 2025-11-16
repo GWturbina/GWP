@@ -125,7 +125,7 @@ async readMatrixDirect(rootPos, depth) {
   }
   
   return nodes;
-}
+},
 
   // Получить данные узла на позиции
   async getNodeAtPosition(position) {
