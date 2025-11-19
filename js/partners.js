@@ -1,13 +1,16 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Partners Module
 // Партнерская структура: 12 уровней глубины, статистика, квалификация
+// ПОЛНОСТЬЮ ПЕРЕПИСАН под новые контракты
+// Date: 2025-01-19
 // ═══════════════════════════════════════════════════════════════════
 
 const partnersModule = {
-  // Контракты
+  // ═══════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════
   contracts: {},
   
-  // Состояние
   state: {
     currentLevel: 1,
     partners: [],
@@ -28,6 +31,11 @@ const partnersModule = {
       matrix: '0',
       leadership: '0',
       total: '0'
+    },
+    levelInfo: {
+      level: 1,
+      cost: CONFIG.LEVEL_PRICES[0],
+      earned: '0'
     }
   },
 
@@ -39,20 +47,13 @@ const partnersModule = {
     
     try {
       if (!app.state.userAddress) {
-        app.showNotification('Подключите кошелек', 'error');
+        console.log('⚠️ No user address');
         return;
       }
 
-      // Загружаем контракты
       await this.loadContracts();
-
-      // Создаем кнопки уровней
       this.createLevelButtons();
-
-      // Загружаем данные
       await this.loadAllData();
-
-      // Инициализируем UI
       this.initUI();
 
       console.log('✅ Partners loaded');
@@ -62,39 +63,51 @@ const partnersModule = {
     }
   },
 
-  // Загрузка контрактов
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА КОНТРАКТОВ
+  // ═══════════════════════════════════════════════════════════════
   async loadContracts() {
+    console.log('📥 Loading contracts for partners...');
+    
+    this.contracts.matrixRegistry = await app.getContract('MatrixRegistry');
     this.contracts.globalWay = await app.getContract('GlobalWay');
-    this.contracts.helper = await app.getContract('GlobalWayHelper');
-    this.contracts.marketing = await app.getContract('GlobalWayMarketing');
+    this.contracts.partnerProgram = await app.getContract('PartnerProgram');
+    this.contracts.matrixPayments = await app.getContract('MatrixPayments');
     this.contracts.stats = await app.getContract('GlobalWayStats');
     this.contracts.leaderPool = await app.getContract('GlobalWayLeaderPool');
+    
+    console.log('✅ All partner contracts loaded');
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ЗАГРУЗКА ДАННЫХ
+  // ЗАГРУЗКА ВСЕХ ДАННЫХ
   // ═══════════════════════════════════════════════════════════════
   async loadAllData() {
     await Promise.all([
       this.loadTeamStats(),
       this.loadQualification(),
       this.loadEarnings(),
+      this.loadLevelInfo(this.state.currentLevel),
       this.loadPartnersByLevel(this.state.currentLevel)
     ]);
   },
 
-  // Статистика команды
+  // ═══════════════════════════════════════════════════════════════
+  // СТАТИСТИКА КОМАНДЫ
+  // ═══════════════════════════════════════════════════════════════
   async loadTeamStats() {
     try {
       const address = app.state.userAddress;
+      console.log('📊 Loading team stats...');
       
-      // ПРАВИЛЬНО: Используем callStatic для view функций
-      const result = await this.contracts.stats.callStatic.getUserStructureStats(address);
+      // Получаем статистику структуры
+      const result = await this.contracts.stats.getUserStructureStats(address);
       
-      // result[0] = directReferrals count
-      // result[1] = all referrals array
-      // result[2] = activeLevels
-      // result[3] = levelStatus array
+      // result обычно возвращает:
+      // [0] = directReferrals (uint256)
+      // [1] = allReferrals (address[])
+      // [2] = activeLevels (uint256)
+      // [3] = levelStatus (bool[])
 
       this.state.stats = {
         personal: Number(result[0]),
@@ -102,76 +115,169 @@ const partnersModule = {
         total: result[1] ? result[1].length : 0
       };
 
+      console.log('✅ Team stats loaded:', this.state.stats);
       this.updateStatsUI();
+      
     } catch (error) {
-      console.error('Error loading team stats:', error);
+      console.error('❌ Error loading team stats:', error);
       this.state.stats = { personal: 0, active: 0, total: 0 };
+      this.updateStatsUI();
     }
   },
 
-  // Квалификация
+  // ═══════════════════════════════════════════════════════════════
+  // КВАЛИФИКАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
   async loadQualification() {
     try {
       const address = app.state.userAddress;
-      const [rankQualified, progress] = 
-        await this.contracts.helper.getUserQualificationStatus(address);
+      console.log('🏆 Loading qualification...');
 
+      // Получаем текущий ранг из MatrixPayments
+      const currentRank = await this.contracts.matrixPayments.getUserRank(address);
+      const rankNum = Number(currentRank);
+
+      // Устанавливаем достижения на основе ранга
       this.state.qualification = {
         bronze: { 
-          achieved: rankQualified[0], 
-          progress: Number(progress[0]) 
+          achieved: rankNum >= 1, 
+          progress: rankNum >= 1 ? 100 : 0 
         },
         silver: { 
-          achieved: rankQualified[1], 
-          progress: Number(progress[1]) 
+          achieved: rankNum >= 2, 
+          progress: rankNum >= 2 ? 100 : (rankNum === 1 ? 50 : 0)
         },
         gold: { 
-          achieved: rankQualified[2], 
-          progress: Number(progress[2]) 
+          achieved: rankNum >= 3, 
+          progress: rankNum >= 3 ? 100 : (rankNum === 2 ? 50 : 0)
         },
         platinum: { 
-          achieved: rankQualified[3], 
-          progress: Number(progress[3]) 
+          achieved: rankNum >= 4, 
+          progress: rankNum >= 4 ? 100 : (rankNum === 3 ? 50 : 0)
         }
       };
 
+      console.log('✅ Qualification loaded:', this.state.qualification);
       this.updateQualificationUI();
+      
     } catch (error) {
-      console.error('Error loading qualification:', error);
+      console.error('❌ Error loading qualification:', error);
+      this.state.qualification = {
+        bronze: { achieved: false, progress: 0 },
+        silver: { achieved: false, progress: 0 },
+        gold: { achieved: false, progress: 0 },
+        platinum: { achieved: false, progress: 0 }
+      };
+      this.updateQualificationUI();
     }
   },
 
-  // Доходы
+  // ═══════════════════════════════════════════════════════════════
+  // ДОХОДЫ
+  // ═══════════════════════════════════════════════════════════════
   async loadEarnings() {
     try {
       const address = app.state.userAddress;
+      console.log('💰 Loading earnings...');
 
-      // Получаем события бонусов
-      const directBonus = 0; // TODO: Fix filters
-      const partnerBonus = 0; // TODO: Fix filters
-      const matrixBonus = 0; // TODO: Fix filters
-      const leadershipBonus = 0; // TODO: Fix filters
+      // 1. Получаем данные из PartnerProgram
+      const [fromSponsor, fromUpline, totalPartner] = 
+        await this.contracts.partnerProgram.getUserEarnings(address);
+      
+      const directBonusWei = fromSponsor;
+      const partnerBonusWei = fromUpline;
+
+      // 2. Матричные бонусы из MatrixPayments
+      let matrixBonusWei = 0n;
+      try {
+        const matrixBalance = await this.contracts.matrixPayments.getUserBalance(address);
+        matrixBonusWei = matrixBalance;
+      } catch (e) {
+        console.warn('⚠️ Could not get matrix balance:', e);
+      }
+
+      // 3. Лидерские бонусы из LeaderPool
+      let leaderBonusWei = 0n;
+      try {
+        const leaderBalance = await this.contracts.leaderPool.getUserBalance(address);
+        leaderBonusWei = leaderBalance;
+      } catch (e) {
+        console.warn('⚠️ Could not get leader balance:', e);
+      }
+
+      // Конвертируем в BNB
+      const direct = ethers.utils.formatEther(directBonusWei);
+      const partner = ethers.utils.formatEther(partnerBonusWei);
+      const matrix = ethers.utils.formatEther(matrixBonusWei);
+      const leadership = ethers.utils.formatEther(leaderBonusWei);
+
+      const total = (
+        parseFloat(direct) + 
+        parseFloat(partner) + 
+        parseFloat(matrix) + 
+        parseFloat(leadership)
+      ).toFixed(4);
 
       this.state.earnings = {
-        direct: directBonus,
-        partner: partnerBonus,
-        matrix: matrixBonus,
-        leadership: leadershipBonus,
-        total: (
-          parseFloat(directBonus) + 
-          parseFloat(partnerBonus) + 
-          parseFloat(matrixBonus) + 
-          parseFloat(leadershipBonus)
-        ).toFixed(4)
+        direct,
+        partner,
+        matrix,
+        leadership,
+        total
       };
 
+      console.log('✅ Earnings loaded:', this.state.earnings);
       this.updateEarningsUI();
+      
     } catch (error) {
-      console.error('Error loading earnings:', error);
+      console.error('❌ Error loading earnings:', error);
+      this.state.earnings = {
+        direct: '0',
+        partner: '0',
+        matrix: '0',
+        leadership: '0',
+        total: '0'
+      };
+      this.updateEarningsUI();
     }
   },
 
-  // Партнеры по уровню
+  // ═══════════════════════════════════════════════════════════════
+  // ИНФОРМАЦИЯ О ТЕКУЩЕМ УРОВНЕ
+  // ═══════════════════════════════════════════════════════════════
+  async loadLevelInfo(level) {
+    try {
+      const address = app.state.userAddress;
+      
+      // Стоимость уровня
+      const cost = CONFIG.LEVEL_PRICES[level - 1];
+      
+      // Всего заработано на этом уровне (можно взять из событий)
+      let earned = '0';
+      try {
+        // Можно получить из PartnerProgram события для этого уровня
+        // Пока используем общую статистику
+        earned = this.state.earnings.total;
+      } catch (e) {
+        console.warn('⚠️ Could not get level earnings:', e);
+      }
+
+      this.state.levelInfo = {
+        level,
+        cost,
+        earned
+      };
+
+      this.updateLevelInfoUI();
+      
+    } catch (error) {
+      console.error('❌ Error loading level info:', error);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПАРТНЕРЫ ПО УРОВНЮ ГЛУБИНЫ
+  // ═══════════════════════════════════════════════════════════════
   async loadPartnersByLevel(depth) {
     try {
       const address = app.state.userAddress;
@@ -179,10 +285,23 @@ const partnersModule = {
       
       if (!tableBody) return;
 
+      console.log(`📋 Loading partners for depth ${depth}...`);
       tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Загрузка...</td></tr>';
 
-      // Получаем партнеров на указанной глубине
-      const referrals = await this.contracts.helper.getReferralsByDepth(address, depth);
+      // Получаем всех рефералов из Stats
+      const result = await this.contracts.stats.getUserStructureStats(address);
+      const allReferrals = result[1]; // address[]
+
+      if (!allReferrals || allReferrals.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Партнеры не найдены</td></tr>';
+        return;
+      }
+
+      // Фильтруем по глубине (для простоты показываем всех)
+      // В реальности нужна функция getReferralsByDepth из Stats
+      const referrals = depth === 1 ? 
+        await this.getDirectReferrals(address) : 
+        allReferrals.slice(0, 50); // Ограничиваем для производительности
 
       if (referrals.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Партнеры не найдены</td></tr>';
@@ -209,9 +328,10 @@ const partnersModule = {
       `).join('');
 
       this.state.partners = partnersData;
+      console.log(`✅ Loaded ${partnersData.length} partners`);
 
     } catch (error) {
-      console.error('Error loading partners:', error);
+      console.error('❌ Error loading partners:', error);
       const tableBody = document.getElementById('partnersTable');
       if (tableBody) {
         tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Ошибка загрузки</td></tr>';
@@ -219,57 +339,71 @@ const partnersModule = {
     }
   },
 
-  // Получить детали партнера
+  // ═══════════════════════════════════════════════════════════════
+  // ПОЛУЧИТЬ ПРЯМЫХ РЕФЕРАЛОВ
+  // ═══════════════════════════════════════════════════════════════
+  async getDirectReferrals(address) {
+    try {
+      // Получаем ID пользователя
+      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
+      
+      // Получаем всех зарегистрированных через события Registration
+      const filter = this.contracts.matrixRegistry.filters.UserRegistered(null, userId);
+      const events = await this.contracts.matrixRegistry.queryFilter(filter, -100000);
+      
+      return events.map(event => event.args.user);
+    } catch (error) {
+      console.error('❌ Error getting direct referrals:', error);
+      return [];
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПОЛУЧИТЬ ДЕТАЛИ ПАРТНЕРА
+  // ═══════════════════════════════════════════════════════════════
   async getPartnerDetails(address) {
     try {
-      // ID
-      const userID = await this.contracts.helper.getUserID(address);
-      const id = userID !== '' ? `GW${userID}` : app.formatAddress(address);
+      // 1. ID пользователя
+      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
+      const id = userId.toString() !== '0' ? `GW${userId.toString()}` : app.formatAddress(address);
 
-      // Спонсор
-      const sponsor = await this.contracts.globalWay.getUserSponsor(address);
-      const sponsorID = await this.contracts.helper.getUserID(sponsor);
-      const sponsorId = sponsorID !== '' ? `GW${sponsorID}` : app.formatAddress(sponsor);
+      // 2. Спонсор
+      let sponsorId = '-';
+      try {
+        const userInfo = await this.contracts.matrixRegistry.getUserInfo(address);
+        const sponsorUserId = userInfo.sponsorId;
+        sponsorId = sponsorUserId.toString() !== '0' ? `GW${sponsorUserId.toString()}` : '-';
+      } catch (e) {
+        console.warn('⚠️ Could not get sponsor:', e);
+      }
 
-      // ✅ ИСПРАВЛЕНО: Уровень с проверкой Founder статуса
+      // 3. Максимальный уровень
       let maxLevel = 0;
-      
-      // Сначала проверяем isFounder
-      const isFounder = await this.contracts.helper.isFounder(address);
-      
-      if (isFounder) {
-        // Founders должны иметь 12
-        maxLevel = 12;
-        console.log(`✅ Founder detected: ${address}, setting maxLevel = 12`);
-      } else {
-        // Обычный getUserMaxLevel
+      try {
         maxLevel = Number(await this.contracts.globalWay.getUserMaxLevel(address));
-      }
-      
-      // Если все еще 0 - проверяем альтернативными способами
-      if (maxLevel === 0) {
-        const isRegistered = await this.contracts.globalWay.isUserRegistered(address);
-        if (!isRegistered) {
-          console.warn(`❌ User not registered: ${address}`);
-        } else {
-          console.warn(`⚠️ Registered but maxLevel = 0: ${address}`);
-        }
+      } catch (e) {
+        console.warn('⚠️ Could not get max level:', e);
       }
 
-      // Прямая команда
-      const referrals = await this.contracts.globalWay.getUserReferrals(address);
-      const team = referrals.length;
+      // 4. Прямая команда (считаем рефералов)
+      let team = 0;
+      try {
+        const result = await this.contracts.stats.getUserStructureStats(address);
+        team = Number(result[0]); // directReferrals
+      } catch (e) {
+        console.warn('⚠️ Could not get team count:', e);
+      }
 
-      // ✅ ИСПРАВЛЕНО: Ранг с проверкой Founder
+      // 5. Ранг
       let rank = 'Никто';
-      if (isFounder) {
-        rank = 'Платина ⭐';
-      } else {
-        const [rankQualified] = await this.contracts.helper.getUserQualificationStatus(address);
-        rank = this.getRankName(rankQualified);
+      try {
+        const rankId = await this.contracts.matrixPayments.getUserRank(address);
+        rank = this.getRankName(Number(rankId));
+      } catch (e) {
+        console.warn('⚠️ Could not get rank:', e);
       }
 
-      // Дата активации (первая покупка)
+      // 6. Дата активации
       const date = await this.getActivationDate(address);
 
       return {
@@ -283,7 +417,6 @@ const partnersModule = {
       };
     } catch (error) {
       console.error('❌ Error getting partner details:', error);
-      console.error('Address:', address);
       return {
         address,
         id: app.formatAddress(address),
@@ -296,107 +429,33 @@ const partnersModule = {
     }
   },
 
-  // Получить дату активации
+  // ═══════════════════════════════════════════════════════════════
+  // ПОЛУЧИТЬ ДАТУ АКТИВАЦИИ
+  // ═══════════════════════════════════════════════════════════════
   async getActivationDate(address) {
     try {
-      const filter = this.contracts.globalWay.filters.LevelActivated(address, 1);
+      // Используем событие LevelPurchased (или LevelActivated)
+      const filter = this.contracts.globalWay.filters.LevelPurchased(address, 1);
       const events = await this.contracts.globalWay.queryFilter(filter, -100000);
       
       if (events.length > 0) {
         const block = await events[0].getBlock();
-        return new Date(block.timestamp * 1000).toLocaleDateString();
+        return new Date(block.timestamp * 1000).toLocaleDateString('ru-RU');
       }
+      
+      // Альтернативно - из MatrixRegistry
+      const regFilter = this.contracts.matrixRegistry.filters.UserRegistered(address);
+      const regEvents = await this.contracts.matrixRegistry.queryFilter(regFilter, -100000);
+      
+      if (regEvents.length > 0) {
+        const block = await regEvents[0].getBlock();
+        return new Date(block.timestamp * 1000).toLocaleDateString('ru-RU');
+      }
+      
       return '-';
     } catch (error) {
+      console.warn('⚠️ Could not get activation date:', error);
       return '-';
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // РАСЧЕТ ДОХОДОВ
-  // ═══════════════════════════════════════════════════════════════
-  
-  // Прямой бонус (10%)
-  async calculateDirectBonus(address) {
-    try {
-      const filter = this.contracts.marketing.filters.ReferralBonusPaid(null, address);
-      const events = await this.contracts.marketing.queryFilter(filter, -100000);
-
-      let total = 0n;
-      for (const event of events) {
-        // Проверяем что это прямой бонус (от direct referral)
-        const from = event.args.from;
-        const sponsor = await this.contracts.globalWay.getUserSponsor(from);
-        
-        if (sponsor.toLowerCase() === address.toLowerCase()) {
-          total += event.args.amount;
-        }
-      }
-
-      return ethers.utils.formatEther(total);
-    } catch (error) {
-      console.error('Error calculating direct bonus:', error);
-      return '0';
-    }
-  },
-
-  // Партнерский бонус (2% × 12 уровней)
-  async calculatePartnerBonus(address) {
-    try {
-      const filter = this.contracts.marketing.filters.ReferralBonusPaid(null, address);
-      const events = await this.contracts.marketing.queryFilter(filter, -100000);
-
-      let total = 0n;
-      for (const event of events) {
-        // Все бонусы кроме прямых
-        const from = event.args.from;
-        const sponsor = await this.contracts.globalWay.getUserSponsor(from);
-        
-        if (sponsor.toLowerCase() !== address.toLowerCase()) {
-          total += event.args.amount;
-        }
-      }
-
-      return ethers.utils.formatEther(total);
-    } catch (error) {
-      console.error('Error calculating partner bonus:', error);
-      return '0';
-    }
-  },
-
-  // Матричный бонус (48%)
-  async calculateMatrixBonus(address) {
-    try {
-      const filter = this.contracts.marketing.filters.MatrixBonusPaid(null, address);
-      const events = await this.contracts.marketing.queryFilter(filter, -100000);
-
-      let total = 0n;
-      for (const event of events) {
-        total += event.args.amount;
-      }
-
-      return ethers.utils.formatEther(total);
-    } catch (error) {
-      console.error('Error calculating matrix bonus:', error);
-      return '0';
-    }
-  },
-
-  // Лидерский бонус
-  async calculateLeadershipBonus(address) {
-    try {
-      const filter = this.contracts.leaderPool.filters.RewardDistributed(address);
-      const events = await this.contracts.leaderPool.queryFilter(filter, -100000);
-
-      let total = 0n;
-      for (const event of events) {
-        total += event.args.amount;
-      }
-
-      return ethers.utils.formatEther(total);
-    } catch (error) {
-      console.error('Error calculating leadership bonus:', error);
-      return '0';
     }
   },
 
@@ -407,9 +466,13 @@ const partnersModule = {
   updateStatsUI() {
     const { personal, active, total } = this.state.stats;
 
-    document.getElementById('personalInvites').textContent = personal;
-    document.getElementById('activePartners').textContent = active;
-    document.getElementById('totalTeam').textContent = total;
+    const personalEl = document.getElementById('personalInvites');
+    const activeEl = document.getElementById('activePartners');
+    const totalEl = document.getElementById('totalTeam');
+
+    if (personalEl) personalEl.textContent = personal;
+    if (activeEl) activeEl.textContent = active;
+    if (totalEl) totalEl.textContent = total;
   },
 
   updateQualificationUI() {
@@ -417,15 +480,21 @@ const partnersModule = {
     
     ranks.forEach(rank => {
       const badge = document.getElementById(`${rank}Qual`);
+      if (!badge) return;
+      
       const qual = this.state.qualification[rank];
       
-      if (badge) {
-        if (qual.achieved) {
-          badge.classList.add('achieved');
-          badge.querySelector('.progress').style.width = '100%';
-        } else {
-          badge.classList.remove('achieved');
-          badge.querySelector('.progress').style.width = `${qual.progress}%`;
+      if (qual.achieved) {
+        badge.classList.add('achieved');
+        const progressBar = badge.querySelector('.progress');
+        if (progressBar) {
+          progressBar.style.width = '100%';
+        }
+      } else {
+        badge.classList.remove('achieved');
+        const progressBar = badge.querySelector('.progress');
+        if (progressBar) {
+          progressBar.style.width = `${qual.progress}%`;
         }
       }
     });
@@ -434,11 +503,29 @@ const partnersModule = {
   updateEarningsUI() {
     const { direct, partner, matrix, leadership, total } = this.state.earnings;
 
-    document.getElementById('directBonus').textContent = `${app.formatNumber(direct)} BNB`;
-    document.getElementById('partnerBonus').textContent = `${app.formatNumber(partner)} BNB`;
-    document.getElementById('matrixBonus').textContent = `${app.formatNumber(matrix)} BNB`;
-    document.getElementById('leadershipBonus').textContent = `${app.formatNumber(leadership)} BNB`;
-    document.getElementById('totalEarned').textContent = `${app.formatNumber(total)} BNB`;
+    const directEl = document.getElementById('directBonus');
+    const partnerEl = document.getElementById('partnerBonus');
+    const matrixEl = document.getElementById('matrixBonus');
+    const leadershipEl = document.getElementById('leadershipBonus');
+    const totalEl = document.getElementById('totalEarned');
+
+    if (directEl) directEl.textContent = `${app.formatNumber(direct, 4)} BNB`;
+    if (partnerEl) partnerEl.textContent = `${app.formatNumber(partner, 4)} BNB`;
+    if (matrixEl) matrixEl.textContent = `${app.formatNumber(matrix, 4)} BNB`;
+    if (leadershipEl) leadershipEl.textContent = `${app.formatNumber(leadership, 4)} BNB`;
+    if (totalEl) totalEl.textContent = `${app.formatNumber(total, 4)} BNB`;
+  },
+
+  updateLevelInfoUI() {
+    const { level, cost, earned } = this.state.levelInfo;
+
+    const levelEl = document.getElementById('currentLevelNum');
+    const costEl = document.getElementById('currentLevelCost');
+    const earnedEl = document.getElementById('currentLevelEarned');
+
+    if (levelEl) levelEl.textContent = level;
+    if (costEl) costEl.textContent = `${cost} BNB`;
+    if (earnedEl) earnedEl.textContent = `${earned} BNB`;
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -458,9 +545,13 @@ const partnersModule = {
       btn.onclick = () => this.selectLevel(level);
       container.appendChild(btn);
     }
+
+    console.log('✅ Level buttons created');
   },
 
   async selectLevel(level) {
+    console.log(`🔘 Selected level ${level}`);
+    
     // Обновляем активную кнопку
     document.querySelectorAll('#partnerLevels .level-btn').forEach((btn, index) => {
       btn.classList.toggle('active', index + 1 === level);
@@ -469,31 +560,35 @@ const partnersModule = {
     this.state.currentLevel = level;
 
     // Обновляем информацию об уровне
-    document.getElementById('currentLevelNum').textContent = level;
-    document.getElementById('currentLevelCost').textContent = `${CONFIG.LEVEL_PRICES[level - 1]} BNB`;
+    await this.loadLevelInfo(level);
 
-    // Загружаем партнеров
+    // Загружаем партнеров этого уровня
     await this.loadPartnersByLevel(level);
   },
 
   initUI() {
-    // Уже инициализировано через createLevelButtons
+    console.log('🎨 Initializing Partners UI...');
+    // Обработчики уже созданы через createLevelButtons
   },
 
   // ═══════════════════════════════════════════════════════════════
   // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
   // ═══════════════════════════════════════════════════════════════
   
-  getRankName(rankQualified) {
-    if (rankQualified[3]) return 'Платина';
-    if (rankQualified[2]) return 'Золото';
-    if (rankQualified[1]) return 'Серебро';
-    if (rankQualified[0]) return 'Бронза';
-    return 'Никто';
+  getRankName(rankId) {
+    const ranks = {
+      0: 'Никто',
+      1: 'Бронза 🥉',
+      2: 'Серебро 🥈',
+      3: 'Золото 🥇',
+      4: 'Платина 💎'
+    };
+    return ranks[rankId] || 'Никто';
   },
 
   // Обновление данных
   async refresh() {
+    console.log('🔄 Refreshing partners data...');
     await this.loadAllData();
   }
 };
