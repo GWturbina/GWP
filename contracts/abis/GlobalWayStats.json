@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWayStats",
-  "address": "0xF493CDe52f9da6390cDd8f200109fDBF333080b3",
+  "address": "0xF44918E4Fc3A4db23ed1dD2f340326bc78F4d834",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -13,17 +13,22 @@
         },
         {
           "internalType": "address",
-          "name": "_marketing",
+          "name": "_partnerProgram",
           "type": "address"
         },
         {
           "internalType": "address",
-          "name": "_quarterly",
+          "name": "_matrixPayments",
           "type": "address"
         },
         {
           "internalType": "address",
-          "name": "_investment",
+          "name": "_quarterlyPayments",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_investmentPool",
           "type": "address"
         },
         {
@@ -100,6 +105,123 @@
           "internalType": "uint8[]",
           "name": "missingLevels",
           "type": "uint8[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "prices",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getAutoUpgradeInfo",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint8",
+          "name": "targetLevel",
+          "type": "uint8"
+        },
+        {
+          "internalType": "uint256",
+          "name": "frozenAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "neededAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "percentage",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "status",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getContractsStats",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "partnerDistributed",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "partnerToTreasury",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "partnerBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "matrixDistributed",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "matrixToCharity",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "matrixFrozen",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "quarterlyPension",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "quarterlyTechAccounts",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentCollected",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "investmentWithdrawn",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "leaderTotalLeaders",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "leaderPoolBalance",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -121,32 +243,22 @@
         },
         {
           "internalType": "uint256",
-          "name": "investmentTotalInvestors",
+          "name": "partnerDistributed",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "investmentActiveInvestors",
+          "name": "matrixDistributed",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "investmentPoolBalance",
+          "name": "quarterlyCollected",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "investmentTotalDistributed",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "leaderPoolTotalLeaders",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "leaderPoolActiveLeaders",
+          "name": "investmentCollected",
           "type": "uint256"
         },
         {
@@ -156,7 +268,7 @@
         },
         {
           "internalType": "uint256",
-          "name": "leaderPoolTotalDistributed",
+          "name": "totalTechAccounts",
           "type": "uint256"
         }
       ],
@@ -175,22 +287,27 @@
       "outputs": [
         {
           "internalType": "uint256",
-          "name": "referralBalance",
+          "name": "partnerFromSponsor",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "matrixBalance",
+          "name": "partnerFromUpline",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "quarterlyBalance",
+          "name": "matrixEarnings",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "investmentPending",
+          "name": "matrixFrozen",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "pensionBalance",
           "type": "uint256"
         },
         {
@@ -215,22 +332,17 @@
           "type": "address"
         }
       ],
-      "name": "getUserFrozenFunds",
+      "name": "getUserEarningsByLevel",
       "outputs": [
         {
-          "internalType": "uint8[]",
-          "name": "levels",
-          "type": "uint8[]"
+          "internalType": "uint256[12]",
+          "name": "partnerEarnings",
+          "type": "uint256[12]"
         },
         {
-          "internalType": "uint256[]",
-          "name": "amounts",
-          "type": "uint256[]"
-        },
-        {
-          "internalType": "uint256[]",
-          "name": "timestamps",
-          "type": "uint256[]"
+          "internalType": "uint256[12]",
+          "name": "matrixEarnings",
+          "type": "uint256[12]"
         }
       ],
       "stateMutability": "view",
@@ -268,22 +380,17 @@
         },
         {
           "internalType": "uint256",
-          "name": "marketingReferralBalance",
+          "name": "partnerEarnings",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "marketingMatrixBalance",
+          "name": "matrixEarnings",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "quarterlyBalance",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "investmentBalance",
+          "name": "pensionBalance",
           "type": "uint256"
         },
         {
@@ -298,18 +405,18 @@
         },
         {
           "internalType": "uint256",
-          "name": "totalInvested",
+          "name": "frozenForAutoUpgrade",
           "type": "uint256"
         },
         {
-          "internalType": "uint256",
-          "name": "totalInvestmentReceived",
-          "type": "uint256"
+          "internalType": "uint8",
+          "name": "matrixRank",
+          "type": "uint8"
         },
         {
-          "internalType": "uint256",
-          "name": "investmentROI",
-          "type": "uint256"
+          "internalType": "uint8",
+          "name": "leaderRank",
+          "type": "uint8"
         }
       ],
       "stateMutability": "view",
@@ -342,28 +449,121 @@
         },
         {
           "internalType": "bool",
+          "name": "canPayNow",
+          "type": "bool"
+        },
+        {
+          "internalType": "string",
+          "name": "canPayReason",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timeLeft",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
           "name": "isActive",
           "type": "bool"
         },
         {
-          "internalType": "address",
-          "name": "charityAccount",
-          "type": "address"
+          "internalType": "uint256",
+          "name": "pensionBalance",
+          "type": "uint256"
         },
         {
-          "internalType": "address",
-          "name": "techAccount1",
-          "type": "address"
-        },
+          "internalType": "uint256[]",
+          "name": "techAccountIds",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
         {
           "internalType": "address",
-          "name": "techAccount2",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserRanksInfo",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "matrixRank",
+          "type": "uint8"
+        },
+        {
+          "internalType": "string",
+          "name": "matrixRankName",
+          "type": "string"
+        },
+        {
+          "internalType": "uint8",
+          "name": "leaderRank",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bool",
+          "name": "bronzeClaimed",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "silverClaimed",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "goldClaimed",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "platinumClaimed",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
           "type": "address"
         },
         {
           "internalType": "uint256",
-          "name": "uplineBalance",
+          "name": "offset",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "limit",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserReferralsPaginated",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "referrals",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "total",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "hasMore",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -385,18 +585,42 @@
           "type": "uint256"
         },
         {
-          "internalType": "address[]",
-          "name": "referrals",
-          "type": "address[]"
-        },
-        {
           "internalType": "uint256",
           "name": "activeLevels",
           "type": "uint256"
         },
         {
-          "internalType": "bool[]",
+          "internalType": "bool[12]",
           "name": "levelStatus",
+          "type": "bool[12]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserTechAccountsInfo",
+      "outputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "techIds",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "reserves",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "bool[]",
+          "name": "filled",
           "type": "bool[]"
         }
       ],
@@ -420,17 +644,17 @@
         },
         {
           "internalType": "uint256",
-          "name": "marketingTotal",
+          "name": "partnerTotal",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "quarterlyTotal",
+          "name": "matrixTotal",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "investmentTotal",
+          "name": "pensionTotal",
           "type": "uint256"
         },
         {
@@ -457,10 +681,10 @@
     },
     {
       "inputs": [],
-      "name": "investment",
+      "name": "investmentPool",
       "outputs": [
         {
-          "internalType": "contract IInvestment",
+          "internalType": "contract IInvestmentPool",
           "name": "",
           "type": "address"
         }
@@ -483,10 +707,10 @@
     },
     {
       "inputs": [],
-      "name": "marketing",
+      "name": "matrixPayments",
       "outputs": [
         {
-          "internalType": "contract IMarketing",
+          "internalType": "contract IMatrixPayments",
           "name": "",
           "type": "address"
         }
@@ -509,10 +733,23 @@
     },
     {
       "inputs": [],
-      "name": "quarterly",
+      "name": "partnerProgram",
       "outputs": [
         {
-          "internalType": "contract IQuarterly",
+          "internalType": "contract IPartnerProgram",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "quarterlyPayments",
+      "outputs": [
+        {
+          "internalType": "contract IQuarterlyPayments",
           "name": "",
           "type": "address"
         }
@@ -557,11 +794,11 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_investment",
+          "name": "_investmentPool",
           "type": "address"
         }
       ],
-      "name": "updateInvestment",
+      "name": "updateInvestmentPool",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -583,11 +820,11 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_marketing",
+          "name": "_matrixPayments",
           "type": "address"
         }
       ],
-      "name": "updateMarketing",
+      "name": "updateMatrixPayments",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -596,11 +833,24 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_quarterly",
+          "name": "_partnerProgram",
           "type": "address"
         }
       ],
-      "name": "updateQuarterly",
+      "name": "updatePartnerProgram",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_quarterlyPayments",
+          "type": "address"
+        }
+      ],
+      "name": "updateQuarterlyPayments",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
