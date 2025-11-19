@@ -24,49 +24,68 @@ const CONFIG = {
   // SMART CONTRACTS ADDRESSES
   // ═══════════════════════════════════════════════════════════════
   CONTRACTS: {
-    // Core системный контракт
-    GlobalWay: '0x742F2200BAb0c175c107c576E3Eb9E5A8ab7Ba4b',
+    // 1️⃣ Registry & Matrix
+    MatrixRegistry: '0x365300726414a5959da1Bb4fE1A6356Fb9D7c7e7',
     
-    // Registry & Matrix
-    MatrixRegistry: '0x1EFa7cfB85c101b523C1d3e502BB855a1f8915fc',
-    MatrixPayments: '0x5fD0CA4BF93C31F186B5e846FC5863E84dEeE27f',
+    // 2️⃣ Token
+    GWTToken: '0x404Fd35Ad0FA85e2A0B47104683Fc869EDed25C1',
     
-    // Payment Systems
-    PartnerProgram: '0x8B01C9FCD9Afd87d69F8F9b5A0Fe2B020D50Dc1A',
-    QuarterlyPayments: '0x51E8a64BE6E55A563c1BB73b203DE2EB6B83f7a3',
+    // 3️⃣ Core системный контракт
+    GlobalWay: '0x9ec8586de228c82106c9869476F12b2d6810C82A',
     
-    // Pools
-    InvestmentPool: '0x8f30D312fA5F8E6A30D6c1C6F6e0a73c535c358c',
-    LeaderPool: '0xC0992D079D123D3c69C98B3Be71978C2e93b5710',
+    // 4️⃣ Partner Program
+    PartnerProgram: '0xf28DfECc945f93fAF644fDC9E17Ee68e9b3DBf55',
     
-    // Token
-    GWTToken: '0x2E3B2c4227575296b8CE68D1fa186aC8941D8C86',
+    // 5️⃣ Matrix Payments
+    MatrixPayments: '0xac3e1021AA720F1327fE00d098dbEd13A6fC266f',
     
-    // Управление и статистика
-    GlobalWayGovernance: '0xdFC8426F64CE058758652dF47aC3Ba06D77e228b',
-    GlobalWayStats: '0x92b0Fd7cc3926aE08CEcD1Ca2C99e1df28Cf9c0e',
-    GlobalWayBridge: '0x9C6eb5c63F5d1eCC8Ad27EA773F0a70cE0bC7d6F',
+    // 6️⃣ Quarterly Payments
+    QuarterlyPayments: '0xc4B71B952ba4722501F7502d39330bCe2304b4c5',
     
-    // Tokenomics
-    GlobalWayTokenomics: '0xbDC29886c91878C1ba9ce0626Da5E1961324354F'
+    // 7️⃣ Investment Pool
+    GlobalWayInvestment: '0x6F60eb0AffFe177857883958294F8915754689C3',
+    
+    // 8️⃣ Leader Pool
+    GlobalWayLeaderPool: '0x7F467E27728BAc91439C005454550A6f18eDF68E',
+    
+    // 9️⃣ Governance
+    GlobalWayGovernance: '0x279c1c2710Fe67223Dff342648E441Bc4A2Fb0F0',
+    
+    // 🔟 Bridge
+    GlobalWayBridge: '0x09Ab7fB5fb538eA9719c34794225B1C6E2B7b837',
+    
+    // 1️⃣1️⃣ Stats
+    GlobalWayStats: '0xF44918E4Fc3A4db23ed1dD2f340326bc78F4d834'
   },
 
   // ═══════════════════════════════════════════════════════════════
   // ABI FILES - Пути к отдельным ABI файлам на хостинге
   // ═══════════════════════════════════════════════════════════════
   ABI_PATHS: {
-    GlobalWay: './contracts/abis/GlobalWay.json',
+    // 1️⃣ Registry & Matrix
     MatrixRegistry: './contracts/abis/MatrixRegistry.json',
     MatrixPayments: './contracts/abis/MatrixPayments.json',
+    
+    // 2️⃣ Token
+    GWTToken: './contracts/abis/GWTToken.json',
+    
+    // 3️⃣ Core
+    GlobalWay: './contracts/abis/GlobalWay.json',
+    
+    // 4️⃣ Payment Systems
     PartnerProgram: './contracts/abis/PartnerProgram.json',
     QuarterlyPayments: './contracts/abis/QuarterlyPayments.json',
-    InvestmentPool: './contracts/abis/InvestmentPool.json',
-    LeaderPool: './contracts/abis/LeaderPool.json',
-    GWTToken: './contracts/abis/GWTToken.json',
+    
+    // 5️⃣ Pools
+    GlobalWayInvestment: './contracts/abis/GlobalWayInvestment.json',
+    GlobalWayLeaderPool: './contracts/abis/GlobalWayLeaderPool.json',
+    
+    // 6️⃣ Governance & Stats
     GlobalWayGovernance: './contracts/abis/GlobalWayGovernance.json',
     GlobalWayStats: './contracts/abis/GlobalWayStats.json',
-    GlobalWayBridge: './contracts/abis/GlobalWayBridge.json',
-    GlobalWayTokenomics: './contracts/abis/GlobalWayTokenomics.json'
+    
+    // 7️⃣ Bridge
+    GlobalWayBridge: './contracts/abis/GlobalWayBridge.json'
   },
 
   // ═══════════════════════════════════════════════════════════════
