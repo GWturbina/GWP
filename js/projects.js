@@ -30,7 +30,7 @@ const projectsModule = {
       id: 'kardgift',
       name: 'KardGift',
       description: 'Gift card marketplace and exchange platform',
-      logo: 'assets/projects/kardgift.png',
+      logo: '🎁', // Emoji вместо картинки
       status: 'development',
       statusLabel: 'В РАЗРАБОТКЕ',
       requiredLevel: 1,
@@ -40,7 +40,7 @@ const projectsModule = {
       id: 'globaltub',
       name: 'GlobalTub',
       description: 'Decentralized video streaming platform',
-      logo: 'assets/projects/globaltub.png',
+      logo: '📺', // Emoji вместо картинки
       status: 'development',
       statusLabel: 'В РАЗРАБОТКЕ',
       requiredLevel: 4,
@@ -50,7 +50,7 @@ const projectsModule = {
       id: 'globalmarket',
       name: 'GlobalMarket',
       description: 'P2P marketplace for goods and services',
-      logo: 'assets/projects/globalmarket.png',
+      logo: '🛒', // Emoji вместо картинки
       status: 'coming',
       statusLabel: 'СКОРО',
       requiredLevel: 4,
@@ -60,7 +60,7 @@ const projectsModule = {
       id: 'globalgame',
       name: 'GlobalGame',
       description: 'Play-to-earn gaming ecosystem',
-      logo: 'assets/projects/globalgame.png',
+      logo: '🎮', // Emoji вместо картинки
       status: 'coming',
       statusLabel: 'СКОРО',
       requiredLevel: 7,
@@ -70,7 +70,7 @@ const projectsModule = {
       id: 'globalsocial',
       name: 'GlobalSocial',
       description: 'Decentralized social network',
-      logo: 'assets/projects/globalsocial.png',
+      logo: '👥', // Emoji вместо картинки
       status: 'planning',
       statusLabel: 'ПЛАНИРУЕТСЯ',
       requiredLevel: 7,
@@ -80,7 +80,7 @@ const projectsModule = {
       id: 'globalbank',
       name: 'GlobalBank',
       description: 'DeFi banking and lending platform',
-      logo: 'assets/projects/globalbank.png',
+      logo: '🏦', // Emoji вместо картинки
       status: 'planning',
       statusLabel: 'ПЛАНИРУЕТСЯ',
       requiredLevel: 10,
@@ -90,7 +90,7 @@ const projectsModule = {
       id: 'globaledu',
       name: 'GlobalEdu',
       description: 'Educational platform and certification',
-      logo: 'assets/projects/globaledu.png',
+      logo: '🎓', // Emoji вместо картинки
       status: 'planning',
       statusLabel: 'ПЛАНИРУЕТСЯ',
       requiredLevel: 10,
@@ -100,7 +100,7 @@ const projectsModule = {
       id: 'ecovillages',
       name: 'EcoVillages',
       description: 'Eco-settlements and sustainable living',
-      logo: 'assets/projects/ecovillages.png',
+      logo: '🌿', // Emoji вместо картинки
       status: 'planning',
       statusLabel: 'ПЛАНИРУЕТСЯ',
       requiredLevel: 12,
@@ -259,8 +259,7 @@ const projectsModule = {
       return `
         <div class="project-card ${statusClass}" data-project-id="${project.id}">
           <div class="project-logo">
-            <img src="${project.logo}" alt="${project.name}" 
-                 onerror="this.src='assets/icons/default-project.png'">
+            <span class="project-emoji" style="font-size: 64px;">${project.logo}</span>
           </div>
           
           <div class="project-info">
@@ -370,12 +369,9 @@ const projectsModule = {
       prefixEl.textContent = `${project.prefix}-XXXXXXX`;
     }
 
-    // Логотип
+    // Логотип (emoji)
     if (logoEl) {
-      logoEl.src = project.logo;
-      logoEl.onerror = () => {
-        logoEl.src = 'assets/icons/default-project.png';
-      };
+      logoEl.innerHTML = `<span style="font-size: 80px;">${project.logo}</span>`;
     }
 
     // Кнопка действия
