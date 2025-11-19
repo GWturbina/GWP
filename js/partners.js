@@ -434,8 +434,8 @@ const partnersModule = {
   // ═══════════════════════════════════════════════════════════════
   async getActivationDate(address) {
     try {
-      // Используем событие LevelPurchased (или LevelActivated)
-      const filter = this.contracts.globalWay.filters.LevelPurchased(address, 1);
+      // Используем событие LevelActivated (или LevelPurchased)
+      const filter = this.contracts.globalWay.filters.LevelActivated(address, 1);
       const events = await this.contracts.globalWay.queryFilter(filter, -100000);
       
       if (events.length > 0) {
