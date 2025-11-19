@@ -338,7 +338,7 @@ const dashboardModule = {
 
     try {
       // События покупки уровней
-      const levelFilter = this.contracts.globalWay.filters.LevelPurchased(address);
+      const levelFilter = this.contracts.globalWay.filters.LevelActivated(address);
       const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, -10000);
 
       for (const event of levelEvents) {
@@ -556,7 +556,7 @@ const dashboardModule = {
       
       const contract = await app.getSignedContract('GlobalWay');
       
-      const tx = await contract.buyLevel(level, {
+      const tx = await contract.activateLevel(level, {
         value: priceWei,
         gasLimit: CONFIG.GAS.buyLevel
       });
