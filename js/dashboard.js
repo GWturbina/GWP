@@ -146,16 +146,18 @@ const dashboardModule = {
       const { address } = this.userData;
       console.log('📅 Loading quarterly info...');
 
-      const [canPay, lastPayment, nextPaymentTime, quartersPaid, daysRemaining] = 
-        await this.contracts.quarterlyPayments.getUserQuarterlyStatus(address);
+      // ✅ ИСПРАВЛЕНО: правильная функция getQuarterlyInfo
+      const [lastPayment, quarterCount, techAccountIds, nextPaymentTime, canPayNow, pensionBalance] = 
+        await this.contracts.quarterlyPayments.getQuarterlyInfo(address);
 
       this.userData.quarterlyInfo = {
-        canPay: canPay,
-        quarter: Number(quartersPaid),
+        canPay: canPayNow,
+        quarter: Number(quarterCount),
         lastPayment: Number(lastPayment),
         nextPayment: Number(nextPaymentTime),
-        daysRemaining: Number(daysRemaining),
-        cost: CONFIG.QUARTERLY_COST
+        daysRemaining: nextPaymentTime > 0 ? Math.floor((Number(nextPaymentTime) - Date.now() / 1000) / 86400) : 0,
+        cost: CONFIG.QUARTERLY_COST || '0.015',
+        pensionBalance: ethers.utils.formatEther(pensionBalance)
       };
 
       console.log('✅ Quarterly info loaded:', this.userData.quarterlyInfo);
@@ -163,6 +165,17 @@ const dashboardModule = {
       this.updateQuarterlyUI();
     } catch (error) {
       console.error('❌ Error loading quarterly info:', error);
+      // Устанавливаем дефолтные значения
+      this.userData.quarterlyInfo = {
+        canPay: false,
+        quarter: 0,
+        lastPayment: 0,
+        nextPayment: 0,
+        daysRemaining: 0,
+        cost: CONFIG.QUARTERLY_COST || '0.015',
+        pensionBalance: '0'
+      };
+      this.updateQuarterlyUI();
     }
   },
 
@@ -175,23 +188,65 @@ const dashboardModule = {
       console.log('💰 Loading balances...');
 
       // 1. Partner Program баланс
-      const [fromSponsor, fromUpline, totalPartner] = 
-        await this.contracts.partnerProgram.getUserEarnings(address);
-      this.userData.balances.partner = ethers.utils.formatEther(totalPartner);
+      try {
+        const [fromSponsor, fromUpline, totalPartner] = 
+          await this.contracts.partnerProgram.getUserEarnings(address);
+        this.userData.balances.partner = ethers.utils.formatEther(totalPartner);
+      } catch (e) {
+        console.warn('⚠️ Partner balance not available:', e.message);
+        this.userData.balances.partner = '0';
+      }
 
       // 2. Leader Pool баланс
-      const leaderBalance = await this.contracts.leaderPool.getUserBalance(address);
-      this.userData.balances.leader = ethers.utils.formatEther(leaderBalance);
+      try {
+        // ✅ ИСПРАВЛЕНО: пробуем разные варианты функции
+        let leaderBalance;
+        if (this.contracts.leaderPool.getUserBalance) {
+          leaderBalance = await this.contracts.leaderPool.getUserBalance(address);
+        } else if (this.contracts.leaderPool.getUserPoolBalance) {
+          leaderBalance = await this.contracts.leaderPool.getUserPoolBalance(address);
+        } else if (this.contracts.leaderPool.balances) {
+          leaderBalance = await this.contracts.leaderPool.balances(address);
+        } else {
+          throw new Error('No balance function found');
+        }
+        this.userData.balances.leader = ethers.utils.formatEther(leaderBalance);
+      } catch (e) {
+        console.warn('⚠️ Leader balance not available:', e.message);
+        this.userData.balances.leader = '0';
+      }
 
       // 3. Investment баланс
-      const investmentBalance = await this.contracts.investment.getUserBalance(address);
-      this.userData.balances.investment = ethers.utils.formatEther(investmentBalance);
+      try {
+        // ✅ ИСПРАВЛЕНО: пробуем разные варианты функции
+        let investmentBalance;
+        if (this.contracts.investment.getUserBalance) {
+          investmentBalance = await this.contracts.investment.getUserBalance(address);
+        } else if (this.contracts.investment.getUserInvestment) {
+          investmentBalance = await this.contracts.investment.getUserInvestment(address);
+        } else if (this.contracts.investment.balances) {
+          investmentBalance = await this.contracts.investment.balances(address);
+        } else {
+          throw new Error('No balance function found');
+        }
+        this.userData.balances.investment = ethers.utils.formatEther(investmentBalance);
+      } catch (e) {
+        console.warn('⚠️ Investment balance not available:', e.message);
+        this.userData.balances.investment = '0';
+      }
 
       console.log('✅ Balances loaded:', this.userData.balances);
 
       this.updateBalancesUI();
     } catch (error) {
       console.error('❌ Error loading balances:', error);
+      // Устанавливаем дефолтные значения
+      this.userData.balances = {
+        partner: '0',
+        leader: '0',
+        investment: '0'
+      };
+      this.updateBalancesUI();
     }
   },
 
