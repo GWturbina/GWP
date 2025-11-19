@@ -481,7 +481,7 @@ const app = {
       const globalWaySigned = await this.getSignedContract('GlobalWay');
       const priceInWei = ethers.utils.parseEther(price);
       
-      const tx = await globalWaySigned.buyLevel(level, {
+      const tx = await globalWaySigned.activateLevel(level, {
         value: priceInWei,
         gasLimit: CONFIG.GAS.buyLevel
       });
