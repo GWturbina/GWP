@@ -1,837 +1,629 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Matrix Module
-// 🔥 ИСПРАВЛЕНО: Читает матрицу НАПРЯМУЮ из GlobalWay
+// GlobalWay DApp - Matrix Module - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Интерактивная бинарная матрица через matrixNodes
+// Date: 2025-01-19 - FIXED
 // ═══════════════════════════════════════════════════════════════════
 
 const matrixModule = {
+  // ═══════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════
   contracts: {},
   
   state: {
-    currentDepth: 1,
-    currentRoot: null,
-    matrixData: [],
+    currentLevel: 1,
+    currentUserId: null,
+    currentUserAddress: null,
+    matrixData: {},
     stats: {
-      totalActive: 0,
+      totalPositions: 0,
       fromPartners: 0,
       fromCharity: 0,
       fromTechnical: 0
     }
   },
 
+  // Цвета для типов позиций
+  colors: {
+    partner: '#00ff00',      // Зеленый - прямой реферал
+    charity: '#ff9500',      // Оранжевый - благотворительность/spillover
+    technical: '#00bfff',    // Синий - технические переливы
+    available: '#666666'     // Серый - доступно
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ИНИЦИАЛИЗАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
   async init() {
-    console.log('🔲 Initializing Matrix Module...');
+    console.log('🌐 Initializing Matrix...');
     
     try {
       if (!app.state.userAddress) {
-        app.showNotification('Подключите кошелек', 'error');
+        console.log('⚠️ No user address');
         return;
       }
 
-      this.state.currentRoot = app.state.userAddress;
-      await this.loadContracts();
-      this.createDepthButtons();
-      await this.loadAllData();
-      this.initUI();
+      this.state.currentUserAddress = app.state.userAddress;
 
-      console.log('✅ Matrix Module loaded successfully');
+      await this.loadContracts();
+      
+      // Получаем ID текущего пользователя
+      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(
+        this.state.currentUserAddress
+      );
+      this.state.currentUserId = userId.toString();
+
+      this.createLevelButtons();
+      this.initUI();
+      await this.loadMatrixData(this.state.currentUserId, this.state.currentLevel);
+
+      console.log('✅ Matrix loaded');
     } catch (error) {
       console.error('❌ Matrix init error:', error);
       app.showNotification('Ошибка загрузки матрицы', 'error');
     }
   },
 
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА КОНТРАКТОВ
+  // ═══════════════════════════════════════════════════════════════
   async loadContracts() {
+    console.log('📥 Loading contracts for matrix...');
+    
+    this.contracts.matrixRegistry = await app.getContract('MatrixRegistry');
     this.contracts.globalWay = await app.getContract('GlobalWay');
-    this.contracts.helper = await app.getContract('GlobalWayHelper');
-    this.contracts.stats = await app.getContract('GlobalWayStats');
-    this.contracts.quarterly = await app.getContract('GlobalWayQuarterly');
-  },
-
-  async loadAllData() {
-    await Promise.all([
-      this.loadMatrixVisualization(),
-      this.loadMatrixTable(),
-      this.loadMatrixStats()
-    ]);
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // 🔥 ИСПРАВЛЕНО: Читаем матрицу НАПРЯМУЮ из контракта
-  // ═══════════════════════════════════════════════════════════════
-  async loadMatrixVisualization() {
-    try {
-      const address = app.state.userAddress;
-      const isRegistered = await this.contracts.globalWay.isUserRegistered(address);
-      
-      if (!isRegistered) {
-        console.log("User not registered");
-        return;
-      }
-
-      const { currentRoot } = this.state;
-
-      // Получаем позицию пользователя
-      const userPosition = await this.contracts.globalWay.getUserMatrixPosition(currentRoot);
-      
-      console.log(`📍 User matrix position:`, userPosition.toString());
-      
-      if (userPosition.toString() === "0") {
-        console.log("⚠️ User not in matrix");
-        return;
-      }
-
-      // 🔥 ЧИТАЕМ НАПРЯМУЮ: 7 позиций (1 корень + 2 уровня)
-      const rootPos = parseInt(userPosition.toString());
-      const nodes = await this.readMatrixDirect(rootPos, 2);
-
-      console.log(`✅ Loaded ${nodes.length} nodes directly`);
-
-      await this.updateVisualization(nodes);
-
-    } catch (error) {
-      console.error('❌ Error loading matrix:', error);
-    }
-  },
-
-  // 🔥 НОВАЯ ФУНКЦИЯ: Читает позиции напрямую из GlobalWay
-async readMatrixDirect(rootPos, depth) {
-  const nodes = [];
-  
-  // Позиция 0: корень
-  nodes.push(await this.getNodeAtPosition(rootPos));
-  
-  // 🔥 ОБЪЯВЛЯЕМ ЗДЕСЬ - ДО ВСЕХ IF!
-  const leftChild = rootPos * 2;
-  const rightChild = rootPos * 2 + 1;
-  
-  if (depth >= 1) {
-    // Позиции 1-2: первый уровень
-    nodes.push(await this.getNodeAtPosition(leftChild));
-    nodes.push(await this.getNodeAtPosition(rightChild));
-  }
-  
-  if (depth >= 2) {
-    // Позиции 3-6: второй уровень
-    const positions = [
-      leftChild * 2,
-      leftChild * 2 + 1,
-      rightChild * 2,
-      rightChild * 2 + 1
-    ];
     
-    for (const pos of positions) {
-      nodes.push(await this.getNodeAtPosition(pos));
-    }
-  }
-  
-  return nodes;
-},
+    console.log('✅ All matrix contracts loaded');
+  },
 
-  // Получить данные узла на позиции
-  async getNodeAtPosition(position) {
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА ДАННЫХ МАТРИЦЫ
+  // ═══════════════════════════════════════════════════════════════
+  async loadMatrixData(userId, level) {
     try {
-      const [userAddress] = await this.contracts.globalWay.getMatrixPosition(position);
+      console.log(`📊 Loading matrix data for user ${userId}, level ${level}...`);
+
+      // Получаем адрес пользователя
+      const userAddress = await this.contracts.matrixRegistry.getAddressById(userId);
       
-      if (userAddress === ethers.constants.AddressZero || 
-          userAddress === '0x0000000000000000000000000000000000000000') {
-        return {
-          user: ethers.constants.AddressZero,
-          position: position,
-          userID: '',
-          maxLevel: 0,
-          isActive: false
-        };
+      if (!userAddress || userAddress === ethers.constants.AddressZero) {
+        console.error('❌ Invalid user address');
+        app.showNotification('Пользователь не найден', 'error');
+        return;
       }
+
+      // Получаем структуру матрицы
+      const matrixStructure = await this.getMatrixStructure(userId, level);
+
+      // Обновляем state
+      this.state.matrixData = matrixStructure;
+      this.state.currentLevel = level;
+
+      // Рендерим матрицу
+      this.renderMatrix(matrixStructure);
       
-      const userID = await this.contracts.helper.getUserID(userAddress);
-      const maxLevel = await this.contracts.globalWay.getUserMaxLevel(userAddress);
+      // Обновляем таблицу
+      await this.renderMatrixTable(matrixStructure);
       
-      return {
-        user: userAddress,
-        position: position,
-        userID: userID,
-        maxLevel: maxLevel.toString(),
-        isActive: maxLevel > 0
-      };
+      // Обновляем статистику
+      this.updateMatrixStats(matrixStructure);
+
+      console.log('✅ Matrix data loaded');
       
     } catch (error) {
-      console.error(`Error reading position ${position}:`, error);
-      return {
-        user: ethers.constants.AddressZero,
-        position: position,
-        userID: '',
+      console.error('❌ Error loading matrix data:', error);
+      app.showNotification('Ошибка загрузки матрицы', 'error');
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПОЛУЧЕНИЕ СТРУКТУРЫ МАТРИЦЫ (через matrixNodes)
+  // ═══════════════════════════════════════════════════════════════
+  async getMatrixStructure(userId, level) {
+    try {
+      console.log(`🔍 Getting matrix structure for userId ${userId}...`);
+
+      // Получаем узел матрицы
+      const nodeData = await this.contracts.matrixRegistry.matrixNodes(userId);
+      
+      // nodeData - это массив: 
+      // [0] id (uint256)
+      // [1] userAddress (address)
+      // [2] sponsorId (uint256)
+      // [3] leftChildId (uint256)
+      // [4] rightChildId (uint256)
+      // [5] parentBinaryId (uint256)
+      // [6] registeredAt (uint256)
+      // [7] isActive (bool)
+      // [8] isTechAccount (bool)
+
+      if (!nodeData[7]) { // isActive
+        console.error('❌ Node not active');
+        return this.getEmptyStructure(nodeData[1], level);
+      }
+
+      const structure = {
+        root: {
+          address: nodeData[1], // userAddress
+          userId: nodeData[0].toString(), // id
+          level: level,
+          maxLevel: await this.getUserMaxLevel(nodeData[1]),
+          rank: 'Участник',
+          leftChildId: nodeData[3].toString(), // leftChildId
+          rightChildId: nodeData[4].toString(), // rightChildId
+          sponsorId: nodeData[2].toString(), // sponsorId
+          isTechAccount: nodeData[8] // isTechAccount
+        },
+        positions: []
+      };
+
+      // Рекурсивно загружаем дерево
+      if (nodeData[3].toString() !== '0') {
+        await this.buildMatrixTreeFromNodes(structure, nodeData[3], level, 1, 0, 'left');
+      }
+      
+      if (nodeData[4].toString() !== '0') {
+        await this.buildMatrixTreeFromNodes(structure, nodeData[4], level, 1, 1, 'right');
+      }
+
+      return structure;
+      
+    } catch (error) {
+      console.error('❌ Error getting matrix structure:', error);
+      
+      // Получаем адрес из userId
+      try {
+        const addr = await this.contracts.matrixRegistry.getAddressById(userId);
+        return this.getEmptyStructure(addr, level);
+      } catch (e) {
+        return this.getEmptyStructure(ethers.constants.AddressZero, level);
+      }
+    }
+  },
+
+  getEmptyStructure(userAddress, level) {
+    return {
+      root: {
+        address: userAddress,
+        userId: 'N/A',
+        level: level,
         maxLevel: 0,
-        isActive: false
-      };
-    }
-  },
-
-  // Обновление визуализации дерева
-  async updateVisualization(nodes) {
-    try {
-      // nodes[0] = корень (topPosition)
-      // nodes[1-2] = первый уровень (position1, position2)
-      // nodes[3-6] = второй уровень (position3-6)
-
-      const positionIds = [
-        'topPosition',  // 0
-        'position1',    // 1
-        'position2',    // 2
-        'position3',    // 3
-        'position4',    // 4
-        'position5',    // 5
-        'position6'     // 6
-      ];
-
-      for (let i = 0; i < positionIds.length && i < nodes.length; i++) {
-        await this.updatePosition(positionIds[i], nodes[i]);
-      }
-
-    } catch (error) {
-      console.error('Error updating visualization:', error);
-    }
-  },
-
-  // Обновление одной позиции в визуализации
-  async updatePosition(elementId, nodeData) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    const userAddress = nodeData.user;
-
-    if (userAddress === ethers.ZeroAddress) {
-      // Пустая позиция
-      element.querySelector('.position-id').textContent = 'Empty';
-      const posType = element.querySelector('.position-type');
-      if (posType) posType.textContent = 'Available';
-      element.classList.remove('partner', 'charity', 'technical');
-      element.classList.add('available');
-      element.onclick = null;
-    } else {
-      // Занятая позиция
-      const id = nodeData.userID !== '' ? `GW${nodeData.userID}` : app.formatAddress(userAddress);
-      element.querySelector('.position-id').textContent = id;
-      
-      const levelSpan = element.querySelector('.position-level');
-      if (levelSpan) {
-        levelSpan.textContent = `Level ${nodeData.maxLevel}`;
-      }
-
-      // Определяем тип позиции
-      const positionType = await this.getPositionType(userAddress);
-      element.classList.remove('available', 'partner', 'charity', 'technical');
-      element.classList.add(positionType);
-
-      // Клик - открыть модалку и возможность посмотреть его матрицу
-      element.onclick = () => this.showPositionModal(userAddress);
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ТАБЛИЦА ПАРТНЕРОВ (ПРАВИЛЬНАЯ ЛОГИКА)
-  // ═══════════════════════════════════════════════════════════════
-  async loadMatrixTable() {
-    try {
-      const { currentRoot, currentDepth } = this.state;
-      const tableBody = document.getElementById('matrixTableBody');
-      
-      if (!tableBody) return;
-
-      // 🔥 ПРЕДУПРЕЖДЕНИЕ: Для больших глубин
-      if (currentDepth > 8) {
-        const confirmed = confirm(
-          `Глубина ${currentDepth} содержит ${Math.pow(2, currentDepth)} позиций.\n` +
-          `Это может занять много времени и вызовов к контракту.\n\n` +
-          `Продолжить загрузку?`
-        );
-        if (!confirmed) {
-          tableBody.innerHTML = '<tr><td colspan="7" class="no-data">Загрузка отменена</td></tr>';
-          return;
-        }
-      }
-
-      tableBody.innerHTML = '<tr><td colspan="7" class="no-data">Загрузка...</td></tr>';
-
-      // 🔥 ИСПРАВЛЕНО: Сначала получаем ПОЗИЦИЮ пользователя в матрице
-      const rootPos = await this.contracts.globalWay.getUserMatrixPosition(currentRoot);
-      
-      if (rootPos.eq(0)) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="no-data">Пользователь не в матрице</td></tr>';
-        return;
-      }
-
-      // 🔥 ПРАВИЛЬНАЯ ЛОГИКА: Получаем ТОЛЬКО партнеров на глубине currentDepth
-      const positions = await this.getPositionsAtDepth(rootPos, currentDepth);
-
-      // Информация о максимальном количестве позиций
-      const maxPositions = Math.pow(2, currentDepth);
-      document.getElementById('currentMatrixLevel').textContent = currentDepth;
-
-      // Собираем детали для каждой позиции
-      const details = [];
-      
-      // 🔥 ОПТИМИЗАЦИЯ: Показываем прогресс для больших глубин
-      const showProgress = positions.length > 50;
-      
-      for (let i = 0; i < positions.length; i++) {
-        if (showProgress && i % 10 === 0) {
-          tableBody.innerHTML = `<tr><td colspan="7" class="no-data">Загрузка... ${i}/${positions.length}</td></tr>`;
-        }
-        
-        const position = positions[i];
-        
-        // Получаем адрес из контракта
-        const [userAddress] = await this.contracts.globalWay.getMatrixPosition(position);
-        
-        // 🔥 ПРАВИЛЬНАЯ ПРОВЕРКА: Пустой адрес
-        // Проверяем все варианты пустого адреса
-        const isEmptyAddress = 
-          !userAddress || 
-          userAddress === ethers.constants.AddressZero ||
-          userAddress === '0x0000000000000000000000000000000000000000' ||
-          userAddress.toLowerCase() === '0x0000000000000000000000000000000000000000';
-        
-        if (!isEmptyAddress) {
-          // ✅ Позиция занята - получаем детали
-          const posDetails = await this.getPositionDetails(userAddress);
-          posDetails.number = details.length + 1; // Номер по порядку среди ЗАНЯТЫХ
-          posDetails.position = position.toString();
-          posDetails.relativePosition = i + 1; // Позиция в дереве
-          details.push(posDetails);
-        }
-      }
-
-      if (details.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="no-data">Нет партнеров на этом уровне (0/' + maxPositions + ')</td></tr>';
-        return;
-      }
-
-      // 🔥 НОВОЕ: Показываем сколько позиций занято
-      console.log(`✅ Found ${details.length} occupied positions out of ${maxPositions}`);
-      
-      // Обновляем информацию о занятых позициях
-      document.getElementById('maxPositionsInfo').textContent = `${details.length}/${maxPositions}`;
-
-      // Обновляем таблицу - ТОЛЬКО ЗАНЯТЫЕ ПОЗИЦИИ
-      tableBody.innerHTML = details.map((pos, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${pos.id}</td>
-          <td>${app.formatAddress(pos.address)}</td>
-          <td>${pos.sponsorId}</td>
-          <td>${pos.date}</td>
-          <td>${pos.level}</td>
-          <td><span class="badge badge-${pos.rank.toLowerCase()}">${pos.rank}</span></td>
-        </tr>
-      `).join('');
-
-      this.state.matrixData = details;
-
-    } catch (error) {
-      console.error('Error loading matrix table:', error);
-      const tableBody = document.getElementById('matrixTableBody');
-      if (tableBody) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="no-data">Ошибка загрузки</td></tr>';
-      }
-    }
-  },
-
-  // 🔥 КЛЮЧЕВАЯ ФУНКЦИЯ: Получить позиции на конкретной глубине
-  getPositionsAtDepth(rootPos, depth) {
-    console.log(`📊 Getting positions at depth ${depth} from root position:`, rootPos.toString());
-    
-    // Для глубины N нужно получить 2^N позиций
-    const count = Math.pow(2, depth);
-    const positions = [];
-    
-    // Начальный индекс в полном бинарном дереве для глубины depth
-    // Глубина 1: индексы 1-2 (относительно корня 0)
-    // Глубина 2: индексы 3-6
-    // Глубина 3: индексы 7-14
-    const startIndex = Math.pow(2, depth) - 1;
-    
-    // 🔥 ИСПОЛЬЗУЕМ BigNumber для всех вычислений
-    const rootPosBN = ethers.BigNumber.from(rootPos);
-    
-    for (let i = 0; i < count; i++) {
-      const relativeIndex = startIndex + i;
-      const absolutePos = this.calculateChildPosition(rootPosBN, relativeIndex);
-      positions.push(absolutePos);
-    }
-    
-    console.log(`✅ Calculated ${positions.length} positions for depth ${depth}`);
-    if (positions.length <= 10) {
-      console.log('Positions:', positions.map(p => p.toString()));
-    }
-    
-    return positions;
-  },
-
-  // 🔥 МАТЕМАТИКА: Вычислить абсолютную позицию ребенка (с BigNumber)
-  calculateChildPosition(rootPosBN, relativeIndex) {
-    if (relativeIndex === 0) return rootPosBN;
-    
-    // Рекурсивно находим родителя
-    const parentRelative = Math.floor((relativeIndex - 1) / 2);
-    const parentPosBN = this.calculateChildPosition(rootPosBN, parentRelative);
-    
-    // Левый или правый ребенок?
-    const isLeftChild = (relativeIndex % 2) === 1;
-    
-    // 🔥 Используем BigNumber для умножения и сложения
-    return parentPosBN.mul(2).add(isLeftChild ? 1 : 2);
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // СТАТИСТИКА (ИЗ GlobalWayStats КОНТРАКТА)
-  // ═══════════════════════════════════════════════════════════════
-  async loadMatrixStats() {
-    try {
-      const userAddress = app.state.userAddress;
-
-      // Получаем полную статистику из контракта GlobalWayStats
-      const fullStats = await this.contracts.stats.getUserFullStats(userAddress);
-      
-      // fullStats возвращает:
-      // [0] isRegistered
-      // [1] sponsor
-      // [2] maxLevel
-      // [3] quarterlyActive
-      // [4] marketingReferralBalance
-      // [5] marketingMatrixBalance
-      // [6] quarterlyBalance
-      // [7] investmentBalance
-      // [8] leaderBalance
-      // [9] totalPendingBalance
-      // [10] totalInvested
-      // [11] totalInvestmentReceived
-      // [12] investmentROI
-
-      // Получаем структуру команды
-      const structureStats = await this.contracts.stats.getUserStructureStats(userAddress);
-      // [0] directReferrals
-      // [1] referrals[]
-      // [2] activeLevels
-      // [3] levelStatus[]
-
-      // 🔥 TODO: Добавить правильный подсчет типов позиций
-      // Пока упрощенная версия
-      this.state.stats = {
-        totalActive: Number(structureStats[0]), // directReferrals
-        fromPartners: Number(structureStats[0]),
-        fromCharity: 0,  // TODO: подсчитать из quarterly
-        fromTechnical: 0 // TODO: подсчитать из techAccounts
-      };
-
-      this.updateStatsUI();
-
-    } catch (error) {
-      console.error('Error loading matrix stats:', error);
-      // Устанавливаем нулевые значения при ошибке
-      this.state.stats = {
-        totalActive: 0,
-        fromPartners: 0,
-        fromCharity: 0,
-        fromTechnical: 0
-      };
-      this.updateStatsUI();
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ДЕТАЛИ ПОЗИЦИИ
-  // ═══════════════════════════════════════════════════════════════
-  async getPositionDetails(address) {
-    try {
-      // ID пользователя
-      const userID = await this.contracts.helper.getUserID(address);
-      const id = userID !== '' ? `GW${userID}` : app.formatAddress(address);
-
-      // Спонсор
-      const sponsor = await this.contracts.globalWay.getUserSponsor(address);
-      const sponsorID = await this.contracts.helper.getUserID(sponsor);
-      const sponsorId = sponsorID !== '' ? `GW${sponsorID}` : app.formatAddress(sponsor);
-
-      // Максимальный уровень
-      const maxLevel = Number(await this.contracts.globalWay.getUserMaxLevel(address));
-
-      // Ранг
-      const [rankQualified] = await this.contracts.helper.getUserQualificationStatus(address);
-      const rank = this.getRankName(rankQualified);
-
-      // Дата активации
-      const date = await this.getActivationDate(address);
-
-      return {
-        address,
-        id,
-        sponsorId,
-        level: maxLevel,
-        rank,
-        date
-      };
-    } catch (error) {
-      console.error('Error getting position details:', error);
-      return {
-        address,
-        id: app.formatAddress(address),
-        sponsorId: '-',
-        level: 0,
         rank: 'Никто',
-        date: '-'
+        leftChildId: '0',
+        rightChildId: '0',
+        sponsorId: '0',
+        isTechAccount: false
+      },
+      positions: []
+    };
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПОСТРОЕНИЕ ДЕРЕВА МАТРИЦЫ (рекурсивно через matrixNodes)
+  // ═══════════════════════════════════════════════════════════════
+  async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side) {
+    // Ограничиваем глубину (максимум 12 уровней)
+    if (depth >= 12 || childId.toString() === '0') return;
+
+    try {
+      // Получаем узел ребенка
+      const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
+      
+      if (!nodeData[7]) return; // Если не активен
+
+      // Создаем узел
+      const node = {
+        address: nodeData[1],
+        userId: nodeData[0].toString(),
+        maxLevel: await this.getUserMaxLevel(nodeData[1]),
+        rank: 'Участник',
+        depth,
+        position,
+        side,
+        type: await this.getPositionType(nodeData[1], structure.root.address, nodeData[2]),
+        isTechAccount: nodeData[8]
       };
-    }
-  },
-
-  // Получить дату активации
-  async getActivationDate(address) {
-    try {
-      const filter = this.contracts.globalWay.filters.LevelActivated(address, 1);
-      const events = await this.contracts.globalWay.queryFilter(filter, -100000);
       
-      if (events.length > 0) {
-        const block = await events[0].getBlock();
-        return new Date(block.timestamp * 1000).toLocaleDateString();
+      structure.positions.push(node);
+      
+      // Рекурсивно загружаем потомков
+      if (nodeData[3].toString() !== '0') {
+        await this.buildMatrixTreeFromNodes(
+          structure, 
+          nodeData[3], 
+          level, 
+          depth + 1, 
+          position * 2, 
+          'left'
+        );
       }
-      return '-';
+      
+      if (nodeData[4].toString() !== '0') {
+        await this.buildMatrixTreeFromNodes(
+          structure, 
+          nodeData[4], 
+          level, 
+          depth + 1, 
+          position * 2 + 1, 
+          'right'
+        );
+      }
+      
     } catch (error) {
-      return '-';
+      console.error('❌ Error building tree:', error);
     }
   },
 
-  // Определить тип позиции (partner/charity/technical)
-  async getPositionType(address) {
+  // ═══════════════════════════════════════════════════════════════
+  // ОПРЕДЕЛЕНИЕ ТИПА ПОЗИЦИИ
+  // ═══════════════════════════════════════════════════════════════
+  async getPositionType(address, rootAddress, nodeSponsorId) {
     try {
-      // Проверяем quarterly info
-      const quarterlyInfo = await this.contracts.quarterly.getUserQuarterlyInfo(address);
-      const charityAccount = quarterlyInfo[4]; // charityAccount из структуры
+      // Получаем sponsorId корневого пользователя
+      const rootUserId = await this.contracts.matrixRegistry.getUserIdByAddress(rootAddress);
       
-      if (charityAccount !== ethers.ZeroAddress) {
-        return 'charity';
+      // Если sponsorId узла совпадает с ID корня - это прямой реферал
+      if (nodeSponsorId.toString() === rootUserId.toString()) {
+        return 'partner';
       }
 
-      // Проверяем tech accounts
-      const techAccount1 = quarterlyInfo[5];
-      const techAccount2 = quarterlyInfo[6];
-      
-      if (techAccount1 !== ethers.ZeroAddress || techAccount2 !== ethers.ZeroAddress) {
+      // Если это тех. место (sponsorId = 7777777)
+      if (nodeSponsorId.toString() === '7777777') {
         return 'technical';
       }
 
-      return 'partner';
+      // Иначе - spillover (благотворительность)
+      return 'charity';
+      
     } catch (error) {
-      return 'partner';
+      return 'charity';
     }
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ПОИСК В МАТРИЦЕ
+  // РЕНДЕРИНГ МАТРИЦЫ (SVG)
   // ═══════════════════════════════════════════════════════════════
-  async searchMatrix() {
-    const searchInput = document.getElementById('matrixSearchInput');
-    if (!searchInput) return;
+  renderMatrix(structure) {
+    const container = document.getElementById('matrixVisualization');
+    if (!container) return;
 
-    const searchValue = searchInput.value.trim();
-    if (!searchValue) {
-      app.showNotification('Введите ID для поиска', 'error');
+    container.innerHTML = '';
+
+    // Создаем SVG
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '600');
+    svg.setAttribute('viewBox', '0 0 800 600');
+    svg.style.background = 'transparent';
+
+    // Рендерим корневой узел
+    this.renderNode(svg, structure.root, 400, 50, 0, true);
+
+    // Рендерим дочерние узлы (первые 4 уровня)
+    const maxDepth = Math.min(4, 12);
+    this.renderTreeLevel(svg, structure, 1, maxDepth);
+
+    container.appendChild(svg);
+  },
+
+  renderNode(svg, node, x, y, depth, isRoot = false) {
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.setAttribute('class', 'matrix-node');
+    group.style.cursor = 'pointer';
+
+    // Цвет
+    let fillColor = this.colors.available;
+    if (node.address && node.address !== ethers.constants.AddressZero) {
+      if (node.isTechAccount) {
+        fillColor = this.colors.technical;
+      } else {
+        fillColor = this.colors[node.type] || this.colors.partner;
+      }
+    }
+
+    // Круг
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', x);
+    circle.setAttribute('cy', y);
+    circle.setAttribute('r', isRoot ? '40' : '30');
+    circle.setAttribute('fill', fillColor);
+    circle.setAttribute('stroke', '#ffd700');
+    circle.setAttribute('stroke-width', isRoot ? '3' : '2');
+
+    // Иконка
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', x);
+    text.setAttribute('y', y + 5);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('fill', '#fff');
+    text.setAttribute('font-size', isRoot ? '24' : '20');
+    text.textContent = node.address && node.address !== ethers.constants.AddressZero ? '✓' : '?';
+
+    // ID
+    if (node.userId && node.userId !== 'N/A' && node.userId !== '0') {
+      const idText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      idText.setAttribute('x', x);
+      idText.setAttribute('y', y + (isRoot ? 60 : 50));
+      idText.setAttribute('text-anchor', 'middle');
+      idText.setAttribute('fill', '#ffd700');
+      idText.setAttribute('font-size', '12');
+      idText.textContent = `GW${node.userId}`;
+      group.appendChild(idText);
+    }
+
+    // Level
+    if (node.maxLevel > 0) {
+      const levelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      levelText.setAttribute('x', x);
+      levelText.setAttribute('y', y + (isRoot ? 75 : 65));
+      levelText.setAttribute('text-anchor', 'middle');
+      levelText.setAttribute('fill', '#fff');
+      levelText.setAttribute('font-size', '10');
+      levelText.textContent = `Level ${node.maxLevel}`;
+      group.appendChild(levelText);
+    }
+
+    group.appendChild(circle);
+    group.appendChild(text);
+
+    // Клик
+    group.addEventListener('click', () => {
+      this.showNodeModal(node);
+    });
+
+    svg.appendChild(group);
+  },
+
+  renderTreeLevel(svg, structure, currentDepth, maxDepth) {
+    if (currentDepth > maxDepth) return;
+
+    const positions = structure.positions.filter(p => p.depth === currentDepth);
+    const levelY = 50 + currentDepth * 120;
+    const totalWidth = 800;
+    const nodeCount = Math.pow(2, currentDepth);
+    const spacing = totalWidth / (nodeCount + 1);
+
+    positions.forEach((node, index) => {
+      const x = spacing * (index + 1);
+      this.renderNode(svg, node, x, levelY, currentDepth);
+
+      // Линия к родителю
+      if (currentDepth > 1) {
+        const parentY = levelY - 120;
+        const parentX = spacing * Math.floor(index / 2 + 1);
+        
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', parentX);
+        line.setAttribute('y1', parentY + 30);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', levelY - 30);
+        line.setAttribute('stroke', '#ffd700');
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('opacity', '0.5');
+        
+        svg.insertBefore(line, svg.firstChild);
+      }
+    });
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // РЕНДЕРИНГ ТАБЛИЦЫ
+  // ═══════════════════════════════════════════════════════════════
+  async renderMatrixTable(structure) {
+    const tableBody = document.getElementById('matrixTable');
+    if (!tableBody) return;
+
+    const allPositions = [structure.root, ...structure.positions]
+      .filter(p => p.address && p.address !== ethers.constants.AddressZero);
+
+    if (allPositions.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="7" class="no-data">Матрица пуста</td></tr>';
       return;
     }
 
-    try {
-      // Убираем префикс GW
-      const searchID = searchValue.replace(/^GW/i, '');
+    const positionsData = await Promise.all(
+      allPositions.map(async (pos, index) => {
+        const userId = pos.userId || 'N/A';
+        const sponsorId = pos.sponsorId ? `GW${pos.sponsorId}` : '-';
+        const date = '-';
+        const maxLevel = pos.maxLevel || 0;
+        const rank = pos.rank || 'Участник';
 
-      app.showNotification('Поиск...', 'info');
-      console.log('═══════════════════════════════════════');
-      console.log(`🔍 ПОИСК ID: GW${searchID}`);
+        return {
+          num: index + 1,
+          id: userId !== 'N/A' && userId !== '0' ? `GW${userId}` : app.formatAddress(pos.address),
+          address: pos.address,
+          sponsorId,
+          date,
+          level: maxLevel,
+          rank
+        };
+      })
+    );
 
-      // 🔥 ШАГ 1: Получаем адрес по ID
-      const searchAddress = await this.contracts.helper.getAddressByID(searchID);
-      console.log(`📍 Адрес найден:`, searchAddress);
+    tableBody.innerHTML = positionsData.map(p => `
+      <tr>
+        <td>${p.num}</td>
+        <td>${p.id}</td>
+        <td>${app.formatAddress(p.address)}</td>
+        <td>${p.sponsorId}</td>
+        <td>${p.date}</td>
+        <td>${p.level}</td>
+        <td><span class="badge">${p.rank}</span></td>
+      </tr>
+    `).join('');
+  },
 
-      if (searchAddress === ethers.constants.AddressZero || 
-          searchAddress === '0x0000000000000000000000000000000000000000') {
-        app.showNotification('ID не найден в системе', 'error');
-        console.log('❌ ID не существует');
-        return;
-      }
+  // ═══════════════════════════════════════════════════════════════
+  // СТАТИСТИКА
+  // ═══════════════════════════════════════════════════════════════
+  updateMatrixStats(structure) {
+    const allPositions = [structure.root, ...structure.positions]
+      .filter(p => p.address && p.address !== ethers.constants.AddressZero);
 
-      // 🔥 ШАГ 2: Проверяем регистрацию
-      const isRegistered = await this.contracts.globalWay.isUserRegistered(searchAddress);
-      console.log(`✅ Зарегистрирован:`, isRegistered);
+    const total = allPositions.length;
+    const fromPartners = allPositions.filter(p => p.type === 'partner').length;
+    const fromCharity = allPositions.filter(p => p.type === 'charity').length;
+    const fromTechnical = allPositions.filter(p => p.type === 'technical' || p.isTechAccount).length;
 
-      if (!isRegistered) {
-        app.showNotification(`GW${searchID} не зарегистрирован`, 'error');
-        console.log('❌ Пользователь не зарегистрирован в GlobalWay');
-        return;
-      }
+    this.state.stats = {
+      totalPositions: total,
+      fromPartners,
+      fromCharity,
+      fromTechnical
+    };
 
-      // 🔥 ШАГ 3: Получаем позицию в матрице
-      const matrixPosition = await this.contracts.globalWay.getUserMatrixPosition(searchAddress);
-      console.log(`📊 Позиция в матрице:`, matrixPosition.toString());
+    const totalEl = document.getElementById('matrixTotalPositions');
+    const partnersEl = document.getElementById('matrixFromPartners');
+    const charityEl = document.getElementById('matrixFromCharity');
+    const technicalEl = document.getElementById('matrixFromTechnical');
 
-      if (matrixPosition.eq(0)) {
-        app.showNotification(
-          `GW${searchID} зарегистрирован, но НЕТ в матрице!\n` +
-          `(Matrix position = 0)`, 
-          'warning'
-        );
-        console.log('⚠️ ПРОБЛЕМА: Пользователь зарегистрирован, но не имеет позиции в матрице!');
-        console.log('Это означает что он в системе, но место в бинарной матрице не назначено');
-        return;
-      }
+    if (totalEl) totalEl.textContent = total;
+    if (partnersEl) partnersEl.textContent = fromPartners;
+    if (charityEl) charityEl.textContent = fromCharity;
+    if (technicalEl) technicalEl.textContent = fromTechnical;
 
-      // 🔥 ШАГ 4: Получаем спонсора
-      const sponsor = await this.contracts.globalWay.getUserSponsor(searchAddress);
-      const sponsorID = await this.contracts.helper.getUserID(sponsor);
-      console.log(`👤 Спонсор: GW${sponsorID} (${sponsor})`);
-
-      // 🔥 ШАГ 5: Ищем в матрице от корня
-      const [found, position, depth] = await this.contracts.helper.searchInMatrix(
-        app.state.userAddress,  // от чьей матрицы ищем
-        searchAddress,          // кого ищем
-        12                      // максимальная глубина поиска (увеличил до 12)
-      );
-
-      console.log(`🔍 Поиск в матрице:`, { found, position: position?.toString(), depth });
-
-      if (found) {
-        app.showNotification(
-          `✅ Найдено! GW${searchID}\n` +
-          `Позиция: ${position}\n` +
-          `Глубина: ${depth}`, 
-          'success'
-        );
-        console.log('✅ НАЙДЕН В ВАШЕЙ МАТРИЦЕ');
-        console.log('═══════════════════════════════════════');
-        
-        // Переключаемся на найденного пользователя
-        this.state.currentRoot = searchAddress;
-        await this.loadMatrixVisualization();
-      } else {
-        app.showNotification(
-          `⚠️ GW${searchID} НЕ найден в вашей матрице\n` +
-          `(Он в позиции ${matrixPosition}, но в другой ветке)\n` +
-          `Спонсор: GW${sponsorID}`, 
-          'warning'
-        );
-        console.log('⚠️ НЕ НАЙДЕН в вашей матрице (глубина поиска: 12 уровней)');
-        console.log('Возможно он находится глубже или в другой ветке матрицы');
-        console.log('═══════════════════════════════════════');
-      }
-
-    } catch (error) {
-      console.error('❌ ОШИБКА ПОИСКА:', error);
-      app.showNotification('Ошибка поиска', 'error');
+    const maxPositions = Math.pow(2, this.state.currentLevel);
+    const levelInfoEl = document.getElementById('matrixLevelInfo');
+    if (levelInfoEl) {
+      levelInfoEl.textContent = `Current Level: ${this.state.currentLevel} Max Positions: ${maxPositions}`;
     }
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // МОДАЛЬНОЕ ОКНО ПОЗИЦИИ
+  // МОДАЛЬНОЕ ОКНО
   // ═══════════════════════════════════════════════════════════════
-  async showPositionModal(address) {
-    try {
-      const details = await this.getPositionDetails(address);
+  async showNodeModal(node) {
+    if (!node.address || node.address === ethers.constants.AddressZero) {
+      app.showNotification('Позиция свободна', 'info');
+      return;
+    }
 
-      // Заполняем модалку
-      document.getElementById('modalPositionId').textContent = details.id;
-      document.getElementById('modalSponsorId').textContent = details.sponsorId;
-      document.getElementById('modalAddress').textContent = app.formatAddress(details.address);
-      document.getElementById('modalLevel').textContent = details.level;
-      document.getElementById('modalQualification').textContent = details.rank;
+    const modalHTML = `
+      <div id="nodeModal" class="modal">
+        <div class="modal-content cosmic-card">
+          <span class="close-modal">&times;</span>
+          <div class="modal-header cosmic-header">
+            <h2>Информация о позиции</h2>
+          </div>
+          <div class="modal-body">
+            <div class="node-info">
+              <p><strong>ID:</strong> ${node.userId !== 'N/A' && node.userId !== '0' ? 'GW' + node.userId : 'N/A'}</p>
+              <p><strong>Address:</strong> ${app.formatAddress(node.address)}</p>
+              <p><strong>Level:</strong> ${node.maxLevel}</p>
+              <p><strong>Type:</strong> ${this.getTypeLabel(node.type, node.isTechAccount)}</p>
+            </div>
+            <div class="modal-actions">
+              <button id="viewMatrixBtn" class="btn-gold">
+                🌐 Посмотреть матрицу
+              </button>
+              <button id="closeModalBtn" class="btn-outline">
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
 
-      // Проверяем quarterly статус
-      const quarterlyStats = await this.contracts.stats.getUserQuarterlyStats(address);
-      const status = quarterlyStats[3] ? 'Активен' : 'Неактивен'; // isActive
-      document.getElementById('modalStatus').textContent = status;
+    const oldModal = document.getElementById('nodeModal');
+    if (oldModal) oldModal.remove();
 
-      // Кнопка "Посмотреть матрицу" - меняет корень на этого пользователя
-      document.getElementById('viewMatrixBtn').onclick = () => {
-        this.state.currentRoot = address;
-        this.loadMatrixVisualization();
-        app.closeModal('positionModal');
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    const modal = document.getElementById('nodeModal');
+    const closeBtn = modal.querySelector('.close-modal');
+    const closeBtnBottom = document.getElementById('closeModalBtn');
+    const viewMatrixBtn = document.getElementById('viewMatrixBtn');
+
+    closeBtn.onclick = () => modal.remove();
+    closeBtnBottom.onclick = () => modal.remove();
+    
+    if (viewMatrixBtn && node.userId && node.userId !== 'N/A' && node.userId !== '0') {
+      viewMatrixBtn.onclick = async () => {
+        modal.remove();
+        await this.loadMatrixData(node.userId, this.state.currentLevel);
       };
-
-      // Показываем модалку
-      app.showModal('positionModal');
-
-    } catch (error) {
-      console.error('Error showing modal:', error);
     }
+
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.remove();
+    };
+
+    modal.style.display = 'block';
+  },
+
+  getTypeLabel(type, isTechAccount) {
+    if (isTechAccount) return '🔵 Техническое место';
+    
+    const labels = {
+      partner: '🟢 Партнер',
+      charity: '🟠 Благотворительность',
+      technical: '🔵 Технический'
+    };
+    return labels[type] || '⚪ Доступно';
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // UI ЭЛЕМЕНТЫ
+  // UI
   // ═══════════════════════════════════════════════════════════════
-
-  // Создание 12 кнопок глубины
-  createDepthButtons() {
+  createLevelButtons() {
     const container = document.getElementById('matrixLevels');
     if (!container) return;
 
     container.innerHTML = '';
 
-    // 12 кнопок для глубины 1-12
-    for (let depth = 1; depth <= 12; depth++) {
+    for (let level = 1; level <= 12; level++) {
       const btn = document.createElement('button');
-      btn.className = `level-btn ${depth === 1 ? 'active' : ''}`;
-      btn.textContent = depth;
-      
-      // Подсказка с количеством позиций
-      const posCount = Math.pow(2, depth);
-      btn.title = `Глубина ${depth}: ${posCount} позиций`;
-      
-      btn.onclick = () => this.selectDepth(depth);
+      btn.className = `level-btn ${level === 1 ? 'active' : ''}`;
+      btn.textContent = level;
+      btn.onclick = () => this.selectLevel(level);
       container.appendChild(btn);
     }
   },
 
-  // Выбор глубины
-  async selectDepth(depth) {
-    // Обновляем активную кнопку
+  async selectLevel(level) {
     document.querySelectorAll('#matrixLevels .level-btn').forEach((btn, index) => {
-      btn.classList.toggle('active', index + 1 === depth);
+      btn.classList.toggle('active', index + 1 === level);
     });
 
-    this.state.currentDepth = depth;
-    this.state.currentRoot = app.state.userAddress; // Сброс на пользователя
-
-    // Загружаем данные для этой глубины
-    await this.loadMatrixTable();
+    await this.loadMatrixData(this.state.currentUserId, level);
   },
 
-  // Обновление статистики UI
-  updateStatsUI() {
-    const { totalActive, fromPartners, fromCharity, fromTechnical } = this.state.stats;
-
-    const totalEl = document.getElementById('totalActivePositions');
-    const partnerEl = document.getElementById('partnerPositions');
-    const charityEl = document.getElementById('charityPositions');
-    const techEl = document.getElementById('technicalPositions');
-
-    if (totalEl) totalEl.textContent = totalActive;
-    if (partnerEl) partnerEl.textContent = fromPartners;
-    if (charityEl) charityEl.textContent = fromCharity;
-    if (techEl) techEl.textContent = fromTechnical;
-  },
-
-  // Инициализация UI
   initUI() {
-    // Кнопка поиска
     const searchBtn = document.getElementById('matrixSearchBtn');
-    if (searchBtn) {
-      searchBtn.onclick = () => this.searchMatrix();
-    }
-
-    // Enter в поиске
     const searchInput = document.getElementById('matrixSearchInput');
-    if (searchInput) {
-      searchInput.onkeypress = (e) => {
-        if (e.key === 'Enter') {
-          this.searchMatrix();
+
+    if (searchBtn && searchInput) {
+      searchBtn.onclick = async () => {
+        let userId = searchInput.value.trim().replace(/^GW/i, '');
+        if (!/^\d+$/.test(userId)) {
+          app.showNotification('Введите корректный ID', 'error');
+          return;
         }
+        await this.loadMatrixData(userId, this.state.currentLevel);
       };
-    }
 
-    // Закрытие модалки
-    const closeBtn = document.getElementById('closeModalBtn');
-    if (closeBtn) {
-      closeBtn.onclick = () => app.closeModal('positionModal');
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') searchBtn.click();
+      });
     }
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ДИАГНОСТИКА (для отладки)
+  // ВСПОМОГАТЕЛЬНЫЕ
   // ═══════════════════════════════════════════════════════════════
-  
-  // 🔥 НОВАЯ ФУНКЦИЯ: Диагностика пользователя по ID
-  async diagnoseUser(userID) {
+  async getUserMaxLevel(address) {
     try {
-      console.log('═══════════════════════════════════════');
-      console.log(`🔍 ДИАГНОСТИКА: GW${userID}`);
-      console.log('═══════════════════════════════════════');
-      
-      // Адрес
-      const address = await this.contracts.helper.getAddressByID(userID);
-      console.log(`📍 Адрес:`, address);
-      
-      if (address === ethers.constants.AddressZero) {
-        console.log('❌ ID не найден');
-        return;
-      }
-      
-      // Регистрация
-      const isRegistered = await this.contracts.globalWay.isUserRegistered(address);
-      console.log(`✅ Зарегистрирован:`, isRegistered);
-      
-      if (!isRegistered) {
-        console.log('❌ Не зарегистрирован');
-        return;
-      }
-      
-      // Позиция в матрице
-      const matrixPos = await this.contracts.globalWay.getUserMatrixPosition(address);
-      console.log(`📊 Позиция в матрице:`, matrixPos.toString());
-      
-      // Спонсор
-      const sponsor = await this.contracts.globalWay.getUserSponsor(address);
-      const sponsorID = await this.contracts.helper.getUserID(sponsor);
-      console.log(`👤 Спонсор: GW${sponsorID} (${sponsor})`);
-      
-      // Максимальный уровень
-      const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
-      console.log(`📈 Максимальный уровень:`, maxLevel);
-      
-      // Рефералы
-      const referrals = await this.contracts.globalWay.getUserReferrals(address);
-      console.log(`👥 Рефералов:`, referrals.length);
-      if (referrals.length > 0) {
-        for (let i = 0; i < referrals.length; i++) {
-          const refID = await this.contracts.helper.getUserID(referrals[i]);
-          console.log(`  ${i+1}. GW${refID} (${referrals[i]})`);
-        }
-      }
-      
-      // Поиск в матрице
-      const yourPos = await this.contracts.globalWay.getUserMatrixPosition(app.state.userAddress);
-      console.log(`\n🔍 Поиск от вашей позиции (${yourPos.toString()}):`);
-      
-      const [found, foundPos, depth] = await this.contracts.helper.searchInMatrix(
-        app.state.userAddress,
-        address,
-        12
-      );
-      
-      if (found) {
-        console.log(`✅ НАЙДЕН! Позиция: ${foundPos}, Глубина: ${depth}`);
-      } else {
-        console.log(`⚠️ НЕ НАЙДЕН в вашей ветке (поиск до глубины 12)`);
-      }
-      
-      console.log('═══════════════════════════════════════');
-      
+      return Number(await this.contracts.globalWay.getUserMaxLevel(address));
     } catch (error) {
-      console.error('❌ Ошибка диагностики:', error);
+      return 0;
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-  // ═══════════════════════════════════════════════════════════════
-  getRankName(rankQualified) {
-    // rankQualified - это массив [bronze, silver, gold, platinum]
-    if (rankQualified[3]) return 'Платина';
-    if (rankQualified[2]) return 'Золото';
-    if (rankQualified[1]) return 'Серебро';
-    if (rankQualified[0]) return 'Бронза';
-    return 'Никто';
-  },
-
-  // Обновление данных
   async refresh() {
-    await this.loadAllData();
+    await this.loadMatrixData(this.state.currentUserId, this.state.currentLevel);
   }
 };
 
-// Экспорт в window
 window.matrixModule = matrixModule;
