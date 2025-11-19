@@ -570,7 +570,7 @@ async connect() {
     const result = this.isOwner() || 
       (Array.isArray(CONFIG.ADMIN.founders) && 
        CONFIG.ADMIN.founders.some(f => {
-         const founderAddr = typeof f === 'string' ? f : f.address;
+         const founderAddr = f;
          return founderAddr.toLowerCase() === addr;
        }));
     
