@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWay",
-  "address": "0x115D37c4ee5a3c15fc3d0C05CB481728AcaBf036",
+  "address": "0x9ec8586de228c82106c9869476F12b2d6810C82A",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -8,7 +8,12 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_gwtTokenAddress",
+          "name": "_matrixRegistry",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_gwtToken",
           "type": "address"
         }
       ],
@@ -57,31 +62,12 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "string",
-          "name": "target",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "DistributionSent",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
           "internalType": "address",
           "name": "user",
           "type": "address"
         },
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "uint8",
           "name": "level",
           "type": "uint8"
@@ -91,6 +77,12 @@
           "internalType": "uint256",
           "name": "amount",
           "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isAutoUpgrade",
+          "type": "bool"
         }
       ],
       "name": "LevelActivated",
@@ -138,7 +130,56 @@
           "type": "address"
         },
         {
+          "indexed": true,
+          "internalType": "uint8",
+          "name": "level",
+          "type": "uint8"
+        },
+        {
           "indexed": false,
+          "internalType": "uint256",
+          "name": "partnerAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "matrixAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "investAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "leaderAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "tokenomicsAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "PaymentDistributed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
           "internalType": "uint8",
           "name": "level",
           "type": "uint8"
@@ -177,9 +218,15 @@
         },
         {
           "indexed": true,
-          "internalType": "address",
-          "name": "sponsor",
-          "type": "address"
+          "internalType": "uint256",
+          "name": "userId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
         }
       ],
       "name": "UserRegistered",
@@ -203,55 +250,6 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "WALLET_CHANGE_DEADLINE",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint8",
-          "name": "maxLevel",
-          "type": "uint8"
-        }
-      ],
-      "name": "activateBulkLevels",
-      "outputs": [],
-      "stateMutability": "payable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "sponsor",
-          "type": "address"
-        },
-        {
-          "internalType": "uint8",
-          "name": "maxLevel",
-          "type": "uint8"
-        }
-      ],
-      "name": "activateFounderTeam",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
       "inputs": [
         {
           "internalType": "uint8",
@@ -268,62 +266,6 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "techAddress",
-          "type": "address"
-        },
-        {
-          "internalType": "uint8",
-          "name": "maxLevel",
-          "type": "uint8"
-        }
-      ],
-      "name": "activateTechLevels",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "allUsers",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "authorizedForFreeActivation",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
           "name": "user",
           "type": "address"
         },
@@ -333,7 +275,7 @@
           "type": "uint8"
         }
       ],
-      "name": "autoActivateLevel",
+      "name": "activateLevelViaAutoUpgrade",
       "outputs": [],
       "stateMutability": "payable",
       "type": "function"
@@ -341,57 +283,30 @@
     {
       "inputs": [
         {
-          "internalType": "address[]",
-          "name": "teamMembers",
-          "type": "address[]"
+          "internalType": "address",
+          "name": "techUser",
+          "type": "address"
         },
         {
-          "internalType": "address[]",
-          "name": "teamSponsors",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint8[]",
-          "name": "teamLevels",
-          "type": "uint8[]"
+          "internalType": "uint8",
+          "name": "maxLevel",
+          "type": "uint8"
         }
       ],
-      "name": "batchActivateTeam",
+      "name": "activateLevelsForTechAccount",
       "outputs": [],
-      "stateMutability": "nonpayable",
+      "stateMutability": "payable",
       "type": "function"
     },
     {
       "inputs": [
         {
-          "internalType": "address[]",
-          "name": "users_",
-          "type": "address[]"
-        },
-        {
-          "internalType": "address[]",
-          "name": "sponsors",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint256[]",
-          "name": "registrationTimes",
-          "type": "uint256[]"
-        },
-        {
-          "internalType": "uint8[]",
-          "name": "maxLevels",
-          "type": "uint8[]"
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
         }
       ],
-      "name": "batchRestoreUsers",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "bridgeContract",
+      "name": "allUsers",
       "outputs": [
         {
           "internalType": "address",
@@ -423,6 +338,11 @@
     },
     {
       "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
         {
           "internalType": "uint8",
           "name": "maxLevel",
@@ -468,55 +388,9 @@
     },
     {
       "inputs": [],
-      "name": "emergencyPause",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "emergencyUnpause",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
       "name": "emergencyWithdraw",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "findFreePositionInMatrix",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "founders",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -558,20 +432,9 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "position",
-          "type": "uint256"
-        }
-      ],
-      "name": "getMatrixPosition",
+      "inputs": [],
+      "name": "getTotalUsers",
       "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        },
         {
           "internalType": "uint256",
           "name": "",
@@ -608,12 +471,32 @@
           "type": "address"
         }
       ],
-      "name": "getUserMatrixPosition",
+      "name": "getUserInfo",
       "outputs": [
         {
+          "internalType": "bool",
+          "name": "isRegistered",
+          "type": "bool"
+        },
+        {
           "internalType": "uint256",
-          "name": "",
+          "name": "registrationTime",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lastActivity",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "level1Time",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "maxLevel",
+          "type": "uint8"
         }
       ],
       "stateMutability": "view",
@@ -681,7 +564,7 @@
       "name": "gwtToken",
       "outputs": [
         {
-          "internalType": "contract IGlobalWayToken",
+          "internalType": "contract IGWTToken",
           "name": "",
           "type": "address"
         }
@@ -691,31 +574,12 @@
     },
     {
       "inputs": [],
-      "name": "investmentPoolContract",
+      "name": "investmentPool",
       "outputs": [
         {
-          "internalType": "address",
+          "internalType": "contract IInvestmentPool",
           "name": "",
           "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "isInactive",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -768,25 +632,6 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "isUserInArray",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
           "name": "user",
           "type": "address"
         }
@@ -804,10 +649,10 @@
     },
     {
       "inputs": [],
-      "name": "leaderPoolContract",
+      "name": "leaderPool",
       "outputs": [
         {
-          "internalType": "address",
+          "internalType": "contract ILeaderPool",
           "name": "",
           "type": "address"
         }
@@ -836,10 +681,10 @@
     },
     {
       "inputs": [],
-      "name": "marketingContract",
+      "name": "matrixPayments",
       "outputs": [
         {
-          "internalType": "address",
+          "internalType": "contract IMatrixPayments",
           "name": "",
           "type": "address"
         }
@@ -849,10 +694,10 @@
     },
     {
       "inputs": [],
-      "name": "ops",
+      "name": "matrixRegistry",
       "outputs": [
         {
-          "internalType": "address",
+          "internalType": "contract IMatrixRegistry",
           "name": "",
           "type": "address"
         }
@@ -875,6 +720,26 @@
     },
     {
       "inputs": [],
+      "name": "partnerProgram",
+      "outputs": [
+        {
+          "internalType": "contract IPartnerProgram",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pause",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "paused",
       "outputs": [
         {
@@ -888,10 +753,10 @@
     },
     {
       "inputs": [],
-      "name": "quarterlyContract",
+      "name": "quarterlyPayments",
       "outputs": [
         {
-          "internalType": "address",
+          "internalType": "contract IQuarterlyPayments",
           "name": "",
           "type": "address"
         }
@@ -902,63 +767,12 @@
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "sponsor",
-          "type": "address"
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
         }
       ],
       "name": "register",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "projectID",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "projectName",
-          "type": "string"
-        },
-        {
-          "internalType": "address",
-          "name": "projectWallet",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "tokenAddress",
-          "type": "address"
-        }
-      ],
-      "name": "registerProjectInBridge",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "techAddress",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "owner",
-          "type": "address"
-        },
-        {
-          "internalType": "uint8",
-          "name": "maxLevel",
-          "type": "uint8"
-        }
-      ],
-      "name": "registerTechAccount",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -974,26 +788,11 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "user",
+          "name": "_charity",
           "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "sponsor",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "registrationTime",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint8",
-          "name": "maxLevel",
-          "type": "uint8"
         }
       ],
-      "name": "restoreUser",
+      "name": "setCharity",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1002,11 +801,11 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_bridge",
+          "name": "_dev",
           "type": "address"
         }
       ],
-      "name": "setBridgeContract",
+      "name": "setDev",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1019,25 +818,7 @@
           "type": "address"
         }
       ],
-      "name": "setInvestmentPoolContract",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "timestamp",
-          "type": "uint256"
-        }
-      ],
-      "name": "setLastActivity",
+      "name": "setGWTToken",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1050,20 +831,7 @@
           "type": "address"
         }
       ],
-      "name": "setLeaderPoolContract",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_marketing",
-          "type": "address"
-        }
-      ],
-      "name": "setMarketingContract",
+      "name": "setInvestmentPool",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1076,7 +844,7 @@
           "type": "address"
         }
       ],
-      "name": "setQuarterlyContract",
+      "name": "setLeaderPool",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1089,22 +857,61 @@
           "type": "address"
         }
       ],
-      "name": "setTechAccountsContract",
+      "name": "setMatrixPayments",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "techAccountsContract",
-      "outputs": [
+      "inputs": [
         {
           "internalType": "address",
-          "name": "",
+          "name": "_contract",
           "type": "address"
         }
       ],
-      "stateMutability": "view",
+      "name": "setPartnerProgram",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_contract",
+          "type": "address"
+        }
+      ],
+      "name": "setQuarterlyPayments",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_tokenomics",
+          "type": "address"
+        }
+      ],
+      "name": "setTokenomics",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_treasury",
+          "type": "address"
+        }
+      ],
+      "name": "setTreasury",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -1192,19 +999,8 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "addressType",
-          "type": "string"
-        },
-        {
-          "internalType": "address",
-          "name": "newAddress",
-          "type": "address"
-        }
-      ],
-      "name": "updateCriticalAddress",
+      "inputs": [],
+      "name": "unpause",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1225,11 +1021,6 @@
           "type": "bool"
         },
         {
-          "internalType": "address",
-          "name": "sponsor",
-          "type": "address"
-        },
-        {
           "internalType": "uint256",
           "name": "registrationTime",
           "type": "uint256"
@@ -1237,11 +1028,6 @@
         {
           "internalType": "uint256",
           "name": "lastActivity",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "personalInvites",
           "type": "uint256"
         },
         {
