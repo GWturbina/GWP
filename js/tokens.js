@@ -1,8 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Tokens Module  
-// Токеномика GWT: баланс, торговля, пулы, награды, стейкинг
-// СОЗДАН С НУЛЯ под новые контракты
-// Date: 2025-01-19
+// GlobalWay DApp - Tokens Module - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Токены GWT: баланс, торговля, статистика, награды
+// Date: 2025-01-19 - FIXED
 // ═══════════════════════════════════════════════════════════════════
 
 const tokensModule = {
@@ -13,52 +12,27 @@ const tokensModule = {
   
   state: {
     balance: '0',
-    totalValue: 0,
-    tokenPrice: 0.001,
-    
-    tokenomics: {
-      totalSupply: 1000000000,    // 1B GWT
-      inCirculation: 0,
-      burned: 0,
-      marketCap: 0
+    price: '0',
+    totalValue: '0',
+    tradingEnabled: false,
+    stats: {
+      totalSupply: '0',
+      circulating: '0',
+      burned: '0',
+      marketCap: '0'
     },
-    
-    pools: {
-      tokenomics: { amount: 800000000, percent: 80, status: 'soon' },
-      distribution: { amount: 100000000, percent: 10, status: 'soon' },
-      team: { amount: 50000000, percent: 5, status: 'locked' },
-      reserve: { amount: 50000000, percent: 5, status: 'soon' }
-    },
-    
-    trading: {
-      isActive: false,
-      activationPrice: 0.01,
-      amount: 0,
-      cost: 0,
-      newPrice: 0
-    },
-    
     rewards: {
-      earned: 0,
-      available: 0,
-      claimed: 0
+      levels: [],
+      total: 0
     },
-    
-    history: [],
-    
-    staking: {
-      isActive: false,
-      staked: 0,
-      rewards: 0,
-      apy: 0
-    }
+    history: []
   },
 
   // ═══════════════════════════════════════════════════════════════
   // ИНИЦИАЛИЗАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   async init() {
-    console.log('🪙 Initializing Tokens...');
+    console.log('💎 Initializing Tokens...');
     
     try {
       if (!app.state.userAddress) {
@@ -69,7 +43,6 @@ const tokensModule = {
       await this.loadContracts();
       await this.loadAllData();
       this.initUI();
-      this.renderRewards();
 
       console.log('✅ Tokens loaded');
     } catch (error) {
@@ -97,7 +70,8 @@ const tokensModule = {
   async loadAllData() {
     await Promise.all([
       this.loadBalance(),
-      this.loadTokenomics(),
+      this.loadPrice(),
+      this.loadStatistics(),
       this.loadRewards(),
       this.loadHistory()
     ]);
@@ -108,109 +82,537 @@ const tokensModule = {
   // ═══════════════════════════════════════════════════════════════
   async loadBalance() {
     try {
-      const address = app.state.userAddress;
       console.log('💰 Loading token balance...');
-
-      // Баланс токенов
+      
+      const address = app.state.userAddress;
       const balance = await this.contracts.token.balanceOf(address);
       this.state.balance = ethers.utils.formatEther(balance);
 
-      // Цена токена (можно получить из контракта или API)
-      // Пока используем фиксированную цену
-      this.state.tokenPrice = 0.001;
-
-      // Общая стоимость
-      this.state.totalValue = parseFloat(this.state.balance) * this.state.tokenPrice;
-
-      console.log('✅ Balance loaded:', this.state.balance, 'GWT');
+      console.log('✅ Balance:', this.state.balance, 'GWT');
       
       this.updateBalanceUI();
       
     } catch (error) {
       console.error('❌ Error loading balance:', error);
       this.state.balance = '0';
-      this.state.totalValue = 0;
       this.updateBalanceUI();
     }
   },
 
   updateBalanceUI() {
-    const balanceEl = document.getElementById('tokenBalance');
-    const valueEl = document.getElementById('tokenValue');
-    const priceEl = document.getElementById('tokenPrice');
-
+    const balanceEl = document.getElementById('totalTokens');
     if (balanceEl) {
       balanceEl.textContent = `${app.formatNumber(this.state.balance, 2)} GWT`;
     }
-    
-    if (valueEl) {
-      valueEl.textContent = `$${this.state.totalValue.toFixed(2)}`;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЦЕНА ТОКЕНА
+  // ═══════════════════════════════════════════════════════════════
+  async loadPrice() {
+    try {
+      console.log('💵 Loading token price...');
+      
+      // Пытаемся получить цену из контракта
+      try {
+        const price = await this.contracts.token.currentPrice();
+        this.state.price = ethers.utils.formatEther(price);
+      } catch (e) {
+        // Если функция currentPrice не существует, используем фиксированную цену
+        this.state.price = '0.001';
+      }
+
+      // Общая стоимость
+      this.state.totalValue = (
+        parseFloat(this.state.balance) * parseFloat(this.state.price)
+      ).toFixed(2);
+
+      // Проверяем торговлю (активна при цене >= $0.01)
+      const minPrice = 0.01;
+      this.state.tradingEnabled = parseFloat(this.state.price) >= minPrice;
+
+      console.log('✅ Price:', this.state.price);
+      
+      this.updatePriceUI();
+      this.updateTradingUI();
+      
+    } catch (error) {
+      console.error('❌ Error loading price:', error);
+      this.state.price = '0.001';
+      this.state.totalValue = '0';
+      this.updatePriceUI();
+    }
+  },
+
+  updatePriceUI() {
+    const priceEl = document.getElementById('currentPrice');
+    const valueEl = document.getElementById('totalValue');
+
+    if (priceEl) {
+      priceEl.textContent = `$${this.state.price}`;
     }
     
-    if (priceEl) {
-      priceEl.textContent = `$${this.state.tokenPrice.toFixed(4)}`;
+    if (valueEl) {
+      valueEl.textContent = `$${this.state.totalValue}`;
     }
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ТОКЕНОМИКА
+  // СТАТИСТИКА ТОКЕНОВ
   // ═══════════════════════════════════════════════════════════════
-  async loadTokenomics() {
+  async loadStatistics() {
     try {
-      console.log('📊 Loading tokenomics...');
+      console.log('📊 Loading token statistics...');
 
       // Total Supply
       const totalSupply = await this.contracts.token.totalSupply();
-      this.state.tokenomics.totalSupply = Number(ethers.utils.formatEther(totalSupply));
+      this.state.stats.totalSupply = ethers.utils.formatEther(totalSupply);
 
       // Burned tokens
       try {
-        const burnedBalance = await this.contracts.token.balanceOf(ethers.constants.AddressZero);
-        this.state.tokenomics.burned = Number(ethers.utils.formatEther(burnedBalance));
+        const burnedBalance = await this.contracts.token.balanceOf(
+          ethers.constants.AddressZero
+        );
+        this.state.stats.burned = ethers.utils.formatEther(burnedBalance);
       } catch (e) {
-        this.state.tokenomics.burned = 0;
+        this.state.stats.burned = '0';
       }
 
-      // Circulation (можно посчитать через события Transfer)
-      this.state.tokenomics.inCirculation = 0; // TODO: рассчитать
+      // Circulating supply (можно рассчитать через события Transfer)
+      // Пока используем 0, потом можно добавить точный подсчет
+      this.state.stats.circulating = '0';
 
       // Market Cap
-      this.state.tokenomics.marketCap = 
-        this.state.tokenomics.inCirculation * this.state.tokenPrice;
+      this.state.stats.marketCap = (
+        parseFloat(this.state.stats.circulating) * parseFloat(this.state.price)
+      ).toFixed(0);
 
-      console.log('✅ Tokenomics loaded');
+      console.log('✅ Statistics loaded');
       
-      this.updateTokenomicsUI();
+      this.updateStatisticsUI();
       
     } catch (error) {
-      console.error('❌ Error loading tokenomics:', error);
-      this.updateTokenomicsUI();
+      console.error('❌ Error loading statistics:', error);
+      this.updateStatisticsUI();
     }
   },
 
-  updateTokenomicsUI() {
-    const { totalSupply, inCirculation, burned, marketCap } = this.state.tokenomics;
+  updateStatisticsUI() {
+    const { totalSupply, circulating, burned, marketCap } = this.state.stats;
 
-    const totalEl = document.getElementById('totalSupply');
-    const circulationEl = document.getElementById('inCirculation');
-    const burnedEl = document.getElementById('tokensBurned');
-    const capEl = document.getElementById('marketCap');
-
+    // Общий запас
+    const totalEl = document.getElementById('tokenTotalSupply');
     if (totalEl) {
-      totalEl.textContent = `${(totalSupply / 1000000).toFixed(0)}M GWT`;
+      const totalM = (parseFloat(totalSupply) / 1000000).toFixed(0);
+      totalEl.textContent = `${totalM}M GWT`;
     }
-    
-    if (circulationEl) {
-      circulationEl.textContent = `${(inCirculation / 1000000).toFixed(0)}M GWT`;
+
+    // В обороте
+    const circEl = document.getElementById('tokenCirculating');
+    if (circEl) {
+      const circM = (parseFloat(circulating) / 1000000).toFixed(0);
+      circEl.textContent = `${circM}M GWT`;
     }
-    
+
+    // Сожжено
+    const burnedEl = document.getElementById('tokenBurned');
     if (burnedEl) {
       burnedEl.textContent = `${app.formatNumber(burned, 0)} GWT`;
     }
-    
+
+    // Капитализация
+    const capEl = document.getElementById('tokenMarketCap');
     if (capEl) {
-      capEl.textContent = `$${marketCap.toFixed(0)}`;
+      capEl.textContent = `$${marketCap}`;
     }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // НАГРАДЫ ПО УРОВНЯМ
+  // ═══════════════════════════════════════════════════════════════
+  async loadRewards() {
+    try {
+      console.log('🎁 Loading rewards...');
+
+      const address = app.state.userAddress;
+      const rewards = [];
+      let totalPossible = 0;
+
+      // Получаем максимальный уровень пользователя
+      const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
+
+      // Загружаем награды для всех 12 уровней
+      for (let level = 1; level <= 12; level++) {
+        const rewardAmount = CONFIG.TOKEN_REWARDS[level - 1];
+        totalPossible += rewardAmount;
+
+        // Проверяем активен ли уровень
+        let isUnlocked = false;
+        try {
+          isUnlocked = await this.contracts.globalWay.isLevelActive(address, level);
+        } catch (e) {
+          // Если функция не существует, проверяем через maxLevel
+          isUnlocked = level <= maxLevel;
+        }
+
+        rewards.push({
+          level,
+          amount: rewardAmount,
+          unlocked: isUnlocked
+        });
+      }
+
+      this.state.rewards = {
+        levels: rewards,
+        total: totalPossible
+      };
+
+      console.log('✅ Rewards loaded');
+      
+      this.renderRewards();
+      
+    } catch (error) {
+      console.error('❌ Error loading rewards:', error);
+      this.renderRewards();
+    }
+  },
+
+  renderRewards() {
+    const container = document.getElementById('tokenRewards');
+    if (!container) return;
+
+    const { levels, total } = this.state.rewards;
+
+    if (!levels || levels.length === 0) {
+      // Если нет данных, показываем дефолтные
+      const defaultRewards = CONFIG.TOKEN_REWARDS.map((amount, index) => ({
+        level: index + 1,
+        amount,
+        unlocked: false
+      }));
+
+      container.innerHTML = defaultRewards.map(r => `
+        <div class="reward-card ${r.unlocked ? 'unlocked' : ''}">
+          <div class="reward-level">Уровень ${r.level}</div>
+          <div class="reward-amount">${r.amount} GWT</div>
+          ${r.unlocked ? '<div class="reward-check">✓</div>' : ''}
+          <div class="reward-status">${r.unlocked ? 'РАЗБЛОКИРОВАН' : 'ЗАБЛОКИРОВАН'}</div>
+        </div>
+      `).join('');
+
+      const totalEl = document.getElementById('totalPossibleRewards');
+      if (totalEl) {
+        const defaultTotal = CONFIG.TOKEN_REWARDS.reduce((a, b) => a + b, 0);
+        totalEl.textContent = `${app.formatNumber(defaultTotal, 0)} GWT`;
+      }
+      
+      return;
+    }
+
+    // Рендерим награды
+    container.innerHTML = levels.map(r => `
+      <div class="reward-card ${r.unlocked ? 'unlocked' : ''}">
+        <div class="reward-level">Уровень ${r.level}</div>
+        <div class="reward-amount">${r.amount} GWT</div>
+        ${r.unlocked ? '<div class="reward-check">✓</div>' : ''}
+        <div class="reward-status">${r.unlocked ? 'РАЗБЛОКИРОВАН' : 'ЗАБЛОКИРОВАН'}</div>
+      </div>
+    `).join('');
+
+    // Total Possible Rewards
+    const totalEl = document.getElementById('totalPossibleRewards');
+    if (totalEl) {
+      totalEl.textContent = `${app.formatNumber(total, 0)} GWT`;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ИСТОРИЯ ТОКЕНОВ
+  // ═══════════════════════════════════════════════════════════════
+  async loadHistory() {
+    try {
+      console.log('📜 Loading token history...');
+
+      const address = app.state.userAddress;
+      const events = await this.getTokenEvents(address);
+      
+      this.state.history = events;
+      
+      this.renderHistory();
+      
+    } catch (error) {
+      console.error('❌ Error loading history:', error);
+      this.renderHistory();
+    }
+  },
+
+  async getTokenEvents(address) {
+    try {
+      // Получаем события Transfer (входящие и исходящие)
+      const filterFrom = this.contracts.token.filters.Transfer(address, null);
+      const filterTo = this.contracts.token.filters.Transfer(null, address);
+
+      const eventsFrom = await this.contracts.token.queryFilter(filterFrom, -10000);
+      const eventsTo = await this.contracts.token.queryFilter(filterTo, -10000);
+
+      const allEvents = [...eventsFrom, ...eventsTo];
+      const events = [];
+
+      for (const event of allEvents) {
+        const block = await event.getBlock();
+        const amount = ethers.utils.formatEther(event.args.value);
+        
+        // Определяем тип: награда или покупка/продажа
+        const isReward = CONFIG.TOKEN_REWARDS.includes(Math.round(parseFloat(amount)));
+
+        events.push({
+          date: new Date(block.timestamp * 1000).toLocaleDateString(),
+          type: isReward ? 'reward' : 'transfer',
+          typeLabel: isReward ? 'Награда' : 'Перевод',
+          level: isReward ? this.getLevelByReward(amount) : '-',
+          amount: `${app.formatNumber(amount, 2)} GWT`,
+          status: 'success',
+          statusLabel: 'Завершено'
+        });
+      }
+
+      // Сортируем по дате
+      events.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      return events.slice(0, 50);
+      
+    } catch (error) {
+      console.error('Error getting token events:', error);
+      return [];
+    }
+  },
+
+  renderHistory() {
+    const tableBody = document.getElementById('tokenHistoryTable');
+    if (!tableBody) return;
+
+    if (!this.state.history || this.state.history.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="5" class="no-data">Нет транзакций</td></tr>';
+      return;
+    }
+
+    tableBody.innerHTML = this.state.history.map(h => `
+      <tr>
+        <td>${h.date}</td>
+        <td><span class="badge badge-${h.type}">${h.typeLabel}</span></td>
+        <td>${h.level}</td>
+        <td>${h.amount}</td>
+        <td><span class="badge badge-${h.status}">${h.statusLabel}</span></td>
+      </tr>
+    `).join('');
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ТОРГОВЛЯ ТОКЕНАМИ
+  // ═══════════════════════════════════════════════════════════════
+  async buyTokens() {
+    if (!await app.checkNetwork()) return;
+    
+    if (!this.state.tradingEnabled) {
+      app.showNotification('Торговля еще не активна. Цена должна достичь $0.01', 'error');
+      return;
+    }
+
+    const amountInput = document.getElementById('tradeAmount');
+    if (!amountInput || !amountInput.value) {
+      app.showNotification('Введите количество токенов', 'error');
+      return;
+    }
+
+    const amount = parseFloat(amountInput.value);
+    if (amount <= 0) {
+      app.showNotification('Неверное количество', 'error');
+      return;
+    }
+
+    try {
+      app.showNotification('Покупка токенов...', 'info');
+
+      // Расчет стоимости
+      const cost = (amount * parseFloat(this.state.price)).toFixed(6);
+
+      const contract = await app.getSignedContract('GWTToken');
+      
+      // Проверяем существует ли функция buyTokens
+      let tx;
+      try {
+        tx = await contract.buyTokens({
+          value: ethers.utils.parseEther(cost),
+          gasLimit: CONFIG.GAS.transaction
+        });
+      } catch (e) {
+        app.showNotification('Функция покупки недоступна', 'error');
+        return;
+      }
+
+      app.showNotification('Ожидание подтверждения...', 'info');
+      await tx.wait();
+
+      app.showNotification('Токены куплены! 🎉', 'success');
+      
+      await this.refresh();
+      
+    } catch (error) {
+      console.error('Buy tokens error:', error);
+      if (error.code === 4001) {
+        app.showNotification('Транзакция отклонена', 'error');
+      } else {
+        app.showNotification('Ошибка покупки', 'error');
+      }
+    }
+  },
+
+  async sellTokens() {
+    if (!await app.checkNetwork()) return;
+    
+    if (!this.state.tradingEnabled) {
+      app.showNotification('Торговля еще не активна. Цена должна достичь $0.01', 'error');
+      return;
+    }
+
+    const amountInput = document.getElementById('tradeAmount');
+    if (!amountInput || !amountInput.value) {
+      app.showNotification('Введите количество токенов', 'error');
+      return;
+    }
+
+    const amount = parseFloat(amountInput.value);
+    if (amount <= 0) {
+      app.showNotification('Неверное количество', 'error');
+      return;
+    }
+
+    if (amount > parseFloat(this.state.balance)) {
+      app.showNotification('Недостаточно токенов', 'error');
+      return;
+    }
+
+    try {
+      app.showNotification('Продажа токенов...', 'info');
+
+      const contract = await app.getSignedContract('GWTToken');
+      
+      // Проверяем существует ли функция sellTokens
+      let tx;
+      try {
+        tx = await contract.sellTokens(
+          ethers.utils.parseEther(amount.toString()),
+          { gasLimit: CONFIG.GAS.transaction }
+        );
+      } catch (e) {
+        app.showNotification('Функция продажи недоступна', 'error');
+        return;
+      }
+
+      app.showNotification('Ожидание подтверждения...', 'info');
+      await tx.wait();
+
+      app.showNotification('Токены проданы! 🎉', 'success');
+      
+      await this.refresh();
+      
+    } catch (error) {
+      console.error('Sell tokens error:', error);
+      if (error.code === 4001) {
+        app.showNotification('Транзакция отклонена', 'error');
+      } else {
+        app.showNotification('Ошибка продажи', 'error');
+      }
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // UI ОБНОВЛЕНИЕ
+  // ═══════════════════════════════════════════════════════════════
+  updateTradingUI() {
+    const statusEl = document.getElementById('tradingStatus');
+    const statusTextEl = document.getElementById('tradingStatusText');
+    const buyBtn = document.getElementById('buyBtn');
+    const sellBtn = document.getElementById('sellBtn');
+    const amountInput = document.getElementById('tradeAmount');
+
+    if (this.state.tradingEnabled) {
+      if (statusEl) {
+        statusEl.classList.remove('status-inactive');
+        statusEl.classList.add('status-active');
+      }
+      
+      if (statusTextEl) {
+        statusTextEl.textContent = 'Активна';
+      }
+      
+      if (buyBtn) buyBtn.disabled = false;
+      if (sellBtn) sellBtn.disabled = false;
+      if (amountInput) amountInput.disabled = false;
+      
+    } else {
+      if (statusEl) {
+        statusEl.classList.remove('status-active');
+        statusEl.classList.add('status-inactive');
+      }
+      
+      if (statusTextEl) {
+        statusTextEl.textContent = 'Неактивна';
+      }
+      
+      if (buyBtn) buyBtn.disabled = true;
+      if (sellBtn) sellBtn.disabled = true;
+      if (amountInput) amountInput.disabled = true;
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // UI ИНИЦИАЛИЗАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
+  initUI() {
+    console.log('🎨 Initializing Tokens UI...');
+
+    // Кнопки торговли
+    const buyBtn = document.getElementById('buyBtn');
+    const sellBtn = document.getElementById('sellBtn');
+    
+    if (buyBtn) {
+      buyBtn.onclick = () => this.buyTokens();
+    }
+    
+    if (sellBtn) {
+      sellBtn.onclick = () => this.sellTokens();
+    }
+
+    // Input для торговли
+    const amountInput = document.getElementById('tradeAmount');
+    if (amountInput) {
+      amountInput.addEventListener('input', () => this.calculateTradeCost());
+    }
+
+    // Фильтр истории
+    const filterEl = document.getElementById('tokenHistoryFilter');
+    if (filterEl) {
+      filterEl.onchange = () => this.filterHistory();
+    }
+
+    // Кнопка обновления
+    const refreshBtn = document.getElementById('refreshTokenHistory');
+    if (refreshBtn) {
+      refreshBtn.onclick = () => this.loadHistory();
+    }
+
+    // Кнопка добавления токена в кошелек
+    const addTokenBtn = document.getElementById('addTokenToWallet');
+    if (addTokenBtn) {
+      addTokenBtn.onclick = () => this.addTokenToWallet();
+    }
+
+    // Пулы токенов
+    this.renderPools();
+
+    // Статус торговли
+    this.updateTradingUI();
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -220,405 +622,53 @@ const tokensModule = {
     const container = document.getElementById('tokenPools');
     if (!container) return;
 
-    const poolsHTML = `
+    container.innerHTML = `
       <div class="pool-item">
-        <div class="pool-header">
-          <span class="pool-name">Пул токеномики 80% (800M GWT)</span>
-          <span class="pool-status status-soon">Soon</span>
-        </div>
+        <span class="pool-name">Пул токеномики 80% (800M GWT)</span>
+        <span class="pool-status status-soon">Soon</span>
       </div>
       
       <div class="pool-item">
-        <div class="pool-header">
-          <span class="pool-name">Пул раздачи 10% (100M GWT)</span>
-          <span class="pool-status status-soon">Soon</span>
-        </div>
+        <span class="pool-name">Пул раздачи 10% (100M GWT)</span>
+        <span class="pool-status status-soon">Soon</span>
       </div>
       
       <div class="pool-item">
-        <div class="pool-header">
-          <span class="pool-name">Командный пул 5% (50M GWT)</span>
-          <span class="pool-status status-locked">Locked</span>
-        </div>
+        <span class="pool-name">Командный пул 5% (50M GWT)</span>
+        <span class="pool-status status-locked">Locked</span>
       </div>
       
       <div class="pool-item">
-        <div class="pool-header">
-          <span class="pool-name">Резервный пул 5% (50M GWT)</span>
-          <span class="pool-status status-soon">Soon</span>
-        </div>
+        <span class="pool-name">Резервный пул 5% (50M GWT)</span>
+        <span class="pool-status status-soon">Soon</span>
       </div>
     `;
-
-    container.innerHTML = poolsHTML;
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ТОРГОВЛЯ ТОКЕНАМИ
+  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
   // ═══════════════════════════════════════════════════════════════
-  updateTradingUI() {
-    const statusEl = document.getElementById('tradingStatus');
-    const messageEl = document.getElementById('tradingMessage');
-    const buyBtn = document.getElementById('buyTokenBtn');
-    const sellBtn = document.getElementById('sellTokenBtn');
-    const amountInput = document.getElementById('tradeAmount');
-
-    // Статус торговли
-    const isActive = this.state.tokenPrice >= this.state.trading.activationPrice;
-    this.state.trading.isActive = isActive;
-
-    if (statusEl) {
-      statusEl.textContent = isActive ? 'Активна' : 'Неактивна';
-      statusEl.className = `trading-status ${isActive ? 'active' : 'inactive'}`;
-    }
-
-    if (messageEl) {
-      if (!isActive) {
-        messageEl.textContent = `Торговля начинается при достижении цены $${this.state.trading.activationPrice}`;
-        messageEl.style.display = 'block';
-      } else {
-        messageEl.style.display = 'none';
-      }
-    }
-
-    // Кнопки
-    if (buyBtn) {
-      buyBtn.disabled = !isActive;
-      buyBtn.onclick = () => this.buyTokens();
-    }
-
-    if (sellBtn) {
-      sellBtn.disabled = !isActive;
-      sellBtn.onclick = () => this.sellTokens();
-    }
-
-    // Input
-    if (amountInput) {
-      amountInput.oninput = () => this.calculateTradeCost();
-    }
-  },
-
   calculateTradeCost() {
-    const amount = parseFloat(document.getElementById('tradeAmount').value) || 0;
-    const cost = amount * this.state.tokenPrice;
-    const newPrice = this.state.tokenPrice; // TODO: рассчитать новую цену с учетом ликвидности
+    const amountInput = document.getElementById('tradeAmount');
+    const costDisplay = document.getElementById('tradeCost');
+    const newPriceDisplay = document.getElementById('newPrice');
 
-    this.state.trading.amount = amount;
-    this.state.trading.cost = cost;
-    this.state.trading.newPrice = newPrice;
+    if (!amountInput || !costDisplay) return;
 
-    const costEl = document.getElementById('tradeCost');
-    const newPriceEl = document.getElementById('tradeNewPrice');
-
-    if (costEl) {
-      costEl.textContent = `Cost: ${cost.toFixed(4)} BNB`;
-    }
-
-    if (newPriceEl) {
-      newPriceEl.textContent = `New Price: $${newPrice.toFixed(4)}`;
-    }
-  },
-
-  async buyTokens() {
-    try {
-      const amount = this.state.trading.amount;
-      
-      if (amount <= 0) {
-        app.showNotification('Введите количество токенов', 'error');
-        return;
-      }
-
-      app.showNotification('Функция в разработке', 'info');
-      
-      // TODO: Реализовать покупку токенов
-      // const tx = await this.contracts.token.buy(amount, { value: cost });
-      // await tx.wait();
-      
-    } catch (error) {
-      console.error('❌ Error buying tokens:', error);
-      app.showNotification('Ошибка покупки токенов', 'error');
-    }
-  },
-
-  async sellTokens() {
-    try {
-      const amount = this.state.trading.amount;
-      
-      if (amount <= 0) {
-        app.showNotification('Введите количество токенов', 'error');
-        return;
-      }
-
-      if (amount > parseFloat(this.state.balance)) {
-        app.showNotification('Недостаточно токенов', 'error');
-        return;
-      }
-
-      app.showNotification('Функция в разработке', 'info');
-      
-      // TODO: Реализовать продажу токенов
-      // const tx = await this.contracts.token.sell(amount);
-      // await tx.wait();
-      
-    } catch (error) {
-      console.error('❌ Error selling tokens:', error);
-      app.showNotification('Ошибка продажи токенов', 'error');
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // НАГРАДЫ ЗА УРОВНИ
-  // ═══════════════════════════════════════════════════════════════
-  async loadRewards() {
-    try {
-      const address = app.state.userAddress;
-      console.log('🎁 Loading rewards...');
-
-      // Получаем максимальный уровень пользователя
-      const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
-      const userMaxLevel = Number(maxLevel);
-
-      // Считаем заработанные награды
-      let earned = 0;
-      for (let i = 0; i < userMaxLevel; i++) {
-        earned += CONFIG.TOKEN_REWARDS[i];
-      }
-
-      this.state.rewards.earned = earned;
-      
-      // Всего доступно наград
-      this.state.rewards.available = CONFIG.TOKEN_REWARDS.reduce((a, b) => a + b, 0);
-
-      console.log('✅ Rewards loaded:', earned, '/', this.state.rewards.available);
-      
-    } catch (error) {
-      console.error('❌ Error loading rewards:', error);
-      this.state.rewards.earned = 0;
-      this.state.rewards.available = 0;
-    }
-  },
-
-  renderRewards() {
-    const container = document.getElementById('levelRewards');
-    if (!container) return;
-
-    const rewardsHTML = CONFIG.TOKEN_REWARDS.map((reward, index) => {
-      const level = index + 1;
-      const isUnlocked = app.state.maxLevel >= level;
-      
-      return `
-        <div class="reward-card ${isUnlocked ? 'unlocked' : 'locked'}">
-          <div class="reward-level">Уровень ${level}</div>
-          <div class="reward-amount">${reward} GWT</div>
-          <div class="reward-status">
-            ${isUnlocked ? '✓' : '🔒'}
-            ${isUnlocked ? 'РАЗБЛОКИРОВАНО' : 'РАЗБЛОКИРОВАНО'}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    const totalRewards = CONFIG.TOKEN_REWARDS.reduce((a, b) => a + b, 0);
-
-    container.innerHTML = `
-      ${rewardsHTML}
-      <div class="total-rewards">
-        Total Possible Rewards: ${app.formatNumber(totalRewards, 0)} GWT
-      </div>
-    `;
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ИСТОРИЯ ТОКЕНОВ
-  // ═══════════════════════════════════════════════════════════════
-  async loadHistory() {
-    try {
-      const address = app.state.userAddress;
-      console.log('📜 Loading token history...');
-
-      // Получаем события Transfer
-      const filterFrom = this.contracts.token.filters.Transfer(address, null);
-      const filterTo = this.contracts.token.filters.Transfer(null, address);
-
-      const eventsFrom = await this.contracts.token.queryFilter(filterFrom, -10000);
-      const eventsTo = await this.contracts.token.queryFilter(filterTo, -10000);
-
-      const allEvents = [...eventsFrom, ...eventsTo];
-      
-      // Сортируем по блоку
-      allEvents.sort((a, b) => b.blockNumber - a.blockNumber);
-
-      // Форматируем события
-      const history = await Promise.all(
-        allEvents.slice(0, 50).map(async (event) => {
-          const block = await event.getBlock();
-          const date = new Date(block.timestamp * 1000).toLocaleDateString('ru-RU');
-          
-          const isReceived = event.args.to.toLowerCase() === address.toLowerCase();
-          const type = isReceived ? 'Получено' : 'Отправлено';
-          const amount = ethers.utils.formatEther(event.args.amount);
-
-          return {
-            date,
-            type,
-            amount,
-            level: '-',
-            status: 'Завершено'
-          };
-        })
-      );
-
-      this.state.history = history;
-      
-      console.log('✅ History loaded:', history.length, 'transactions');
-      
-      this.renderHistory();
-      
-    } catch (error) {
-      console.error('❌ Error loading history:', error);
-      this.state.history = [];
-      this.renderHistory();
-    }
-  },
-
-  renderHistory() {
-    const tableBody = document.getElementById('tokenHistoryTable');
-    if (!tableBody) return;
-
-    if (this.state.history.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="5" class="no-data">Нет транзакций</td></tr>';
-      return;
-    }
-
-    tableBody.innerHTML = this.state.history.map(tx => `
-      <tr>
-        <td>${tx.date}</td>
-        <td>${tx.type}</td>
-        <td>${tx.level}</td>
-        <td>${app.formatNumber(tx.amount, 2)} GWT</td>
-        <td><span class="badge badge-success">${tx.status}</span></td>
-      </tr>
-    `).join('');
-  },
-
-  filterHistory() {
-    const filterValue = document.getElementById('historyFilter').value;
+    const amount = parseFloat(amountInput.value) || 0;
+    const cost = (amount * parseFloat(this.state.price)).toFixed(6);
     
-    if (filterValue === 'all') {
-      this.renderHistory();
-      return;
+    costDisplay.textContent = `${cost} BNB`;
+    
+    if (newPriceDisplay) {
+      newPriceDisplay.textContent = `$${this.state.price}`;
     }
-
-    const filtered = this.state.history.filter(tx => {
-      if (filterValue === 'received') return tx.type === 'Получено';
-      if (filterValue === 'sent') return tx.type === 'Отправлено';
-      return true;
-    });
-
-    // Render filtered
-    const tableBody = document.getElementById('tokenHistoryTable');
-    if (!tableBody) return;
-
-    if (filtered.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="5" class="no-data">Нет транзакций</td></tr>';
-      return;
-    }
-
-    tableBody.innerHTML = filtered.map(tx => `
-      <tr>
-        <td>${tx.date}</td>
-        <td>${tx.type}</td>
-        <td>${tx.level}</td>
-        <td>${app.formatNumber(tx.amount, 2)} GWT</td>
-        <td><span class="badge badge-success">${tx.status}</span></td>
-      </tr>
-    `).join('');
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // СТЕЙКИНГ
-  // ═══════════════════════════════════════════════════════════════
-  renderStaking() {
-    const container = document.getElementById('stakingInfo');
-    if (!container) return;
-
-    container.innerHTML = `
-      <h3>Скоро</h3>
-      <div class="staking-features">
-        <div class="feature">
-          <span class="icon">📊</span>
-          <span>Зарабатывайте награды</span>
-        </div>
-        <div class="feature">
-          <span class="icon">🎯</span>
-          <span>Права управления</span>
-        </div>
-        <div class="feature">
-          <span class="icon">💎</span>
-          <span>Эксклюзивный доступ</span>
-        </div>
-      </div>
-    `;
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ИНФОРМАЦИЯ О КОНТРАКТЕ
-  // ═══════════════════════════════════════════════════════════════
-  renderContractInfo() {
-    const container = document.getElementById('contractInfo');
-    if (!container) return;
-
-    const contractAddress = CONFIG.CONTRACTS.GWTToken;
-
-    container.innerHTML = `
-      <div class="info-item">
-        <span class="label">Адрес контракта</span>
-        <div class="value-with-copy">
-          <span class="value">${contractAddress}</span>
-          <button onclick="tokensModule.copyAddress()" class="copy-btn">Copy</button>
-        </div>
-      </div>
-      
-      <div class="info-item">
-        <span class="label">Название токена</span>
-        <span class="value">GlobalWay Token</span>
-      </div>
-      
-      <div class="info-item">
-        <span class="label">Символ</span>
-        <span class="value">GWT</span>
-      </div>
-      
-      <div class="info-item">
-        <span class="label">Децималы</span>
-        <span class="value">18</span>
-      </div>
-      
-      <div class="info-item">
-        <span class="label">Сеть</span>
-        <span class="value">opBNB</span>
-      </div>
-      
-      <div class="contract-actions">
-        <button onclick="tokensModule.addToWallet()" class="btn-outline">
-          Добавить в кошелек
-        </button>
-        <button onclick="tokensModule.viewInExplorer()" class="btn-outline">
-          Смотреть в проводнике
-        </button>
-      </div>
-    `;
-  },
-
-  async copyAddress() {
-    const address = CONFIG.CONTRACTS.GWTToken;
-    await app.copyToClipboard(address);
-  },
-
-  async addToWallet() {
+  async addTokenToWallet() {
     try {
       if (!window.ethereum) {
-        app.showNotification('MetaMask не найден', 'error');
+        app.showNotification('Кошелек не найден', 'error');
         return;
       }
 
@@ -630,54 +680,39 @@ const tokensModule = {
             address: CONFIG.CONTRACTS.GWTToken,
             symbol: 'GWT',
             decimals: 18,
-            image: 'https://globalway.io/assets/icons/gwt-coin.png'
+            image: `${window.location.origin}/assets/icons/logo-32x32.png`
           }
         }
       });
 
-      app.showNotification('Токен добавлен в кошелек!', 'success');
+      app.showNotification('Токен добавлен в кошелек! ✓', 'success');
       
     } catch (error) {
-      console.error('❌ Error adding to wallet:', error);
+      console.error('Error adding token:', error);
       app.showNotification('Ошибка добавления токена', 'error');
     }
   },
 
-  viewInExplorer() {
-    const address = CONFIG.CONTRACTS.GWTToken;
-    const url = `${CONFIG.NETWORK.blockExplorer}/token/${address}`;
-    window.open(url, '_blank');
+  filterHistory() {
+    const filterValue = document.getElementById('tokenHistoryFilter')?.value;
+    if (!filterValue) return;
+
+    const rows = document.querySelectorAll('#tokenHistoryTable tr');
+
+    rows.forEach(row => {
+      if (filterValue === 'all') {
+        row.style.display = '';
+      } else {
+        const badge = row.querySelector(`.badge-${filterValue}`);
+        row.style.display = badge ? '' : 'none';
+      }
+    });
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // UI ИНИЦИАЛИЗАЦИЯ
-  // ═══════════════════════════════════════════════════════════════
-  initUI() {
-    console.log('🎨 Initializing Tokens UI...');
-
-    // Торговля
-    this.updateTradingUI();
-
-    // Пулы
-    this.renderPools();
-
-    // Стейкинг
-    this.renderStaking();
-
-    // Информация о контракте
-    this.renderContractInfo();
-
-    // Фильтр истории
-    const filterEl = document.getElementById('historyFilter');
-    if (filterEl) {
-      filterEl.onchange = () => this.filterHistory();
-    }
-
-    // Кнопка обновления истории
-    const refreshBtn = document.getElementById('refreshHistory');
-    if (refreshBtn) {
-      refreshBtn.onclick = () => this.loadHistory();
-    }
+  getLevelByReward(amount) {
+    const roundedAmount = Math.round(parseFloat(amount));
+    const index = CONFIG.TOKEN_REWARDS.indexOf(roundedAmount);
+    return index !== -1 ? index + 1 : '-';
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -686,7 +721,6 @@ const tokensModule = {
   async refresh() {
     console.log('🔄 Refreshing tokens data...');
     await this.loadAllData();
-    this.renderRewards();
   }
 };
 
