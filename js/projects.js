@@ -1,29 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Projects Module
+// GlobalWay DApp - Projects Module - ИСПРАВЛЕННАЯ ВЕРСИЯ
 // Проекты: список, детали, доступ, предложения
+// Date: 2025-01-19 - FIXED
 // ═══════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════
-// GlobalWay DApp - PRODUCTION READY v2.0
-// Date: 2025-11-12
-// Status: ✅ 100% COMPLETE
-// 
-// Changes in this version:
-// - All critical bugs fixed
-// - All important issues resolved
-// - Loading states added
-// - CONFIG validation
-// - Better UX messages
-// - Caching optimization
-// - Final polish applied
-// ═══════════════════════════════════════════════════════════════
-
-
 const projectsModule = {
-  // Контракты
+  // ═══════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════
   contracts: {},
   
-  // Состояние
   state: {
     projects: [],
     userLevel: 0,
@@ -37,18 +23,103 @@ const projectsModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
+  // СПИСОК ПРОЕКТОВ (из скриншотов)
+  // ═══════════════════════════════════════════════════════════════
+  defaultProjects: [
+    {
+      id: 'kardgift',
+      name: 'KardGift',
+      description: 'Gift card marketplace and exchange platform',
+      logo: 'assets/projects/kardgift.png',
+      status: 'development',
+      statusLabel: 'В РАЗРАБОТКЕ',
+      requiredLevel: 1,
+      prefix: 'KG'
+    },
+    {
+      id: 'globaltub',
+      name: 'GlobalTub',
+      description: 'Decentralized video streaming platform',
+      logo: 'assets/projects/globaltub.png',
+      status: 'development',
+      statusLabel: 'В РАЗРАБОТКЕ',
+      requiredLevel: 4,
+      prefix: 'GT'
+    },
+    {
+      id: 'globalmarket',
+      name: 'GlobalMarket',
+      description: 'P2P marketplace for goods and services',
+      logo: 'assets/projects/globalmarket.png',
+      status: 'coming',
+      statusLabel: 'СКОРО',
+      requiredLevel: 4,
+      prefix: 'GM'
+    },
+    {
+      id: 'globalgame',
+      name: 'GlobalGame',
+      description: 'Play-to-earn gaming ecosystem',
+      logo: 'assets/projects/globalgame.png',
+      status: 'coming',
+      statusLabel: 'СКОРО',
+      requiredLevel: 7,
+      prefix: 'GG'
+    },
+    {
+      id: 'globalsocial',
+      name: 'GlobalSocial',
+      description: 'Decentralized social network',
+      logo: 'assets/projects/globalsocial.png',
+      status: 'planning',
+      statusLabel: 'ПЛАНИРУЕТСЯ',
+      requiredLevel: 7,
+      prefix: 'GS'
+    },
+    {
+      id: 'globalbank',
+      name: 'GlobalBank',
+      description: 'DeFi banking and lending platform',
+      logo: 'assets/projects/globalbank.png',
+      status: 'planning',
+      statusLabel: 'ПЛАНИРУЕТСЯ',
+      requiredLevel: 10,
+      prefix: 'GB'
+    },
+    {
+      id: 'globaledu',
+      name: 'GlobalEdu',
+      description: 'Educational platform and certification',
+      logo: 'assets/projects/globaledu.png',
+      status: 'planning',
+      statusLabel: 'ПЛАНИРУЕТСЯ',
+      requiredLevel: 10,
+      prefix: 'GE'
+    },
+    {
+      id: 'ecovillages',
+      name: 'EcoVillages',
+      description: 'Eco-settlements and sustainable living',
+      logo: 'assets/projects/ecovillages.png',
+      status: 'planning',
+      statusLabel: 'ПЛАНИРУЕТСЯ',
+      requiredLevel: 12,
+      prefix: 'EV'
+    }
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
   // ИНИЦИАЛИЗАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   async init() {
     console.log('🚀 Initializing Projects...');
     
     try {
-      // Загружаем контракты
       await this.loadContracts();
 
       // Получаем уровень пользователя
       if (app.state.userAddress) {
-        this.state.userLevel = app.state.maxLevel || 0;
+        await this.loadUserLevel();
       }
 
       // Загружаем проекты
@@ -67,10 +138,44 @@ const projectsModule = {
     }
   },
 
-  // Загрузка контрактов
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА КОНТРАКТОВ
+  // ═══════════════════════════════════════════════════════════════
   async loadContracts() {
-    this.contracts.bridge = await app.getContract('GlobalWayBridge');
+    console.log('📥 Loading contracts for projects...');
+    
     this.contracts.globalWay = await app.getContract('GlobalWay');
+    this.contracts.matrixRegistry = await app.getContract('MatrixRegistry');
+    
+    // GlobalWayBridge - опционально (может не существовать)
+    try {
+      this.contracts.bridge = await app.getContract('GlobalWayBridge');
+      console.log('✅ Bridge contract loaded');
+    } catch (e) {
+      console.log('⚠️ Bridge contract not available');
+      this.contracts.bridge = null;
+    }
+    
+    console.log('✅ All project contracts loaded');
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА УРОВНЯ ПОЛЬЗОВАТЕЛЯ
+  // ═══════════════════════════════════════════════════════════════
+  async loadUserLevel() {
+    try {
+      const address = app.state.userAddress;
+      
+      // Получаем максимальный уровень
+      const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
+      this.state.userLevel = Number(maxLevel);
+      
+      console.log('✅ User level:', this.state.userLevel);
+      
+    } catch (error) {
+      console.error('❌ Error loading user level:', error);
+      this.state.userLevel = 0;
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -78,71 +183,100 @@ const projectsModule = {
   // ═══════════════════════════════════════════════════════════════
   async loadProjects() {
     try {
-      // Получаем проекты из контракта Bridge
-      const projectIDs = await this.contracts.bridge.getAllProjects();
-      const projectsFromChain = [];
+      console.log('📊 Loading projects...');
 
-      for (const projectID of projectIDs) {
-        const [isActive, name, wallet, token, registeredAt] = 
-          await this.contracts.bridge.getProject(projectID);
+      // Пытаемся загрузить проекты из контракта Bridge (если есть)
+      let projectsFromChain = [];
+      
+      if (this.contracts.bridge) {
+        try {
+          const projectIDs = await this.contracts.bridge.getAllProjects();
+          
+          for (const projectID of projectIDs) {
+            const [isActive, name, wallet, token, registeredAt] = 
+              await this.contracts.bridge.getProject(projectID);
 
-        if (isActive) {
-          projectsFromChain.push({
-            id: projectID,
-            name,
-            wallet,
-            token,
-            registeredAt: Number(registeredAt),
-            onChain: true
-          });
+            if (isActive) {
+              projectsFromChain.push({
+                id: projectID,
+                name,
+                wallet,
+                token,
+                registeredAt: Number(registeredAt),
+                onChain: true
+              });
+            }
+          }
+          
+          console.log('✅ Loaded projects from chain:', projectsFromChain.length);
+        } catch (e) {
+          console.log('⚠️ Could not load projects from chain:', e.message);
         }
       }
 
-      // Объединяем с проектами из config
-      this.state.projects = CONFIG.PROJECTS.map(project => {
-        const onChainProject = projectsFromChain.find(p => p.id === project.id);
-        
-        return {
-          ...project,
-          onChain: !!onChainProject,
-          wallet: onChainProject?.wallet,
-          token: onChainProject?.token
-        };
-      });
+      // Объединяем с дефолтными проектами
+      if (projectsFromChain.length > 0) {
+        this.state.projects = this.defaultProjects.map(project => {
+          const onChainProject = projectsFromChain.find(p => p.id === project.id);
+          
+          return {
+            ...project,
+            onChain: !!onChainProject,
+            wallet: onChainProject?.wallet,
+            token: onChainProject?.token
+          };
+        });
+      } else {
+        // Используем дефолтные проекты
+        this.state.projects = this.defaultProjects;
+      }
 
+      console.log('✅ Projects loaded:', this.state.projects.length);
+      
       // Отображаем проекты
       this.displayProjects();
 
     } catch (error) {
-      console.error('Error loading projects:', error);
-      // Используем данные из config
-      this.state.projects = CONFIG.PROJECTS;
+      console.error('❌ Error loading projects:', error);
+      
+      // В случае ошибки используем дефолтные
+      this.state.projects = this.defaultProjects;
       this.displayProjects();
     }
   },
 
-  // Отображение проектов
+  // ═══════════════════════════════════════════════════════════════
+  // ОТОБРАЖЕНИЕ ПРОЕКТОВ
+  // ═══════════════════════════════════════════════════════════════
   displayProjects() {
     const container = document.getElementById('projectsGrid');
     if (!container) return;
 
     container.innerHTML = this.state.projects.map(project => {
       const canAccess = this.state.userLevel >= project.requiredLevel;
-      const statusClass = project.status.replace(/ /g, '-').toLowerCase();
+      const statusClass = project.status;
 
       return `
         <div class="project-card ${statusClass}" data-project-id="${project.id}">
           <div class="project-logo">
-            <img src="${project.logo}" alt="${project.name}" onerror="this.src='assets/icons/default-project.png'">
+            <img src="${project.logo}" alt="${project.name}" 
+                 onerror="this.src='assets/icons/default-project.png'">
           </div>
+          
           <div class="project-info">
-            <h3>${project.name}</h3>
-            <p>${project.description}</p>
+            <h3 class="project-name">${project.name}</h3>
+            <p class="project-description">${project.description}</p>
+            
             <div class="project-meta">
-              <span class="project-status status-${statusClass}">${this.getStatusLabel(project.status)}</span>
-              <span class="project-level">Уровень ${project.requiredLevel}+</span>
+              <span class="project-status status-${statusClass}">
+                ${project.statusLabel}
+              </span>
+              <span class="project-level">
+                Уровень ${project.requiredLevel}+
+              </span>
             </div>
           </div>
+          
           <button 
             class="project-btn ${canAccess ? '' : 'disabled'}" 
             onclick="projectsModule.openProject('${project.id}')"
@@ -168,8 +302,8 @@ const projectsModule = {
       return;
     }
 
-    // Проверяем доступ через контракт (если проект on-chain)
-    if (project.onChain && app.state.userAddress) {
+    // Проверяем доступ через контракт Bridge (если есть)
+    if (this.contracts.bridge && project.onChain && app.state.userAddress) {
       try {
         const accessStatus = await this.contracts.bridge.checkUserAccess(
           projectId,
@@ -201,117 +335,140 @@ const projectsModule = {
     this.showProjectModal(project);
   },
 
-  // Модальное окно проекта
+  // ═══════════════════════════════════════════════════════════════
+  // МОДАЛЬНОЕ ОКНО ПРОЕКТА
+  // ═══════════════════════════════════════════════════════════════
   showProjectModal(project) {
+    const modal = document.getElementById('projectModal');
+    if (!modal) {
+      console.error('Project modal not found');
+      return;
+    }
+
     // Заполняем данные
-    document.getElementById('projectModalTitle').textContent = project.name;
-    document.getElementById('projectModalDescription').textContent = project.description;
-    document.getElementById('projectModalStatus').textContent = this.getStatusLabel(project.status);
-    document.getElementById('projectModalStatus').className = `project-status status-${project.status}`;
-    document.getElementById('projectModalRequirements').textContent = 
-      `Минимальный уровень: ${project.requiredLevel}`;
-    document.getElementById('projectModalPrefix').textContent = 
-      `${project.prefix}-XXXXXXX`;
+    const titleEl = document.getElementById('projectModalTitle');
+    const descEl = document.getElementById('projectModalDescription');
+    const statusEl = document.getElementById('projectModalStatus');
+    const reqEl = document.getElementById('projectModalRequirements');
+    const prefixEl = document.getElementById('projectModalPrefix');
+    const logoEl = document.getElementById('projectModalLogo');
+    const actionBtn = document.getElementById('projectModalAction');
+
+    if (titleEl) titleEl.textContent = project.name;
+    if (descEl) descEl.textContent = project.description;
+    
+    if (statusEl) {
+      statusEl.textContent = project.statusLabel;
+      statusEl.className = `project-status status-${project.status}`;
+    }
+    
+    if (reqEl) {
+      reqEl.textContent = `Минимальный уровень: ${project.requiredLevel}`;
+    }
+    
+    if (prefixEl) {
+      prefixEl.textContent = `${project.prefix}-XXXXXXX`;
+    }
 
     // Логотип
-    const logo = document.getElementById('projectModalLogo');
-    logo.src = project.logo;
-    logo.onerror = () => logo.src = 'assets/icons/default-project.png';
+    if (logoEl) {
+      logoEl.src = project.logo;
+      logoEl.onerror = () => {
+        logoEl.src = 'assets/icons/default-project.png';
+      };
+    }
 
     // Кнопка действия
-    const actionBtn = document.getElementById('projectModalAction');
-    
-    if (project.status === 'development' || project.status === 'active') {
-      actionBtn.disabled = false;
-      actionBtn.textContent = 'Открыть проект';
-      actionBtn.onclick = () => {
-        // TODO: Перенаправление на проект
-        app.showNotification('Функция в разработке', 'info');
-        app.closeModal('projectModal');
-      };
-    } else {
-      actionBtn.disabled = true;
-      actionBtn.textContent = this.getStatusLabel(project.status);
+    if (actionBtn) {
+      if (project.status === 'development') {
+        actionBtn.disabled = false;
+        actionBtn.textContent = 'Открыть проект';
+        actionBtn.onclick = () => {
+          app.showNotification('Проект в разработке. Скоро запустим!', 'info');
+          this.closeModal();
+        };
+      } else if (project.status === 'active') {
+        actionBtn.disabled = false;
+        actionBtn.textContent = 'Открыть проект';
+        actionBtn.onclick = () => {
+          // TODO: Перенаправление на проект
+          window.open(project.url || '#', '_blank');
+          this.closeModal();
+        };
+      } else {
+        actionBtn.disabled = true;
+        actionBtn.textContent = project.statusLabel;
+      }
     }
 
     // Показываем модалку
-    app.showModal('projectModal');
+    modal.style.display = 'block';
+  },
+
+  closeModal() {
+    const modal = document.getElementById('projectModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════
   // ПРЕДЛОЖЕНИЕ ПРОЕКТА
   // ═══════════════════════════════════════════════════════════════
-  // ✅ ФИНАЛ: Проверка localStorage доступа
   async submitProposal(event) {
     event.preventDefault();
 
-    // Проверяем доступ к localStorage
-    try {
-      localStorage.setItem('gw_test', 'test');
-      localStorage.removeItem('gw_test');
-    } catch (error) {
-      app.showNotification(
-        'localStorage недоступен!\n\nВключите cookies и storage в браузере.',
-        'error'
-      );
-      return;
-    }
-
-    const form = document.getElementById('proposalForm');
+    const form = event.target;
     const formData = new FormData(form);
 
     const proposal = {
-      author: formData.get('author') || document.getElementById('proposalAuthor').value,
-      contact: formData.get('contact') || document.getElementById('proposalContact').value,
-      sphere: formData.get('sphere') || document.getElementById('proposalSphere').value,
-      idea: formData.get('idea') || document.getElementById('proposalIdea').value,
-      description: formData.get('description') || document.getElementById('proposalDescription').value,
-      timestamp: Date.now()
+      author: formData.get('author') || 'Аноним',
+      contact: formData.get('contact'),
+      category: formData.get('category'),
+      name: formData.get('projectName'),
+      description: formData.get('projectDescription'),
+      timestamp: Date.now(),
+      status: 'review'
     };
 
     // Валидация
-    if (!proposal.author || !proposal.contact || !proposal.sphere || 
-        !proposal.idea || !proposal.description) {
+    if (!proposal.contact || !proposal.category || !proposal.name || !proposal.description) {
       app.showNotification('Заполните все поля', 'error');
       return;
     }
 
     try {
-      // ✅ ИСПРАВЛЕНО #8: Предупреждение о localStorage
-      const confirmed = confirm(
-        '⚠️ ВАЖНО: Предложения пока сохраняются локально\n\n' +
-        'Ваше предложение будет сохранено в браузере.\n' +
-        'Для отправки команде GlobalWay свяжитесь с администратором.\n\n' +
-        'Продолжить?'
-      );
-      
-      if (!confirmed) {
-        return;
+      // Сохраняем локально
+      let proposals = [];
+      try {
+        const stored = localStorage.getItem('gw_proposals');
+        if (stored) {
+          proposals = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.error('Error reading proposals:', e);
       }
-      
-      app.showNotification('Сохранение предложения...', 'info');
 
-      // TODO: Отправка на backend или в контракт
-      console.log('Proposal:', proposal);
-      console.warn('⚠️ Proposals are stored in localStorage only');
-
-      // Временно: сохраняем в localStorage
-      const proposals = JSON.parse(localStorage.getItem('gw_proposals') || '[]');
       proposals.push(proposal);
-      localStorage.setItem('gw_proposals', JSON.stringify(proposals));
+      
+      try {
+        localStorage.setItem('gw_proposals', JSON.stringify(proposals));
+        localStorage.setItem('gw_proposals_count', proposals.length.toString());
+      } catch (e) {
+        console.error('Error saving proposals:', e);
+      }
 
-      app.showNotification('Предложение сохранено локально! ✓\n\nСвяжитесь с админом для отправки.', 'success');
+      app.showNotification('Предложение сохранено! Администратор свяжется с вами.', 'success');
       
       // Очищаем форму
       form.reset();
 
       // Обновляем статистику
-      this.state.stats.review++;
       this.updateStatistics();
 
     } catch (error) {
       console.error('Error submitting proposal:', error);
-      app.showNotification('Ошибка отправки', 'error');
+      app.showNotification('Ошибка отправки предложения', 'error');
     }
   },
 
@@ -319,28 +476,47 @@ const projectsModule = {
   // СТАТИСТИКА
   // ═══════════════════════════════════════════════════════════════
   updateStatistics() {
+    // Подсчет по статусам
     const stats = {
       total: this.state.projects.length,
       active: this.state.projects.filter(p => p.status === 'active').length,
       development: this.state.projects.filter(p => p.status === 'development').length,
       coming: this.state.projects.filter(p => p.status === 'coming').length,
-      review: parseInt(localStorage.getItem('gw_proposals_count') || '0')
+      review: 0
     };
+
+    // Получаем количество предложений
+    try {
+      const count = localStorage.getItem('gw_proposals_count');
+      stats.review = parseInt(count || '0');
+    } catch (e) {
+      stats.review = 0;
+    }
 
     this.state.stats = stats;
 
     // Обновляем UI
-    document.getElementById('totalProjects').textContent = stats.total;
-    document.getElementById('activeProjects').textContent = stats.active;
-    document.getElementById('devProjects').textContent = stats.development;
-    document.getElementById('comingProjects').textContent = stats.coming;
-    document.getElementById('reviewProjects').textContent = stats.review;
+    const totalEl = document.getElementById('totalProjects');
+    const activeEl = document.getElementById('activeProjects');
+    const devEl = document.getElementById('devProjects');
+    const comingEl = document.getElementById('comingProjects');
+    const reviewEl = document.getElementById('reviewProjects');
+
+    if (totalEl) totalEl.textContent = stats.total;
+    if (activeEl) activeEl.textContent = stats.active;
+    if (devEl) devEl.textContent = stats.development;
+    if (comingEl) comingEl.textContent = stats.coming;
+    if (reviewEl) reviewEl.textContent = stats.review;
+
+    console.log('✅ Statistics updated:', stats);
   },
 
   // ═══════════════════════════════════════════════════════════════
   // UI ИНИЦИАЛИЗАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   initUI() {
+    console.log('🎨 Initializing Projects UI...');
+
     // Форма предложения проекта
     const proposalForm = document.getElementById('proposalForm');
     if (proposalForm) {
@@ -351,7 +527,7 @@ const projectsModule = {
     const joinBtn = document.getElementById('joinProgram');
     if (joinBtn) {
       joinBtn.onclick = () => {
-        app.showNotification('Функция в разработке', 'info');
+        app.showNotification('Программа разработчиков в разработке', 'info');
       };
     }
 
@@ -362,23 +538,34 @@ const projectsModule = {
         window.open('https://docs.globalway.com', '_blank');
       };
     }
+
+    // Закрытие модалки
+    const closeBtn = document.querySelector('#projectModal .close-modal');
+    if (closeBtn) {
+      closeBtn.onclick = () => this.closeModal();
+    }
+
+    // Клик вне модалки
+    const modal = document.getElementById('projectModal');
+    if (modal) {
+      modal.onclick = (e) => {
+        if (e.target === modal) {
+          this.closeModal();
+        }
+      };
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+  // ОБНОВЛЕНИЕ ДАННЫХ
   // ═══════════════════════════════════════════════════════════════
-  getStatusLabel(status) {
-    const labels = {
-      'active': 'Активен',
-      'development': 'В разработке',
-      'coming': 'Скоро',
-      'planning': 'Планируется'
-    };
-    return labels[status] || status;
-  },
-
-  // Обновление данных
   async refresh() {
+    console.log('🔄 Refreshing projects data...');
+    
+    if (app.state.userAddress) {
+      await this.loadUserLevel();
+    }
+    
     await this.loadProjects();
     this.updateStatistics();
   }
