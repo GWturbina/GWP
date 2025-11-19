@@ -1,59 +1,41 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Dashboard Module
 // Личный кабинет: ID, баланс, quarterly, уровни, балансы
-//
-// ✅ ВСЕ КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ ПРИМЕНЕНЫ:
-// 1. Исправлены кнопки уровней с обработчиками
-// 2. Добавлена инициализация кнопок при загрузке
-// 3. Исправлена работа с Web3 провайдером
-// 4. Улучшена обработка ошибок
+// ПОЛНОСТЬЮ ПЕРЕПИСАН под новые контракты
+// Date: 2025-01-19
 // ═══════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════
-// GlobalWay DApp - PRODUCTION READY v2.1
-// Date: 2025-11-12
-// Status: ✅ 100% COMPLETE
-// 
-// Changes in this version:
-// - Fixed level buttons initialization
-// - Added proper event handlers
-// - Better error handling
-// - Improved user experience
-// ═══════════════════════════════════════════════════════════════
-
 const dashboardModule = {
-  // Контракты для этой страницы
+  // ═══════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════
   contracts: {},
   
-  // ✅ ФИНАЛ: Кэш для оптимизации
   cache: {
     tokenPrice: null,
     tokenPriceTime: 0,
-    levelPrices: CONFIG.LEVEL_PRICES,
-    cacheDuration: 30000
+    cacheDuration: CONFIG.CACHE.tokenPriceDuration
   },
   
-  // Данные пользователя
   userData: {
     address: null,
     balance: '0',
-    userID: null,
+    userId: null,
     rank: '-',
     isRegistered: false,
     maxLevel: 0,
     quarterlyInfo: null,
     balances: {
-      marketing: '0',
+      partner: '0',
       leader: '0',
       investment: '0'
     },
-    tokenRewards: {},
-    totalPossibleRewards: 0,
-    totalClaimedRewards: 0
+    tokenBalance: '0',
+    totalEarnings: '0'
   },
   
-  // Таймер для автообновления quarterly
   quarterlyTimer: null,
+  buyLevelInProgress: false,
 
   // ═══════════════════════════════════════════════════════════════
   // ИНИЦИАЛИЗАЦИЯ
@@ -62,23 +44,16 @@ const dashboardModule = {
     console.log('📊 Initializing Dashboard...');
     
     try {
-      // Проверяем подключение кошелька
       if (!app.state.userAddress) {
+        console.log('⚠️ No user address, showing connect prompt');
         return;
       }
 
       this.userData.address = app.state.userAddress;
-
-      // Сохраняем Web3 провайдер для использования
       this.web3Provider = window.web3Manager?.provider;
 
-      // Загружаем контракты
       await this.loadContracts();
-
-      // Загружаем данные
       await this.loadAllData();
-
-      // Инициализируем UI
       this.initUI();
       this.startQuarterlyTimer();
 
@@ -89,16 +64,23 @@ const dashboardModule = {
     }
   },
 
-  // Загрузка контрактов
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА КОНТРАКТОВ
+  // ═══════════════════════════════════════════════════════════════
   async loadContracts() {
+    console.log('📥 Loading contracts...');
+    
+    this.contracts.matrixRegistry = await app.getContract('MatrixRegistry');
     this.contracts.globalWay = await app.getContract('GlobalWay');
-    this.contracts.helper = await app.getContract('GlobalWayHelper');
-    this.contracts.quarterly = await app.getContract('GlobalWayQuarterly');
-    this.contracts.marketing = await app.getContract('GlobalWayMarketing');
+    this.contracts.quarterlyPayments = await app.getContract('QuarterlyPayments');
+    this.contracts.partnerProgram = await app.getContract('PartnerProgram');
+    this.contracts.matrixPayments = await app.getContract('MatrixPayments');
     this.contracts.leaderPool = await app.getContract('GlobalWayLeaderPool');
     this.contracts.investment = await app.getContract('GlobalWayInvestment');
     this.contracts.stats = await app.getContract('GlobalWayStats');
     this.contracts.token = await app.getContract('GWTToken');
+    
+    console.log('✅ All contracts loaded');
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -111,238 +93,221 @@ const dashboardModule = {
       this.loadBalances(),
       this.loadLevels(),
       this.loadTokenInfo(),
-      this.loadTokenRewards(),
       this.loadTransactionHistory()
     ]);
   },
 
-  // Личная информация
+  // ═══════════════════════════════════════════════════════════════
+  // ЛИЧНАЯ ИНФОРМАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
   async loadPersonalInfo() {
     try {
       const { address } = this.userData;
+      console.log('👤 Loading personal info for', address);
 
-      // Баланс BNB
+      // 1. Баланс BNB
       const balance = await this.web3Provider.getBalance(address);
       this.userData.balance = ethers.utils.formatEther(balance);
 
-      // Проверка регистрации
-      this.userData.isRegistered = await this.contracts.globalWay.isUserRegistered(address);
+      // 2. Проверка регистрации
+      this.userData.isRegistered = await this.contracts.matrixRegistry.isRegistered(address);
 
       if (this.userData.isRegistered) {
-        // ID пользователя
-        const userID = await this.contracts.helper.getUserID(address);
-        this.userData.userID = userID !== '' ? `GW${userID}` : '-';
+        // 3. User ID
+        const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
+        this.userData.userId = userId.toString();
 
-        // Максимальный уровень
-        this.userData.maxLevel = Number(await this.contracts.globalWay.getUserMaxLevel(address));
+        // 4. Максимальный уровень
+        const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
+        this.userData.maxLevel = Number(maxLevel);
 
-        // ✅ ИСПРАВЛЕНО: Используем Helper контракт для получения квалификации
-        const [qualifications, progress] = await this.contracts.helper.getUserQualificationStatus(address);
-        this.userData.rank = this.getRankName(qualifications);
-        this.userData.rankProgress = progress;
+        // 5. Ранг (из MatrixPayments)
+        const rankId = await this.contracts.matrixPayments.getUserRank(address);
+        this.userData.rank = this.getRankName(Number(rankId));
+
+        console.log('✅ Personal info loaded:', {
+          userId: this.userData.userId,
+          maxLevel: this.userData.maxLevel,
+          rank: this.userData.rank
+        });
       }
 
       this.updatePersonalInfoUI();
     } catch (error) {
-      console.error('Error loading personal info:', error);
+      console.error('❌ Error loading personal info:', error);
     }
   },
 
-  // Quarterly информация
+  // ═══════════════════════════════════════════════════════════════
+  // QUARTERLY ИНФОРМАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
   async loadQuarterlyInfo() {
     try {
       const { address } = this.userData;
+      console.log('📅 Loading quarterly info...');
 
-      const [lastPayment, quarterCount, charityAccount, techAccount1, techAccount2, nextPaymentTime] = 
-        await this.contracts.quarterly.getUserQuarterlyInfo(address);
+      const [canPay, lastPayment, nextPaymentTime, quartersPaid, daysRemaining] = 
+        await this.contracts.quarterlyPayments.getUserQuarterlyStatus(address);
 
       this.userData.quarterlyInfo = {
-        quarter: Number(quarterCount),
+        canPay: canPay,
+        quarter: Number(quartersPaid),
         lastPayment: Number(lastPayment),
         nextPayment: Number(nextPaymentTime),
+        daysRemaining: Number(daysRemaining),
         cost: CONFIG.QUARTERLY_COST
       };
 
+      console.log('✅ Quarterly info loaded:', this.userData.quarterlyInfo);
+
       this.updateQuarterlyUI();
     } catch (error) {
-      console.error('Error loading quarterly info:', error);
+      console.error('❌ Error loading quarterly info:', error);
     }
   },
 
-  // Балансы контрактов
+  // ═══════════════════════════════════════════════════════════════
+  // БАЛАНСЫ КОНТРАКТОВ
+  // ═══════════════════════════════════════════════════════════════
   async loadBalances() {
     try {
       const { address } = this.userData;
+      console.log('💰 Loading balances...');
 
-      // Marketing баланс
-      const [referralBalance, matrixBalance] = await this.contracts.marketing.getUserBalances(address);
-      this.userData.balances.marketing = ethers.utils.formatEther(referralBalance + matrixBalance);
+      // 1. Partner Program баланс
+      const [fromSponsor, fromUpline, totalPartner] = 
+        await this.contracts.partnerProgram.getUserEarnings(address);
+      this.userData.balances.partner = ethers.utils.formatEther(totalPartner);
 
-      // Leader баланс
-      const leaderBalance = await this.contracts.leaderPool.pendingRewards(address);
+      // 2. Leader Pool баланс
+      const leaderBalance = await this.contracts.leaderPool.getUserBalance(address);
       this.userData.balances.leader = ethers.utils.formatEther(leaderBalance);
 
-      // Investment баланс
-      const investmentBalance = await this.contracts.investment.pendingWithdrawals(address);
+      // 3. Investment баланс
+      const investmentBalance = await this.contracts.investment.getUserBalance(address);
       this.userData.balances.investment = ethers.utils.formatEther(investmentBalance);
+
+      console.log('✅ Balances loaded:', this.userData.balances);
 
       this.updateBalancesUI();
     } catch (error) {
-      console.error('Error loading balances:', error);
+      console.error('❌ Error loading balances:', error);
     }
   },
 
-// ✅ ИСПРАВЛЕНО: Правильные обработчики для кнопок уровней
+  // ═══════════════════════════════════════════════════════════════
+  // УРОВНИ (КНОПКИ 1-12)
+  // ═══════════════════════════════════════════════════════════════
   async loadLevels() {
-      try {
-          const { address } = this.userData;
-          const levelsContainer = document.getElementById('individualLevels');
-          if (!levelsContainer) return;
-  
-          levelsContainer.innerHTML = '';
-  
-          for (let level = 1; level <= 12; level++) {
-              const isActive = await this.contracts.globalWay.isLevelActive(address, level);
-              const price = CONFIG.LEVEL_PRICES[level - 1];
-  
-              const levelBtn = document.createElement('button');
-              levelBtn.className = `level-btn ${isActive ? 'active' : ''}`;
-              levelBtn.innerHTML = `
-                  <span class="level-number">${level}</span>
-                  <span class="level-price">${price} BNB</span>
-              `;
-              
-              // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Правильная привязка обработчика
-              if (!isActive) {
-                  // Сохраняем уровень в data-атрибут для надежности
-                  levelBtn.setAttribute('data-level', level);
-                  levelBtn.setAttribute('data-price', price);
-                  
-                  // ✅ ИСПРАВЛЕНО: Сохраняем уровень в замыкании
-                  const currentLevel = level; // Фиксируем значение
-                  
-                  // ДВА варианта обработчика для надежности
-                  levelBtn.addEventListener('click', (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log(`🎯 Level ${currentLevel} button clicked`);
-                      this.buyLevel(currentLevel);
-                  });
-                  
-                  // Дублируем для совместимости
-                  levelBtn.onclick = (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log(`🎯 Level ${currentLevel} onclick triggered`);
-                      this.buyLevel(currentLevel);
-                  };
-                  
-                  levelBtn.style.cursor = 'pointer';
-              } else {
-                  levelBtn.disabled = true;
-                  levelBtn.style.cursor = 'default';
-                  levelBtn.style.opacity = '0.7';
-              }
-  
-              levelsContainer.appendChild(levelBtn);
-          }
-  
-          console.log('✅ Level buttons initialized with DOUBLE handlers');
-  
-      } catch (error) {
-          console.error('❌ Error loading levels:', error);
+    try {
+      const { address } = this.userData;
+      const levelsContainer = document.getElementById('individualLevels');
+      if (!levelsContainer) return;
+
+      console.log('🔘 Loading levels...');
+
+      levelsContainer.innerHTML = '';
+
+      for (let level = 1; level <= 12; level++) {
+        const isActive = await this.contracts.globalWay.isLevelActive(address, level);
+        const price = CONFIG.LEVEL_PRICES[level - 1];
+
+        const levelBtn = document.createElement('button');
+        levelBtn.className = `level-btn ${isActive ? 'active' : ''}`;
+        levelBtn.innerHTML = `
+          <span class="level-number">${level}</span>
+          <span class="level-price">${price} BNB</span>
+        `;
+        
+        if (!isActive) {
+          levelBtn.setAttribute('data-level', level);
+          levelBtn.setAttribute('data-price', price);
+          
+          const currentLevel = level;
+          
+          levelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(`🎯 Level ${currentLevel} clicked`);
+            this.buyLevel(currentLevel);
+          });
+          
+          levelBtn.style.cursor = 'pointer';
+        } else {
+          levelBtn.disabled = true;
+          levelBtn.style.cursor = 'default';
+          levelBtn.style.opacity = '0.7';
+        }
+
+        levelsContainer.appendChild(levelBtn);
       }
+
+      console.log('✅ Level buttons created');
+
+    } catch (error) {
+      console.error('❌ Error loading levels:', error);
+    }
   },
 
-  // Информация о токенах
+  // ═══════════════════════════════════════════════════════════════
+  // ИНФОРМАЦИЯ О ТОКЕНАХ
+  // ═══════════════════════════════════════════════════════════════
   async loadTokenInfo() {
     try {
-      // ✅ ДОБАВЛЕНО: Проверка Web3 провайдера
       if (!this.web3Provider) {
-        console.log('⚠️ Web3 provider not available, skipping token info');
+        console.log('⚠️ Web3 provider not available');
         return;
       }
 
       const { address } = this.userData;
+      console.log('🪙 Loading token info...');
 
-      // 1. Баланс токенов пользователя
+      // 1. Баланс токенов
       const tokenBalance = await this.contracts.token.balanceOf(address);
-      const tokenAmount = ethers.utils.formatEther(tokenBalance);
+      this.userData.tokenBalance = ethers.utils.formatEther(tokenBalance);
 
-      // 2. Цена токена из tokenomics
-      const TOKENOMICS_ADDRESS = '0xbDC29886c91878C1ba9ce0626Da5E1961324354F';
-      const TOTAL_SUPPLY = 1000000000;
-      
-      const tokenomicsBalance = await this.web3Provider.getBalance(TOKENOMICS_ADDRESS);
-      const tokenomicsBalanceBNB = parseFloat(ethers.utils.formatEther(tokenomicsBalance));
-      
-      // Цена в BNB = баланс tokenomics / общее количество токенов
-      const priceInBNB = tokenomicsBalanceBNB / TOTAL_SUPPLY;
-      
-      // Цена в USD (BNB @ $600)
-      const BNB_PRICE_USD = 600;
-      const priceInUSD = (priceInBNB * BNB_PRICE_USD).toFixed(6);
-      
-      // 3. Общая стоимость портфеля
-      const totalValueUSD = (parseFloat(tokenAmount) * parseFloat(priceInUSD)).toFixed(2);
+      // 2. Цена токена (можно взять из Stats контракта или рассчитать)
+      // Пока используем простую логику
+      const totalSupply = await this.contracts.token.totalSupply();
+      const tokenPrice = 0.000001; // Примерная цена в BNB
 
-      // 4. Обновляем UI
-      document.getElementById('tokenAmount').textContent = `${app.formatNumber(tokenAmount, 2)} GWT`;
-      document.getElementById('tokenPrice').textContent = `$${priceInUSD}`;
-      document.getElementById('tokenValue').textContent = `$${totalValueUSD}`;
-      
-    } catch (error) {
-      console.error('Error loading token info:', error);
-    }
-  },
+      // 3. Обновляем UI
+      const tokenAmount = document.getElementById('tokenAmount');
+      const tokenPriceEl = document.getElementById('tokenPrice');
+      const tokenValue = document.getElementById('tokenValue');
 
-  // Награды за уровни
-  async loadTokenRewards() {
-    try {
-      const { address } = this.userData;
-      
-      // Получаем максимальный активированный уровень
-      const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
-      
-      this.userData.tokenRewards = {};
-      let totalClaimed = 0;
-      
-      for (let level = 1; level <= 12; level++) {
-        const isClaimed = level <= maxLevel;
-        const amount = CONFIG.TOKEN_REWARDS[level - 1];
-        
-        this.userData.tokenRewards[level] = {
-          claimed: isClaimed,
-          amount: amount
-        };
-        
-        if (isClaimed) {
-          totalClaimed += amount;
-        }
+      if (tokenAmount) {
+        tokenAmount.textContent = `${app.formatNumber(this.userData.tokenBalance, 2)} GWT`;
       }
       
-      this.userData.totalPossibleRewards = CONFIG.TOKEN_REWARDS.reduce((sum, r) => sum + r, 0);
-      this.userData.totalClaimedRewards = totalClaimed;
+      if (tokenPriceEl) {
+        tokenPriceEl.textContent = `$${(tokenPrice * 600).toFixed(6)}`; // BNB @ $600
+      }
       
-      console.log('🎁 Token rewards loaded:', {
-        claimed: totalClaimed,
-        total: this.userData.totalPossibleRewards
-      });
+      if (tokenValue) {
+        const valueUSD = parseFloat(this.userData.tokenBalance) * tokenPrice * 600;
+        tokenValue.textContent = `$${valueUSD.toFixed(2)}`;
+      }
+
+      console.log('✅ Token info loaded');
       
     } catch (error) {
-      console.error('Error loading token rewards:', error);
+      console.error('❌ Error loading token info:', error);
     }
   },
 
-  // История транзакций
+  // ═══════════════════════════════════════════════════════════════
+  // ИСТОРИЯ ТРАНЗАКЦИЙ
+  // ═══════════════════════════════════════════════════════════════
   async loadTransactionHistory() {
     try {
       const tableBody = document.getElementById('historyTable');
       if (!tableBody) return;
 
+      console.log('📜 Loading transaction history...');
+
       tableBody.innerHTML = '<tr><td colspan="6" class="no-data">Загрузка...</td></tr>';
 
-      // Получаем события с контрактов
       const events = await this.getTransactionEvents();
 
       if (events.length === 0) {
@@ -360,26 +325,27 @@ const dashboardModule = {
           <td><span class="badge badge-${event.type}">${event.typeLabel}</span></td>
         </tr>
       `).join('');
+
+      console.log('✅ Transaction history loaded');
     } catch (error) {
-      console.error('Error loading history:', error);
+      console.error('❌ Error loading history:', error);
     }
   },
 
-  // Получение событий транзакций
   async getTransactionEvents() {
     const { address } = this.userData;
     const events = [];
 
     try {
       // События покупки уровней
-      const levelFilter = this.contracts.globalWay.filters.LevelActivated(address);
+      const levelFilter = this.contracts.globalWay.filters.LevelPurchased(address);
       const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, -10000);
 
       for (const event of levelEvents) {
         const block = await event.getBlock();
         events.push({
           level: Number(event.args.level),
-          amount: ethers.utils.formatEther(event.args.amount) + ' BNB',
+          amount: ethers.utils.formatEther(event.args.price) + ' BNB',
           date: new Date(block.timestamp * 1000).toLocaleDateString(),
           txHash: event.transactionHash.slice(0, 10) + '...',
           type: 'level',
@@ -387,12 +353,11 @@ const dashboardModule = {
         });
       }
 
-      // Сортируем по времени
       events.sort((a, b) => new Date(b.date) - new Date(a.date));
 
       return events.slice(0, 50);
     } catch (error) {
-      console.error('Error getting events:', error);
+      console.error('❌ Error getting events:', error);
       return [];
     }
   },
@@ -401,528 +366,329 @@ const dashboardModule = {
   // ОБНОВЛЕНИЕ UI
   // ═══════════════════════════════════════════════════════════════
   updatePersonalInfoUI() {
-    const { address, balance, userID, rank } = this.userData;
+    const { address, balance, userId, rank } = this.userData;
 
-    document.getElementById('userAddress').textContent = app.formatAddress(address);
-    document.getElementById('userBalance').textContent = `${app.formatNumber(balance, 4)} BNB`;
-    document.getElementById('userId').textContent = userID || '-';
-    document.getElementById('userRank').textContent = rank;
+    const userAddress = document.getElementById('userAddress');
+    const userBalance = document.getElementById('userBalance');
+    const userIdEl = document.getElementById('userId');
+    const userRank = document.getElementById('userRank');
+
+    if (userAddress) userAddress.textContent = app.formatAddress(address);
+    if (userBalance) userBalance.textContent = `${app.formatNumber(balance, 4)} BNB`;
+    if (userIdEl) userIdEl.textContent = userId ? `GW${userId}` : '-';
+    if (userRank) userRank.textContent = rank;
 
     // Реферальная ссылка
-    if (userID && userID !== '-') {
-      const refID = userID.replace('GW', '');
-      const refLink = `${window.location.origin}?ref=${refID}`;
-      document.getElementById('refLink').value = refLink;
+    if (userId) {
+      const refLink = `${window.location.origin}?ref=${userId}`;
+      const refLinkInput = document.getElementById('refLink');
+      if (refLinkInput) refLinkInput.value = refLink;
     }
   },
 
   updateQuarterlyUI() {
-    const { quarter, lastPayment, nextPayment, cost } = this.userData.quarterlyInfo;
+    const { quarter, lastPayment, nextPayment, canPay, daysRemaining, cost } = this.userData.quarterlyInfo;
 
-    // Квартал
-    document.getElementById('currentQuarter').textContent = quarter || '1';
-    document.getElementById('quarterlyCost').textContent = `${cost} BNB`;
-
+    const currentQuarter = document.getElementById('currentQuarter');
+    const quarterlyCost = document.getElementById('quarterlyCost');
+    const lastPaymentEl = document.getElementById('lastPayment');
+    const nextPaymentEl = document.getElementById('nextPayment');
     const payBtn = document.getElementById('payActivityBtn');
     const warningEl = document.getElementById('paymentWarning');
     const daysEl = document.getElementById('daysRemaining');
-    
+
+    if (currentQuarter) currentQuarter.textContent = quarter || '1';
+    if (quarterlyCost) quarterlyCost.textContent = `${cost} BNB`;
+
     if (lastPayment > 0) {
-      // ✅ УЖЕ АКТИВИРОВАН - показываем историю и таймер
-      
-      // Даты
       const lastDate = new Date(lastPayment * 1000).toLocaleDateString('ru-RU');
       const nextDate = new Date(nextPayment * 1000).toLocaleDateString('ru-RU');
       
-      document.getElementById('lastPayment').textContent = lastDate;
-      document.getElementById('nextPayment').textContent = nextDate;
-      
-      // Проверяем сколько времени до следующей оплаты
-      const now = Date.now();
-      const timeLeft = nextPayment * 1000 - now;
-      const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-      const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      
-      // ⚠️ ТАЙМЕР ЗА 10 ДНЕЙ
-      if (daysLeft <= 10 && daysLeft >= 0) {
+      if (lastPaymentEl) lastPaymentEl.textContent = lastDate;
+      if (nextPaymentEl) nextPaymentEl.textContent = nextDate;
+
+      // Показываем таймер если <= 10 дней
+      if (daysRemaining <= 10 && daysRemaining >= 0) {
         if (warningEl) {
           warningEl.style.display = 'flex';
-          warningEl.style.background = daysLeft <= 3 ? 'rgba(255, 50, 50, 0.1)' : 'rgba(255, 193, 7, 0.1)';
+          warningEl.style.background = daysRemaining <= 3 ? 'rgba(255, 50, 50, 0.1)' : 'rgba(255, 193, 7, 0.1)';
         }
         
         if (daysEl) {
-          if (daysLeft === 0) {
-            daysEl.textContent = `Сегодня! (через ${hoursLeft}ч)`;
-            daysEl.style.color = '#ff3232';
-          } else if (daysLeft === 1) {
-            daysEl.textContent = `1 день`;
-            daysEl.style.color = '#ff6b6b';
-          } else {
-            daysEl.textContent = `${daysLeft} дней`;
-            daysEl.style.color = daysLeft <= 3 ? '#ff6b6b' : '#ffc107';
-          }
+          daysEl.textContent = daysRemaining === 0 ? 'Сегодня!' : `${daysRemaining} дней`;
+          daysEl.style.color = daysRemaining <= 3 ? '#ff3232' : '#ffc107';
         }
       } else {
-        // Скрываем предупреждение если > 10 дней
         if (warningEl) warningEl.style.display = 'none';
       }
-      
-      // 🔒 БЛОКИРОВКА КНОПКИ если рано платить
+
+      // Кнопка оплаты
       if (payBtn) {
-        if (timeLeft > 0) {
-          // Еще рано - блокируем
-          payBtn.disabled = true;
-          payBtn.textContent = `Оплата через ${daysLeft}д`;
-          payBtn.style.opacity = '0.5';
-          payBtn.style.cursor = 'not-allowed';
-        } else {
-          // Можно платить
+        if (canPay) {
           payBtn.disabled = false;
           payBtn.textContent = 'Оплатить Quarterly';
           payBtn.style.opacity = '1';
           payBtn.style.cursor = 'pointer';
-        }
-      }
-      
-    } else {
-      // ❌ ЕЩЕ НЕ АКТИВИРОВАН
-      
-      document.getElementById('lastPayment').textContent = 'Еще не активирован';
-      
-      // Проверяем можно ли активировать
-      const timeLeft = nextPayment * 1000 - Date.now();
-      
-      if (timeLeft > 0) {
-        // Нужно подождать
-        const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        
-        document.getElementById('nextPayment').textContent = `Доступно через ${days}д ${hours}ч`;
-        
-        if (payBtn) {
+        } else {
           payBtn.disabled = true;
-          payBtn.textContent = `Доступно через ${days}д`;
+          payBtn.textContent = `Оплата через ${daysRemaining}д`;
           payBtn.style.opacity = '0.5';
           payBtn.style.cursor = 'not-allowed';
         }
-      } else {
-        // Можно активировать прямо сейчас
-        document.getElementById('nextPayment').textContent = '✅ Можно активировать';
-        
+      }
+    } else {
+      // Еще не активирован
+      if (lastPaymentEl) lastPaymentEl.textContent = 'Еще не активирован';
+      
+      if (canPay) {
+        if (nextPaymentEl) nextPaymentEl.textContent = '✅ Можно активировать';
         if (payBtn) {
           payBtn.disabled = false;
           payBtn.textContent = '⚡ Активировать Quarterly';
           payBtn.style.opacity = '1';
           payBtn.style.cursor = 'pointer';
         }
+      } else {
+        if (nextPaymentEl) nextPaymentEl.textContent = `Доступно через ${daysRemaining}д`;
+        if (payBtn) {
+          payBtn.disabled = true;
+          payBtn.textContent = `Доступно через ${daysRemaining}д`;
+          payBtn.style.opacity = '0.5';
+          payBtn.style.cursor = 'not-allowed';
+        }
       }
-      
-      // Прячем предупреждение если не активирован
+
       if (warningEl) warningEl.style.display = 'none';
     }
   },
 
   updateBalancesUI() {
-    const { marketing, leader, investment } = this.userData.balances;
+    const { partner, leader, investment } = this.userData.balances;
 
-    document.getElementById('marketingBalance').textContent = `${app.formatNumber(marketing, 4)} BNB`;
-    document.getElementById('leaderBalance').textContent = `${app.formatNumber(leader, 4)} BNB`;
-    document.getElementById('investmentBalance').textContent = `${app.formatNumber(investment, 4)} BNB`;
+    const partnerBalance = document.getElementById('marketingBalance');
+    const leaderBalance = document.getElementById('leaderBalance');
+    const investmentBalance = document.getElementById('investmentBalance');
+
+    if (partnerBalance) partnerBalance.textContent = `${app.formatNumber(partner, 4)} BNB`;
+    if (leaderBalance) leaderBalance.textContent = `${app.formatNumber(leader, 4)} BNB`;
+    if (investmentBalance) investmentBalance.textContent = `${app.formatNumber(investment, 4)} BNB`;
   },
 
   // ═══════════════════════════════════════════════════════════════
   // ДЕЙСТВИЯ
   // ═══════════════════════════════════════════════════════════════
   
-// ✅ ИСПРАВЛЕНО: Функция покупки уровня с ДИАГНОСТИКОЙ КОНТРАКТА
-// ✅ ИСПРАВЛЕНО: Функция покупки уровня с ЗАЩИТОЙ ОТ ДУБЛИРОВАНИЯ
-async buyLevel(level) {
-    // ✅ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ ВЫЗОВОВ
+  async buyLevel(level) {
     if (this.buyLevelInProgress) {
-        console.log('⚠️ Buy level already in progress, skipping...');
-        return;
+      console.log('⚠️ Buy level already in progress');
+      return;
     }
     
     this.buyLevelInProgress = true;
     
-    // ✅ ДЕТАЛЬНАЯ ОТЛАДКА
     console.log(`=== 🛒 buyLevel() START for level ${level} ===`);
-    console.log(`📍 User: ${app.state.userAddress}`);
-    console.log(`📍 Registered: ${this.userData.isRegistered}`);
     
     if (!app.state.userAddress) {
-        console.log('❌ STOP: No user address');
-        app.showNotification('Подключите кошелек', 'error');
-        this.buyLevelInProgress = false;
-        return;
+      app.showNotification('Подключите кошелек', 'error');
+      this.buyLevelInProgress = false;
+      return;
     }
     
     if (!await app.checkNetwork()) {
-        console.log('❌ STOP: Wrong network');
-        this.buyLevelInProgress = false;
-        return;
+      this.buyLevelInProgress = false;
+      return;
     }
-    
-    console.log('✅ Passed basic checks');
     
     try {
-        // 0. ✅ ДИАГНОСТИКА КОНТРАКТА ПЕРЕД ПОКУПКОЙ
-        console.log('🔍 Running contract diagnostics...');
-        
-        // Проверяем paused статус контракта
-        const isPaused = await this.contracts.globalWay.paused();
-        console.log(`📍 Contract paused: ${isPaused}`);
-        if (isPaused) {
-            console.log('❌ STOP: Contract is paused');
-            app.showNotification('Контракт временно остановлен', 'error');
-            return;
-        }
-        
-        // Проверяем регистрацию через контракт
-        const isRegisteredInContract = await this.contracts.globalWay.isUserRegistered(app.state.userAddress);
-        console.log(`📍 Registered in contract: ${isRegisteredInContract}`);
-        if (!isRegisteredInContract) {
-            console.log('❌ STOP: Not registered in contract');
-            app.showNotification('Пользователь не зарегистрирован в контракте', 'error');
-            return;
-        }
-        
-        // Проверяем спонсора
-        const sponsor = await this.contracts.globalWay.getUserSponsor(app.state.userAddress);
-        console.log(`📍 Sponsor: ${sponsor}`);
-        if (sponsor === '0x0000000000000000000000000000000000000000') {
-            console.log('❌ STOP: Invalid sponsor');
-            app.showNotification('Ошибка: неверный спонсор', 'error');
-            return;
-        }
-        
-        // Проверяем уровень 1 активность
-        const isLevel1Active = await this.contracts.globalWay.isLevelActive(app.state.userAddress, 1);
-        console.log(`📍 Level 1 active: ${isLevel1Active}`);
-        
-        // Проверяем quarterly через контракт
-        const isQuarterlyActive = await this.contracts.globalWay.isQuarterlyActive(app.state.userAddress);
-        console.log(`📍 Quarterly active: ${isQuarterlyActive}`);
-        
-        // ✅ ПРАВИЛЬНАЯ ЛОГИКА: Quarterly требуется ТОЛЬКО если:
-        // - Уровень 1 уже активирован И прошло более 90 дней
-        if (isLevel1Active && !isQuarterlyActive) {
-            // Проверяем прошло ли 90 дней с активации уровня 1
-            const userData = await this.contracts.globalWay.users(app.state.userAddress);
-            const level1ActivationTime = userData.level1ActivationTime;
-            
-            if (level1ActivationTime > 0) {
-                const timeSinceActivation = Math.floor(Date.now() / 1000) - level1ActivationTime.toNumber();
-                const daysSinceActivation = Math.floor(timeSinceActivation / 86400);
-                
-                console.log(`📍 Days since level 1 activation: ${daysSinceActivation}`);
-                
-                if (daysSinceActivation >= 90) {
-                    console.log('❌ STOP: Quarterly payment required (90+ days since level 1)');
-                    app.showNotification('Оплатите quarterly активность (0.075 BNB) для продолжения', 'error');
-                    return;
-                } else {
-                    console.log(`✅ Quarterly not yet required (${90 - daysSinceActivation} days remaining)`);
-                }
-            }
-        }
-        
-        console.log('✅ Contract diagnostics passed');
-        
-        // 1. ПРОВЕРКА РЕГИСТРАЦИИ (дублируем для надежности)
-        console.log('🔍 Checking registration...');
-        if (!this.userData.isRegistered) {
-            console.log('❌ STOP: User not registered');
-            app.showNotification('Сначала зарегистрируйтесь', 'error');
-            return;
-        }
-        
-        console.log('✅ User is registered');
-        
-        // 2. ПРОВЕРКА ПРЕДЫДУЩИХ УРОВНЕЙ
-        console.log('🔍 Checking previous levels...');
-        if (level > 1) {
-            const maxLevel = await this.contracts.globalWay.getUserMaxLevel(app.state.userAddress);
-            console.log(`📍 Current max level: ${maxLevel}`);
-            
-            if (maxLevel < level - 1) {
-                console.log(`❌ STOP: Need level ${level - 1} first`);
-                app.showNotification(`Сначала активируйте уровень ${level - 1}`, 'error');
-                return;
-            }
-        }
-        
-        console.log('✅ Previous levels check passed');
-        
-        // 3. ПРОВЕРКА ЧТО УРОВЕНЬ ЕЩЕ НЕ АКТИВЕН
-        console.log('🔍 Checking if level is already active...');
-        const isActive = await this.contracts.globalWay.isLevelActive(app.state.userAddress, level);
-        console.log(`📍 Level ${level} active: ${isActive}`);
-        
-        if (isActive) {
-            console.log('❌ STOP: Level already active');
-            app.showNotification('Уровень уже активен', 'error');
-            return;
-        }
-        
-        console.log('✅ Level is not active');
-        
-        // 4. ПРОВЕРКА БАЛАНСА
-        console.log('🔍 Checking balance...');
-        const price = CONFIG.LEVEL_PRICES[level - 1];
-        const priceWei = ethers.utils.parseEther(price);
-        const balance = await this.web3Provider.getBalance(app.state.userAddress);
-        console.log(`📍 Price: ${price} BNB (${priceWei.toString()} wei)`);
-        console.log(`📍 Balance: ${ethers.utils.formatEther(balance)} BNB`);
-        
-        if (balance.lt(priceWei)) {
-            console.log('❌ STOP: Insufficient balance');
-            app.showNotification('Недостаточно BNB', 'error');
-            return;
-        }
-        
-        console.log('✅ Balance is sufficient');
-        
-        // 5. ПОДТВЕРЖДЕНИЕ ПОКУПКИ
-        console.log('🔍 Asking for confirmation...');
-        const confirmed = confirm(
-            `Активировать уровень ${level}?\n\n` +
-            `Стоимость: ${price} BNB\n` +
-            `Награда: ${CONFIG.TOKEN_REWARDS[level - 1]} GWT токенов\n\n` +
-            `Продолжить?`
-        );
-        
-        if (!confirmed) {
-            console.log('❌ STOP: User cancelled');
-            return;
-        }
-        
-        console.log('✅ User confirmed purchase');
-        
-        // 6. ПОКУПКА С LOADING
-        console.log(`🛒 Starting purchase of level ${level}...`);
-        
-        // Disable все кнопки уровней
-        document.querySelectorAll('.level-btn').forEach(btn => btn.disabled = true);
-        
-        app.showNotification(`Покупка уровня ${level}...`, 'info');
-        
-        console.log('🔍 Getting signed contract...');
-        const contract = await app.getSignedContract('GlobalWay');
-        console.log('✅ Got signed contract');
-        
-        // ✅ УВЕЛИЧИВАЕМ GAS LIMIT И GAS PRICE для надежности
-        console.log('🔍 Sending transaction with fixed gas price...');
-        const gasPrice = ethers.utils.parseUnits('0.3', 'gwei'); // 0.3 gwei
-        console.log(`📍 Fixed gas price: ${ethers.utils.formatUnits(gasPrice, 'gwei')} gwei`);
-        
-        const tx = await contract.activateLevel(level, {
-            value: priceWei,
-            gasLimit: 800000,
-            gasPrice: gasPrice
-        });
-        
-        console.log(`📝 Transaction sent: ${tx.hash}`);
-        app.showNotification(`Транзакция отправлена! Ожидание подтверждения...`, 'info');
-        
-        console.log('🔍 Waiting for confirmation...');
-        const receipt = await tx.wait();
-        console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
-        console.log('📍 Transaction receipt:', receipt);
-        
-        // Проверяем статус транзакции
-        if (receipt.status === 0) {
-            console.log('❌ Transaction failed in blockchain');
-            throw new Error('Transaction reverted in contract');
-        }
-        
-        // 7. УСПЕХ
-        app.showNotification(
-            `✅ Уровень ${level} активирован!\n🎁 Получено ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
-            'success'
-        );
-        
-        console.log('✅ Purchase completed successfully');
-        
-        // 8. ОБНОВЛЕНИЕ ДАННЫХ
-        await this.refresh();
-        
-    } catch (error) {
-        console.error('❌ Buy level error:', error);
-        
-        if (error.code === 4001) {
-            app.showNotification('Транзакция отклонена', 'error');
-        } else if (error.message && error.message.includes('pending request')) {
-            app.showNotification('Дождитесь завершения предыдущей транзакции', 'error');
-        } else if (error.message && error.message.includes('insufficient funds')) {
-            app.showNotification('Недостаточно средств', 'error');
-        } else if (error.message && error.message.includes('gas')) {
-            app.showNotification('Ошибка gas, попробуйте снова', 'error');
-        } else if (error.message && error.message.includes('revert')) {
-            app.showNotification('Ошибка в контракте: транзакция отменена', 'error');
-        } else if (error.message && error.message.includes('paused')) {
-            app.showNotification('Контракт временно остановлен', 'error');
-        } else if (error.message && error.message.includes('Not registered')) {
-            app.showNotification('Пользователь не зарегистрирован', 'error');
-        } else if (error.data && error.data.message) {
-            app.showNotification(`Ошибка контракта: ${error.data.message}`, 'error');
-        } else {
-            app.showNotification('Ошибка покупки уровня: ' + error.message, 'error');
-        }
-    } finally {
-        // Включаем обратно все кнопки
-        document.querySelectorAll('.level-btn').forEach(btn => {
-            if (!btn.classList.contains('active')) {
-                btn.disabled = false;
-            }
-        });
-        
-        // ✅ СБРАСЫВАЕМ ФЛАГ ПРОГРЕССА
+      // 1. Проверка регистрации
+      if (!this.userData.isRegistered) {
+        app.showNotification('Сначала зарегистрируйтесь', 'error');
         this.buyLevelInProgress = false;
+        return;
+      }
+      
+      // 2. Проверка предыдущих уровней
+      if (level > 1) {
+        const maxLevel = await this.contracts.globalWay.getUserMaxLevel(app.state.userAddress);
+        if (Number(maxLevel) < level - 1) {
+          app.showNotification(`Сначала активируйте уровень ${level - 1}`, 'error');
+          this.buyLevelInProgress = false;
+          return;
+        }
+      }
+      
+      // 3. Проверка что уровень не активен
+      const isActive = await this.contracts.globalWay.isLevelActive(app.state.userAddress, level);
+      if (isActive) {
+        app.showNotification('Уровень уже активен', 'error');
+        this.buyLevelInProgress = false;
+        return;
+      }
+      
+      // 4. Проверка баланса
+      const price = CONFIG.LEVEL_PRICES[level - 1];
+      const priceWei = ethers.utils.parseEther(price);
+      const balance = await this.web3Provider.getBalance(app.state.userAddress);
+      
+      if (balance.lt(priceWei)) {
+        app.showNotification('Недостаточно BNB', 'error');
+        this.buyLevelInProgress = false;
+        return;
+      }
+      
+      // 5. Подтверждение
+      const confirmed = confirm(
+        `Активировать уровень ${level}?\n\n` +
+        `Стоимость: ${price} BNB\n` +
+        `Награда: ${CONFIG.TOKEN_REWARDS[level - 1]} GWT\n\n` +
+        `Продолжить?`
+      );
+      
+      if (!confirmed) {
+        this.buyLevelInProgress = false;
+        return;
+      }
+      
+      // 6. Покупка
+      document.querySelectorAll('.level-btn').forEach(btn => btn.disabled = true);
+      
+      app.showNotification(`Покупка уровня ${level}...`, 'info');
+      
+      const contract = await app.getSignedContract('GlobalWay');
+      
+      const tx = await contract.buyLevel(level, {
+        value: priceWei,
+        gasLimit: CONFIG.GAS.buyLevel
+      });
+      
+      console.log(`📝 Transaction sent: ${tx.hash}`);
+      app.showNotification(`Транзакция отправлена! Ожидание...`, 'info');
+      
+      const receipt = await tx.wait();
+      console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+      
+      if (receipt.status === 0) {
+        throw new Error('Transaction failed');
+      }
+      
+      // 7. Успех
+      app.showNotification(
+        `✅ Уровень ${level} активирован!\n🎁 Получено ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
+        'success'
+      );
+      
+      await this.refresh();
+      
+    } catch (error) {
+      console.error('❌ Buy level error:', error);
+      
+      if (error.code === 4001) {
+        app.showNotification('Транзакция отклонена', 'error');
+      } else if (error.message && error.message.includes('insufficient funds')) {
+        app.showNotification('Недостаточно средств', 'error');
+      } else {
+        app.showNotification('Ошибка покупки: ' + error.message, 'error');
+      }
+    } finally {
+      document.querySelectorAll('.level-btn').forEach(btn => {
+        if (!btn.classList.contains('active')) {
+          btn.disabled = false;
+        }
+      });
+      
+      this.buyLevelInProgress = false;
     }
     
-    console.log(`=== 🛒 buyLevel() END for level ${level} ===`);
-},
+    console.log(`=== 🛒 buyLevel() END ===`);
+  },
 
-// ✅ ИСПРАВЛЕННАЯ QUARTERLY ОПЛАТА
-async payQuarterly() {
-    console.log('=== PAY QUARTERLY START ===');
+  async payQuarterly() {
+    console.log('=== 💳 PAY QUARTERLY START ===');
     
     if (!app.state.userAddress) {
-        console.log('❌ No user address');
-        app.showNotification('Подключите кошелек', 'error');
-        return;
+      app.showNotification('Подключите кошелек', 'error');
+      return;
     }
     
     if (!await app.checkNetwork()) {
-        console.log('❌ Wrong network');
-        return;
+      return;
     }
 
     try {
-        // 1. Проверка возможности оплаты
-        console.log('🔍 Checking if can pay quarterly...');
-        const [canPay, reason, timeLeft] = await this.contracts.quarterly.canPayQuarterly(app.state.userAddress);
-        console.log('📍 Can pay:', canPay);
-        console.log('📍 Reason:', reason);
-        console.log('📍 Time left:', timeLeft.toString());
-        
-        if (!canPay) {
-            console.log('❌ Cannot pay quarterly:', reason);
-            app.showNotification(reason || 'Оплата пока недоступна', 'error');
-            return;
-        }
-        
-        // 2. Получаем текущий квартал
-        const [lastPayment, quarterCount, charityAccount, techAccount1, techAccount2, nextPaymentTime] = 
-            await this.contracts.quarterly.getUserQuarterlyInfo(app.state.userAddress);
-        const quarter = Number(quarterCount);
-        
-        console.log('📍 Current quarter:', quarter);
-        console.log('📍 Last payment:', lastPayment.toString());
-        console.log('📍 Next payment time:', nextPaymentTime.toString());
-        
-        // 3. Проверка баланса
-        const cost = CONFIG.QUARTERLY_COST;
-        const costWei = ethers.utils.parseEther(cost);
-        const balance = await this.web3Provider.getBalance(app.state.userAddress);
-        console.log(`📍 Cost: ${cost} BNB`);
-        console.log(`📍 Balance: ${ethers.utils.formatEther(balance)} BNB`);
-        
-        if (balance.lt(costWei)) {
-            console.log('❌ Insufficient balance');
-            app.showNotification('Недостаточно BNB', 'error');
-            return;
-        }
-        
-        // 4. Подтверждение оплаты
-        let confirmMessage = `Оплатить quarterly активность?\n\nКвартал: ${quarter + 1}\nСтоимость: ${cost} BNB\n\n`;
-        
-        if (quarter === 0) {
-            confirmMessage += `📝 Будет создан charity аккаунт\n\n`;
-        } else if (quarter === 1) {
-            confirmMessage += `🛠️ Будет создан технический аккаунт\n\n`;
-        } else if (quarter === 2) {
-            confirmMessage += `🛠️ Будет создан второй технический аккаунт\n\n`;
-        }
-        
-        confirmMessage += `Продолжить?`;
-        
-        const confirmed = confirm(confirmMessage);
-        
-        if (!confirmed) {
-            console.log('❌ User cancelled quarterly payment');
-            return;
-        }
-        
-        console.log('✅ User confirmed quarterly payment');
-        
-        // 5. Оплата с loading
-        const payBtn = document.getElementById('payActivityBtn');
-        if (payBtn) {
-            payBtn.disabled = true;
-            payBtn.textContent = 'Обработка...';
-        }
-        
-        app.showNotification('Оплата quarterly...', 'info');
+      const { quarter, canPay } = this.userData.quarterlyInfo;
+      
+      if (!canPay) {
+        app.showNotification('Оплата пока недоступна', 'error');
+        return;
+      }
 
-        const contract = await app.getSignedContract('GlobalWayQuarterly');
-        let tx;
-        
-        // Определяем функцию в зависимости от квартала
-        if (quarter === 0) {
-            // Первый квартал - с charity account
-            console.log('🔍 Paying quarterly with charity account...');
-            const charityRecipient = app.state.userAddress;
-            tx = await contract.payQuarterlyActivity(charityRecipient, {
-                value: costWei,
-                gasLimit: 800000
-            });
-        } else {
-            // Последующие кварталы
-            console.log('🔍 Paying quarterly regular...');
-            tx = await contract.payQuarterlyActivityRegular({
-                value: costWei,
-                gasLimit: 800000
-            });
-        }
+      // Подтверждение
+      const cost = CONFIG.QUARTERLY_COST;
+      const confirmed = confirm(
+        `Оплатить quarterly активность?\n\n` +
+        `Квартал: ${quarter + 1}\n` +
+        `Стоимость: ${cost} BNB\n\n` +
+        `Продолжить?`
+      );
+      
+      if (!confirmed) {
+        return;
+      }
 
-        console.log(`📝 Quarterly transaction sent: ${tx.hash}`);
-        app.showNotification('Ожидание подтверждения...', 'info');
-        
-        const receipt = await tx.wait();
-        console.log(`✅ Quarterly transaction confirmed in block ${receipt.blockNumber}`);
+      // Проверка баланса
+      const costWei = ethers.utils.parseEther(cost);
+      const balance = await this.web3Provider.getBalance(app.state.userAddress);
+      
+      if (balance.lt(costWei)) {
+        app.showNotification('Недостаточно BNB', 'error');
+        return;
+      }
+      
+      const payBtn = document.getElementById('payActivityBtn');
+      if (payBtn) {
+        payBtn.disabled = true;
+        payBtn.textContent = 'Обработка...';
+      }
+      
+      app.showNotification('Оплата quarterly...', 'info');
 
-        app.showNotification('✅ Quarterly оплачен!', 'success');
-        
-        // Обновляем данные
-        await this.refresh();
-        
+      const contract = await app.getSignedContract('QuarterlyPayments');
+      
+      const tx = await contract.payQuarterly({
+        value: costWei,
+        gasLimit: CONFIG.GAS.payQuarterly
+      });
+
+      console.log(`📝 Quarterly transaction sent: ${tx.hash}`);
+      app.showNotification('Ожидание подтверждения...', 'info');
+      
+      const receipt = await tx.wait();
+      console.log(`✅ Quarterly confirmed in block ${receipt.blockNumber}`);
+
+      app.showNotification('✅ Quarterly оплачен!', 'success');
+      
+      await this.refresh();
+      
     } catch (error) {
-        console.error('❌ Pay quarterly error:', error);
-        
-        if (error.code === 4001) {
-            app.showNotification('Транзакция отклонена', 'error');
-        } else if (error.message && error.message.includes('insufficient funds')) {
-            app.showNotification('Недостаточно средств', 'error');
-        } else if (error.message && error.message.includes('Too early')) {
-            app.showNotification('Слишком рано для оплаты quarterly', 'error');
-        } else if (error.data && error.data.message) {
-            app.showNotification(`Ошибка: ${error.data.message}`, 'error');
-        } else {
-            app.showNotification('Ошибка оплаты quarterly: ' + error.message, 'error');
-        }
+      console.error('❌ Pay quarterly error:', error);
+      
+      if (error.code === 4001) {
+        app.showNotification('Транзакция отклонена', 'error');
+      } else if (error.message && error.message.includes('insufficient funds')) {
+        app.showNotification('Недостаточно средств', 'error');
+      } else {
+        app.showNotification('Ошибка оплаты: ' + error.message, 'error');
+      }
     } finally {
-        // Включаем обратно кнопку
-        const payBtn = document.getElementById('payActivityBtn');
-        if (payBtn) {
-            payBtn.disabled = false;
-            payBtn.textContent = 'Оплатить Quarterly';
-        }
+      const payBtn = document.getElementById('payActivityBtn');
+      if (payBtn) {
+        payBtn.disabled = false;
+        payBtn.textContent = 'Оплатить Quarterly';
+      }
     }
     
-    console.log('=== PAY QUARTERLY END ===');
-},
+    console.log('=== 💳 PAY QUARTERLY END ===');
+  },
 
   // ═══════════════════════════════════════════════════════════════
   // UI ИНИЦИАЛИЗАЦИЯ
@@ -962,25 +728,15 @@ async payQuarterly() {
   // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
   // ═══════════════════════════════════════════════════════════════
   
-  // Получить название ранга
-  getRankName(qualifications) {
-    if (typeof qualifications === 'number') {
-      const ranks = {
-        0: 'Никто',
-        1: 'Бронза 🥉',
-        2: 'Серебро 🥈',
-        3: 'Золото 🥇',
-        4: 'Платина 💎'
-      };
-      return ranks[qualifications] || 'Никто';
-    }
-    
-    // Новая логика - из массива bool
-    if (qualifications[3]) return 'Платина 💎';
-    if (qualifications[2]) return 'Золото 🥇';
-    if (qualifications[1]) return 'Серебро 🥈';
-    if (qualifications[0]) return 'Бронза 🥉';
-    return 'Никто';
+  getRankName(rankId) {
+    const ranks = {
+      0: 'Никто',
+      1: 'Бронза 🥉',
+      2: 'Серебро 🥈',
+      3: 'Золото 🥇',
+      4: 'Платина 💎'
+    };
+    return ranks[rankId] || 'Никто';
   },
 
   filterHistory() {
@@ -1001,14 +757,12 @@ async payQuarterly() {
     });
   },
 
-  // Очистка кэша
   clearCache() {
     this.cache.tokenPrice = null;
     this.cache.tokenPriceTime = 0;
     console.log('🗑️ Cache cleared');
   },
 
-  // Автообновление таймера quarterly
   startQuarterlyTimer() {
     if (this.quarterlyTimer) {
       clearInterval(this.quarterlyTimer);
@@ -1018,10 +772,9 @@ async payQuarterly() {
       if (this.userData.quarterlyInfo) {
         this.updateQuarterlyUI();
       }
-    }, 60000);
+    }, 60000); // 1 минута
   },
 
-  // Обновление данных
   async refresh() {
     this.clearCache();
     await this.loadAllData();
