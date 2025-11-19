@@ -1,236 +1,284 @@
-// Configuration for GlobalWay DApp
+// ═══════════════════════════════════════════════════════════════════
+// GlobalWay DApp - Configuration
+// opBNB Mainnet (Chain ID: 204)
+// ═══════════════════════════════════════════════════════════════════
+
 const CONFIG = {
+  // ═══════════════════════════════════════════════════════════════
+  // NETWORK
+  // ═══════════════════════════════════════════════════════════════
   NETWORK: {
+    name: 'opBNB Mainnet',
     chainId: 204,
     chainIdHex: '0xCC',
-    name: 'opBNB Mainnet',
     rpcUrl: 'https://opbnb-mainnet-rpc.bnbchain.org',
-    explorer: 'https://opbnbscan.com',
-    currency: {
+    blockExplorer: 'https://opbnbscan.com',
+    nativeCurrency: {
       name: 'BNB',
       symbol: 'BNB',
       decimals: 18
     }
   },
 
-  // ✅ НОВЫЕ АДРЕСА КОНТРАКТОВ (деплой 15.11.2025)
+  // ═══════════════════════════════════════════════════════════════
+  // SMART CONTRACTS ADDRESSES
+  // ═══════════════════════════════════════════════════════════════
   CONTRACTS: {
-    GlobalWay: '0x115D37c4ee5a3c15fc3d0C05CB481728AcaBf036',
-    GlobalWayHelper: '0x20EA180B9945B7391925940DeaAB9e576BfB9c81',
-    GlobalWayMarketing: '0xd5906199C749643714C1FcB9E6217dF07A89edcd',
-    GlobalWayQuarterly: '0x0e65983DdAaC6c0B142787fF1cf79e0A75ca294A',
-    GlobalWayLeaderPool: '0x0CaD4395c1D074DC42Fe606907BED372C63406C3',
-    GlobalWayInvestment: '0xb141036899f4e32744ecF3520BD134f41acD6b26',
-    GlobalWayStats: '0xF493CDe52f9da6390cDd8f200109fDBF333080b3',
-    GlobalWayBridge: '0xe63f5bf69232E2e76E530F2797bBd81e4fafE512',
-    GlobalWayGovernance: '0x7f52082AfA3931f9404fBF856D676F9a4b604Bf6',
-    GlobalWayTechAccounts: '0x7A2Dee3679FC25C6a998a5198921E92D8907Bc31',
-    GWTToken: '0xa9d16942aCB90df6465B81f95c9a91f13F1700Ae'
+    // Core системный контракт
+    GlobalWay: '0x742F2200BAb0c175c107c576E3Eb9E5A8ab7Ba4b',
+    
+    // Registry & Matrix
+    MatrixRegistry: '0x1EFa7cfB85c101b523C1d3e502BB855a1f8915fc',
+    MatrixPayments: '0x5fD0CA4BF93C31F186B5e846FC5863E84dEeE27f',
+    
+    // Payment Systems
+    PartnerProgram: '0x8B01C9FCD9Afd87d69F8F9b5A0Fe2B020D50Dc1A',
+    QuarterlyPayments: '0x51E8a64BE6E55A563c1BB73b203DE2EB6B83f7a3',
+    
+    // Pools
+    InvestmentPool: '0x8f30D312fA5F8E6A30D6c1C6F6e0a73c535c358c',
+    LeaderPool: '0xC0992D079D123D3c69C98B3Be71978C2e93b5710',
+    
+    // Token
+    GWTToken: '0x2E3B2c4227575296b8CE68D1fa186aC8941D8C86',
+    
+    // Управление и статистика
+    GlobalWayGovernance: '0xdFC8426F64CE058758652dF47aC3Ba06D77e228b',
+    GlobalWayStats: '0x92b0Fd7cc3926aE08CEcD1Ca2C99e1df28Cf9c0e',
+    GlobalWayBridge: '0x9C6eb5c63F5d1eCC8Ad27EA773F0a70cE0bC7d6F',
+    
+    // Tokenomics
+    GlobalWayTokenomics: '0xbDC29886c91878C1ba9ce0626Da5E1961324354F'
   },
 
-  WALLETS: {
-    treasury: '0xE58f778236C1D3cCecf14eC1274761559685a336',
-    charity: '0x09c3bD32EB0617e29E41382b738c4E3Cc932A611',
-    tokenomics: '0xbDC29886c91878C1ba9ce0626Da5E1961324354F',
-    ops: '0x956C8350b874D01D32236Eb2944089B54C3b9670',
-    dev: '0xF8C5504dc1e5165a0748A3DC410384BfCBab13Dd'
+  // ═══════════════════════════════════════════════════════════════
+  // ABI FILES - Пути к отдельным ABI файлам на хостинге
+  // ═══════════════════════════════════════════════════════════════
+  ABI_PATHS: {
+    GlobalWay: './contracts/abis/GlobalWay.json',
+    MatrixRegistry: './contracts/abis/MatrixRegistry.json',
+    MatrixPayments: './contracts/abis/MatrixPayments.json',
+    PartnerProgram: './contracts/abis/PartnerProgram.json',
+    QuarterlyPayments: './contracts/abis/QuarterlyPayments.json',
+    InvestmentPool: './contracts/abis/InvestmentPool.json',
+    LeaderPool: './contracts/abis/LeaderPool.json',
+    GWTToken: './contracts/abis/GWTToken.json',
+    GlobalWayGovernance: './contracts/abis/GlobalWayGovernance.json',
+    GlobalWayStats: './contracts/abis/GlobalWayStats.json',
+    GlobalWayBridge: './contracts/abis/GlobalWayBridge.json',
+    GlobalWayTokenomics: './contracts/abis/GlobalWayTokenomics.json'
   },
 
-  // ✅ ADMIN: Owner + 3 Founders (с доступом к админке)
+  // ═══════════════════════════════════════════════════════════════
+  // LEVEL PRICES (в BNB)
+  // ═══════════════════════════════════════════════════════════════
+  LEVEL_PRICES: [
+    '0.001',   // Level 1
+    '0.002',   // Level 2
+    '0.004',   // Level 3
+    '0.008',   // Level 4
+    '0.016',   // Level 5
+    '0.032',   // Level 6
+    '0.064',   // Level 7
+    '0.128',   // Level 8
+    '0.256',   // Level 9
+    '0.512',   // Level 10
+    '1.024',   // Level 11
+    '2.048'    // Level 12
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // TOKEN REWARDS (GWT за каждый уровень)
+  // ═══════════════════════════════════════════════════════════════
+  TOKEN_REWARDS: [
+    5,      // Level 1
+    10,     // Level 2
+    20,     // Level 3
+    40,     // Level 4
+    80,     // Level 5
+    160,    // Level 6
+    320,    // Level 7
+    640,    // Level 8
+    1280,   // Level 9
+    2560,   // Level 10
+    5120,   // Level 11
+    10240   // Level 12
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // QUARTERLY PAYMENT (в BNB)
+  // ═══════════════════════════════════════════════════════════════
+  QUARTERLY_COST: '0.075',
+  QUARTERLY_PERIOD: 90, // дней
+
+  // ═══════════════════════════════════════════════════════════════
+  // RANK LEVELS
+  // ═══════════════════════════════════════════════════════════════
+  RANKS: {
+    NONE: { id: 0, name: 'Никто', maxLevel: 0 },
+    BRONZE: { id: 1, name: 'Бронза 🥉', maxLevel: 4 },
+    SILVER: { id: 2, name: 'Серебро 🥈', maxLevel: 7 },
+    GOLD: { id: 3, name: 'Золото 🥇', maxLevel: 10 },
+    PLATINUM: { id: 4, name: 'Платина 💎', maxLevel: 12 }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ADMIN
+  // ═══════════════════════════════════════════════════════════════
   ADMIN: {
+    // Owner (главный администратор)
     owner: '0x7261b8aeaee2f806f64001596a67d68f2055acd2',
     
-    // ✅ ТОЛЬКО ЭТИ 3 FOUNDERS ИМЕЮТ ДОСТУП К АДМИНКЕ
-    adminFounders: [
-      {
-        address: '0x03284A899147f5a07F82C622F34DF92198671635',
-        id: '7777777',
-        name: 'Founder 1'
-      },
-      {
-        address: '0x9b49bD9c9458615e11C051afd1EBe983563b67EE',
-        id: '5555555',
-        name: 'Founder 2'
-      },
-      {
-        address: '0xc2b58114cBc873cf360f7A673e4d8EE25d1431e7',
-        id: '9999999',
-        name: 'Founder 3'
-      }
+    // Founders с правами админки (только 1, 2, 3)
+    founders: [
+      '0x03284a899147f5a07f82c622f34df92198671635', // Founder 1
+      '0x9b49bd9c9458615e11c051afd1ebe983563b67ee', // Founder 2
+      '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7'  // Founder 3
     ],
     
-    // ВСЕ 4 FOUNDERS (для справки)
-    allFounders: [
-      {
-        address: '0x03284A899147f5a07F82C622F34DF92198671635',
-        id: '7777777',
-        name: 'Founder 1',
-        hasAdminAccess: true
-      },
-      {
-        address: '0x9b49bD9c9458615e11C051afd1EBe983563b67EE',
-        id: '5555555',
-        name: 'Founder 2',
-        hasAdminAccess: true
-      },
-      {
-        address: '0xc2b58114cBc873cf360f7A673e4d8EE25d1431e7',
-        id: '9999999',
-        name: 'Founder 3',
-        hasAdminAccess: true
-      },
-      {
-        address: '0xa3496caCC8523421Dd151f1d92A456c2daFa28c2',
-        id: '2290631',
-        name: 'Founder 4',
-        hasAdminAccess: false
-      }
-    ],
+    // Founder 4 (БЕЗ прав админки, но в составе board)
+    founder4: '0xa3496cacc8523421dd151f1d92a456c2dafa28c2',
     
-    // Board members (для голосования)
+    // Board members (директора для голосования) - всего 7 человек
     board: [
-      '0x11c4FA4126f9B373c4b9A2D43986Cd331E32d2fA',
-      '0x0AB97e3934b1Afc9F1F6447CCF676E4f1D8B9639',
-      '0x0561671297Eed07accACB41b4882ED61e87E3644',
-      '0x012E0B2b502FE0131Cb342117415a43d59094D6d',
-      '0x15b546a61865bdc46783ACfc50c3101a1121c69B',
-      '0xB5986B808dad481ad86D63DF152cC0ad7B473e48',
-      '0x4d2C77e59538deFe89E3B2951680547FC24aD52C',
-      '0xAB17aDbe29c4E1d695C239206682B02ebdB3f707'
-    ]
+      '0x03284a899147f5a07f82c622f34df92198671635', // Founder 1
+      '0x9b49bd9c9458615e11c051afd1ebe983563b67ee', // Founder 2
+      '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7', // Founder 3
+      '0x372d4c15bfd4e28241399853ab2ad59ef837e44d', // Director 1
+      '0xa3496cacc8523421dd151f1d92a456c2dafa28c2', // Founder 4 (Director 2)
+      '0x28041d893ea97ab71dee19fceaae0822e96fc0b5', // Director 3
+      '0x8603aaee4d81c85ac03d81cd06b23a1979a02444'  // Director 4
+    ],
+    
+    // Treasury addresses
+    charity: '0x742F2200BAb0c175c107c576E3Eb9E5A8ab7Ba4b',
+    development: '0x742F2200BAb0c175c107c576E3Eb9E5A8ab7Ba4b'
   },
 
-  PROJECTS: [
-    {
-      id: 'CG',
-      name: 'KardGift',
-      description: 'Gift card marketplace and exchange platform',
-      logo: 'assets/icons/CardGift.png',
-      status: 'development',
-      requiredLevel: 1,
-      prefix: 'CG'
-    },
-    {
-      id: 'GT',
-      name: 'GlobalTub',
-      description: 'Decentralized video streaming platform',
-      logo: 'assets/icons/GlobalTub.png',
-      status: 'development',
-      requiredLevel: 4,
-      prefix: 'GT'
-    },
-    {
-      id: 'GM',
-      name: 'GlobalMarket',
-      description: 'P2P marketplace for goods and services',
-      logo: 'assets/icons/GlobalMarket.png',
-      status: 'coming',
-      requiredLevel: 4,
-      prefix: 'GM'
-    },
-    {
-      id: 'GG',
-      name: 'GlobalGame',
-      description: 'Play-to-earn gaming ecosystem',
-      logo: 'assets/icons/GlobalGame.png',
-      status: 'coming',
-      requiredLevel: 7,
-      prefix: 'GG'
-    },
-    {
-      id: 'GS',
-      name: 'GlobalSocial',
-      description: 'Decentralized social network',
-      logo: 'assets/icons/GlobalSocial.png',
-      status: 'planning',
-      requiredLevel: 7,
-      prefix: 'GS'
-    },
-    {
-      id: 'GB',
-      name: 'GlobalBank',
-      description: 'DeFi banking and lending platform',
-      logo: 'assets/icons/GlobalBank.png',
-      status: 'planning',
-      requiredLevel: 10,
-      prefix: 'GB'
-    },
-    {
-      id: 'GE',
-      name: 'GlobalEdu',
-      description: 'Educational platform and certification',
-      logo: 'assets/icons/GlobalEdu.png',
-      status: 'planning',
-      requiredLevel: 10,
-      prefix: 'GE'
-    },
-    {
-      id: 'GL',
-      name: 'EcoVillages',
-      description: 'Eco-settlements and sustainable living',
-      logo: 'assets/icons/EcoVillages.png',
-      status: 'planning',
-      requiredLevel: 12,
-      prefix: 'GL'
-    }
-  ],
-
-  // ✅ ПРАВИЛЬНЫЕ ЦЕНЫ УРОВНЕЙ (в BNB)
-  LEVEL_PRICES: [
-    '0.005',   // Level 1
-    '0.01',    // Level 2
-    '0.02',    // Level 3
-    '0.04',    // Level 4
-    '0.08',    // Level 5
-    '0.16',    // Level 6
-    '0.32',    // Level 7
-    '0.64',    // Level 8
-    '1.28',    // Level 9
-    '2.56',    // Level 10
-    '5.12',    // Level 11
-    '10.24'    // Level 12
-  ],
-
-  // ✅ ТОКЕНЫ ЗА УРОВНИ (GWT)
-  TOKEN_REWARDS: [
-    5,     // Level 1
-    5,     // Level 2
-    10,    // Level 3
-    15,    // Level 4
-    35,    // Level 5
-    75,    // Level 6
-    150,   // Level 7
-    300,   // Level 8
-    600,   // Level 9
-    1200,  // Level 10
-    2400,  // Level 11
-    4500   // Level 12
-  ],
-
-  // ✅ КВАРТАЛЬНАЯ ОПЛАТА
-  QUARTERLY_COST: '0.075',
-  
-  DEEP_LINKS: {
-    safepal: 'safepal://wc?uri=',
-    metamask: 'https://metamask.app.link/dapp/'
+  // ═══════════════════════════════════════════════════════════════
+  // UI SETTINGS
+  // ═══════════════════════════════════════════════════════════════
+  UI: {
+    notificationDuration: 3000, // ms
+    refreshInterval: 30000, // ms (30 sec)
+    maxRecentTransactions: 50,
+    defaultLanguage: 'ru'
   },
-  
-  QR_CONFIG: {
-    size: 256,
-    logo: 'assets/icons/logo-32x32.png'
+
+  // ═══════════════════════════════════════════════════════════════
+  // CACHE SETTINGS
+  // ═══════════════════════════════════════════════════════════════
+  CACHE: {
+    tokenPriceDuration: 30000, // 30 sec
+    userDataDuration: 10000,   // 10 sec
+    statsDataDuration: 60000   // 60 sec
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // GAS SETTINGS
+  // ═══════════════════════════════════════════════════════════════
+  GAS: {
+    // Gas limits для разных операций
+    register: 500000,
+    buyLevel: 800000,
+    payQuarterly: 800000,
+    withdraw: 300000,
+    
+    // Gas price (в gwei)
+    defaultGasPrice: '0.001', // 0.001 gwei для opBNB
+    maxGasPrice: '0.01'       // максимум 0.01 gwei
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // FEATURES FLAGS
+  // ═══════════════════════════════════════════════════════════════
+  FEATURES: {
+    enableAutoRegister: true,
+    enableQuarterlyPayments: true,
+    enableTokenRewards: true,
+    enableVoting: true,
+    enableBridge: false, // временно отключен
+    debugMode: false
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // VOTING SYSTEM
+  // ═══════════════════════════════════════════════════════════════
+  VOTING: {
+    totalBoardMembers: 7,        // Всего членов board
+    requiredVotes: 5,             // Нужно 5 из 7 для принятия решения
+    votingPeriod: 7 * 24 * 60 * 60, // 7 дней в секундах
+    quorum: 5                     // Минимум голосов для кворума
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // EXTERNAL LINKS
+  // ═══════════════════════════════════════════════════════════════
+  LINKS: {
+    telegram: 'https://t.me/globalway_official',
+    twitter: 'https://twitter.com/globalway_club',
+    documentation: 'https://docs.globalway.club',
+    support: 'https://support.globalway.club',
+    whitepaper: 'https://globalway.club/whitepaper.pdf'
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // VALIDATION
+  // ═══════════════════════════════════════════════════════════════
+  VALIDATION: {
+    minSponsorLevel: 1,
+    minWithdrawAmount: '0.001', // BNB
+    maxLevels: 12
   }
 };
 
-// ✅ ЭКСПОРТ В WINDOW
-if (typeof window !== 'undefined') {
-  window.CONFIG = CONFIG;
-  window.contractsConfig = CONFIG.CONTRACTS;
-  
-  console.log('✅ Config loaded:', {
-    network: CONFIG.NETWORK.name,
-    contracts: Object.keys(CONFIG.CONTRACTS).length,
-    admin: CONFIG.ADMIN.owner,
-    adminFounders: CONFIG.ADMIN.adminFounders.length,
-    totalFounders: CONFIG.ADMIN.allFounders.length
-  });
+// ═══════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+CONFIG.getContractAddress = function(contractName) {
+  return this.CONTRACTS[contractName];
+};
+
+CONFIG.getABIPath = function(contractName) {
+  return this.ABI_PATHS[contractName];
+};
+
+CONFIG.getLevelPrice = function(level) {
+  if (level < 1 || level > 12) return null;
+  return this.LEVEL_PRICES[level - 1];
+};
+
+CONFIG.getTokenReward = function(level) {
+  if (level < 1 || level > 12) return 0;
+  return this.TOKEN_REWARDS[level - 1];
+};
+
+CONFIG.getRankByLevel = function(maxLevel) {
+  if (maxLevel >= 12) return this.RANKS.PLATINUM;
+  if (maxLevel >= 10) return this.RANKS.GOLD;
+  if (maxLevel >= 7) return this.RANKS.SILVER;
+  if (maxLevel >= 4) return this.RANKS.BRONZE;
+  return this.RANKS.NONE;
+};
+
+// Проверка прав доступа
+CONFIG.hasAdminAccess = function(address) {
+  const addr = address.toLowerCase();
+  return addr === this.ADMIN.owner.toLowerCase() ||
+         this.ADMIN.founders.some(f => f.toLowerCase() === addr);
+};
+
+CONFIG.isBoardMember = function(address) {
+  const addr = address.toLowerCase();
+  return this.ADMIN.board.some(b => b.toLowerCase() === addr);
+};
+
+CONFIG.isFounder4 = function(address) {
+  return address.toLowerCase() === this.ADMIN.founder4.toLowerCase();
+};
+
+// Экспорт для использования в других модулях
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = CONFIG;
 }
