@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWayBridge",
-  "address": "0xe63f5bf69232E2e76E530F2797bBd81e4fafE512",
+  "address": "0x09Ab7fB5fb538eA9719c34794225B1C6E2B7b837",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -207,11 +207,6 @@
               "type": "bool"
             },
             {
-              "internalType": "uint256",
-              "name": "quarterlyExpiresAt",
-              "type": "uint256"
-            },
-            {
               "internalType": "address",
               "name": "sponsor",
               "type": "address"
@@ -360,11 +355,6 @@
               "internalType": "bool",
               "name": "quarterlyActive",
               "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "quarterlyExpiresAt",
-              "type": "uint256"
             },
             {
               "internalType": "address",
