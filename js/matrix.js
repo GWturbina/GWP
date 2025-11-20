@@ -126,17 +126,6 @@ const matrixModule = {
       // Получаем узел матрицы
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(userId);
       
-      // 🔍 ЛОГИРОВАНИЕ: смотрим что вернул контракт
-      console.log("📊 matrixNodes result:", {
-        id: nodeData[0].toString(),
-        address: nodeData[1],
-        sponsorId: nodeData[2].toString(),
-        leftChildId: nodeData[3].toString(),
-        rightChildId: nodeData[4].toString(),
-        isActive: nodeData[7],
-        isTechAccount: nodeData[8]
-      });
-      
       // nodeData - это массив: 
       // [0] id (uint256)
       // [1] userAddress (address)
@@ -179,16 +168,28 @@ const matrixModule = {
 
       return structure;
       
-    } catch (error) {
-      console.error('❌ Error getting matrix structure:', error);
+      // Рекурсивно загружаем дерево
+      console.log('🔄 Loading children:', {
+        leftChildId: nodeData[3].toString(),
+        rightChildId: nodeData[4].toString()
+      });
       
-      // Получаем адрес из userId
-      try {
-        const addr = await this.contracts.matrixRegistry.getAddressById(userId);
-        return this.getEmptyStructure(addr, level);
-      } catch (e) {
-        return this.getEmptyStructure(ethers.constants.AddressZero, level);
+      if (nodeData[3].toString() !== '0') {
+        console.log('⬅️ Loading LEFT child:', nodeData[3].toString());
+        await this.buildMatrixTreeFromNodes(structure, nodeData[3], level, 1, 0, 'left');
       }
+      
+      if (nodeData[4].toString() !== '0') {
+        console.log('➡️ Loading RIGHT child:', nodeData[4].toString());
+        await this.buildMatrixTreeFromNodes(structure, nodeData[4], level, 1, 1, 'right');
+      }
+      
+      console.log('✅ Structure built:', {
+        rootId: structure.root.userId,
+        positions: structure.positions.length
+      });
+
+      return structure;
     }
   },
 
@@ -217,6 +218,7 @@ const matrixModule = {
     if (depth >= 12 || childId.toString() === '0') return;
 
     try {
+      console.log(`🔽 buildMatrixTreeFromNodes: childId=${childId}, depth=${depth}, side=${side}`);
       // Получаем узел ребенка
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
       
