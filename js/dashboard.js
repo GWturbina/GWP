@@ -121,14 +121,9 @@ const dashboardModule = {
         const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
         this.userData.maxLevel = Number(maxLevel);
 
-        // ✅ ИСПРАВЛЕНО: 5. Ранг из LeaderPool
-        try {
-          const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
-          this.userData.rank = this.getRankName(Number(rankInfo.rank));
-        } catch (e) {
-          console.warn('⚠️ Could not get rank:', e);
-          this.userData.rank = 'Бронза 🥉'; // По умолчанию
-        }
+        // 5. Ранг (из MatrixPayments)
+        const rankId = await this.contracts.matrixPayments.getUserRank(address);
+        this.userData.rank = this.getRankName(Number(rankId));
 
         console.log('✅ Personal info loaded:', {
           userId: this.userData.userId,
@@ -192,40 +187,45 @@ const dashboardModule = {
       const { address } = this.userData;
       console.log('💰 Loading balances...');
 
-      // ✅ ИСПРАВЛЕНО: 1. Partner Program баланс
+      // ✅ ИСПОЛЬЗУЕМ GlobalWayStats.getUserBalances() - возвращает ВСЕ балансы!
       try {
-        const [fromSponsor, fromUpline, totalPartner] = 
-          await this.contracts.partnerProgram.getUserEarnings(address);
-        this.userData.balances.partner = ethers.utils.formatEther(totalPartner);
+        const balances = await this.contracts.stats.getUserBalances(address);
+        // balances возвращает: (partnerFromSponsor, partnerFromUpline, matrixEarnings, 
+        //                       matrixFrozen, pensionBalance, leaderBalance, totalBalance)
+        
+        const partnerTotal = balances[0].add(balances[1]); // sponsor + upline
+        this.userData.balances.partner = ethers.utils.formatEther(partnerTotal);
+        this.userData.balances.leader = ethers.utils.formatEther(balances[5]); // leaderBalance
+        this.userData.balances.investment = ethers.utils.formatEther(balances[4]); // pensionBalance
+        
+        console.log('✅ Balances loaded from GlobalWayStats:', this.userData.balances);
       } catch (e) {
-        console.warn('⚠️ Partner balance not available:', e.message);
-        this.userData.balances.partner = '0';
-      }
-
-      // ✅ ИСПРАВЛЕНО: 2. Leader Pool баланс - используем getPendingReward
-      try {
-        const pendingReward = await this.contracts.leaderPool.getPendingReward(address);
-        this.userData.balances.leader = ethers.utils.formatEther(pendingReward);
-      } catch (e) {
-        console.warn('⚠️ Leader balance not available:', e.message);
-        this.userData.balances.leader = '0';
-      }
-
-      // ✅ ИСПРАВЛЕНО: 3. Investment Pool баланс - используем getUserInvestmentInfo
-      try {
-        const investInfo = await this.contracts.investment.getUserInvestmentInfo(address);
-        this.userData.balances.investment = ethers.utils.formatEther(investInfo.totalInvested);
-      } catch (e) {
-        console.warn('⚠️ Investment balance not available:', e.message);
-        this.userData.balances.investment = '0';
+        console.warn('⚠️ Could not get balances from Stats, trying individual contracts:', e);
+        
+        // Фолбек: пробуем получить балансы из отдельных контрактов
+        try {
+          const [fromSponsor, fromUpline, totalPartner] = 
+            await this.contracts.partnerProgram.getUserEarnings(address);
+          this.userData.balances.partner = ethers.utils.formatEther(totalPartner);
+        } catch (e2) {
+          this.userData.balances.partner = '0';
+        }
+        
+        try {
+          const pendingReward = await this.contracts.leaderPool.pendingRewards(address);
+          this.userData.balances.leader = ethers.utils.formatEther(pendingReward);
+        } catch (e2) {
+          this.userData.balances.leader = '0';
+        }
+        
+        this.userData.balances.investment = '0'; // Investment через Stats
       }
 
       console.log('✅ Balances loaded:', this.userData.balances);
-
       this.updateBalancesUI();
+      
     } catch (error) {
       console.error('❌ Error loading balances:', error);
-      // Устанавливаем дефолтные значения
       this.userData.balances = {
         partner: '0',
         leader: '0',
