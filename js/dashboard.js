@@ -121,9 +121,14 @@ const dashboardModule = {
         const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
         this.userData.maxLevel = Number(maxLevel);
 
-        // 5. Ранг (из MatrixPayments)
-        const rankId = await this.contracts.matrixPayments.getUserRank(address);
-        this.userData.rank = this.getRankName(Number(rankId));
+        // 5. Ранг (из LeaderPool)
+        try {
+          const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
+          this.userData.rank = this.getRankName(Number(rankInfo.rank));
+        } catch (e) {
+          console.warn('⚠️ Could not get rank:', e);
+          this.userData.rank = 'Бронза 🥉';
+        }
 
         console.log('✅ Personal info loaded:', {
           userId: this.userData.userId,
