@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWay",
-  "address": "0x9ec8586de228c82106c9869476F12b2d6810C82A",
+  "address": "0xF65fBEd21C4DbD2025F2792A46C3e90B592FAFC3",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -719,6 +719,42 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "maxLevel",
+          "type": "uint8"
+        }
+      ],
+      "name": "ownerActivateLevels",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "usersList",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint8[]",
+          "name": "maxLevels",
+          "type": "uint8[]"
+        }
+      ],
+      "name": "ownerBatchActivateLevels",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "partnerProgram",
       "outputs": [
@@ -910,6 +946,19 @@
         }
       ],
       "name": "setTreasury",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "existingUsers",
+          "type": "address[]"
+        }
+      ],
+      "name": "syncExistingUsers",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
