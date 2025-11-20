@@ -100,37 +100,38 @@ const partnersModule = {
       const address = app.state.userAddress;
       console.log('📊 Loading team stats...');
       
-      // ✅ ИСПРАВЛЕНО: Получаем статистику из GlobalWayStats
-      const stats = await this.contracts.stats.getUserStructureStats(address);
+      // ✅ ИСПРАВЛЕНО: getUserStructureStats возвращает (directReferrals, activeLevels, levelStatus[12])
+      const result = await this.contracts.stats.getUserStructureStats(address);
       
-      // stats возвращает: (personalInvites, structure[], depths[])
-      const personalInvites = Number(stats[0]);
-      const structureAddresses = stats[1]; // address[]
-
-      // Подсчитываем активных (у кого есть хотя бы 1 уровень)
-      let activeCount = 0;
-      for (let refAddress of structureAddresses) {
-        try {
-          const maxLevel = await this.contracts.globalWay.getUserMaxLevel(refAddress);
-          if (Number(maxLevel) > 0) activeCount++;
-        } catch (e) {
-          // Игнорируем ошибки
-        }
+      // result[0] = directReferrals (uint256)
+      // result[1] = activeLevels (uint256)  
+      // result[2] = levelStatus (bool[12])
+      
+      const directReferrals = Number(result[0]);
+      const activeLevels = Number(result[1]);
+      
+      // Подсчитываем общее количество в структуре через GlobalWay
+      let totalInStructure = directReferrals;
+      try {
+        const allReferrals = await this.contracts.globalWay.getUserReferrals(address);
+        totalInStructure = allReferrals.length;
+      } catch (e) {
+        console.warn('⚠️ Could not get total referrals:', e);
       }
 
       this.state.stats = {
-        personal: personalInvites,
-        active: activeCount,
-        total: structureAddresses.length
+        personal: directReferrals,
+        active: activeLevels,
+        total: totalInStructure
       };
 
       console.log('✅ Team stats loaded:', this.state.stats);
-      this.updateStatsUI();
+      this.updateTeamStatsUI();
       
     } catch (error) {
       console.error('❌ Error loading team stats:', error);
       this.state.stats = { personal: 0, active: 0, total: 0 };
-      this.updateStatsUI();
+      this.updateTeamStatsUI();
     }
   },
 
@@ -189,51 +190,76 @@ const partnersModule = {
       const address = app.state.userAddress;
       console.log('💰 Loading earnings...');
 
-      // 1. Получаем данные из PartnerProgram
-      const [fromSponsor, fromUpline, totalPartner] = 
-        await this.contracts.partnerProgram.getUserEarnings(address);
-      
-      const directBonusWei = fromSponsor;
-      const partnerBonusWei = fromUpline;
-
-      // ✅ ИСПРАВЛЕНО: 2. Матричные бонусы из MatrixPayments - используем getUserEscrow
-      let matrixBonusWei = 0n;
+      // ✅ ИСПОЛЬЗУЕМ GlobalWayStats.getUserBalances()
       try {
-        const escrowBalance = await this.contracts.matrixPayments.getUserEscrow(address);
-        matrixBonusWei = escrowBalance;
+        const balances = await this.contracts.stats.getUserBalances(address);
+        // balances: (partnerFromSponsor, partnerFromUpline, matrixEarnings, 
+        //            matrixFrozen, pensionBalance, leaderBalance, totalBalance)
+        
+        const direct = ethers.utils.formatEther(balances[0]); // от спонсора
+        const partner = ethers.utils.formatEther(balances[1]); // от вышестоящих
+        const matrix = ethers.utils.formatEther(balances[2]); // матричные
+        const leadership = ethers.utils.formatEther(balances[5]); // лидерские
+
+        const total = (
+          parseFloat(direct) + 
+          parseFloat(partner) + 
+          parseFloat(matrix) + 
+          parseFloat(leadership)
+        ).toFixed(4);
+
+        this.state.earnings = {
+          direct,
+          partner,
+          matrix,
+          leadership,
+          total
+        };
+        
+        console.log('✅ Earnings loaded from GlobalWayStats:', this.state.earnings);
       } catch (e) {
-        console.warn('⚠️ Could not get matrix escrow:', e);
+        console.warn('⚠️ Could not get earnings from Stats, trying individual contracts:', e);
+        
+        // Фолбек: получаем из отдельных контрактов
+        const [fromSponsor, fromUpline, totalPartner] = 
+          await this.contracts.partnerProgram.getUserEarnings(address);
+        
+        const direct = ethers.utils.formatEther(fromSponsor);
+        const partner = ethers.utils.formatEther(fromUpline);
+        
+        // Matrix earnings
+        let matrix = '0';
+        try {
+          const matrixEarnings = await this.contracts.matrixPayments.totalEarnedFromMatrix(address);
+          matrix = ethers.utils.formatEther(matrixEarnings);
+        } catch (e2) {
+          console.warn('⚠️ Could not get matrix earnings:', e2);
+        }
+        
+        // Leader earnings  
+        let leadership = '0';
+        try {
+          const pendingReward = await this.contracts.leaderPool.pendingRewards(address);
+          leadership = ethers.utils.formatEther(pendingReward);
+        } catch (e2) {
+          console.warn('⚠️ Could not get leader earnings:', e2);
+        }
+
+        const total = (
+          parseFloat(direct) + 
+          parseFloat(partner) + 
+          parseFloat(matrix) + 
+          parseFloat(leadership)
+        ).toFixed(4);
+
+        this.state.earnings = {
+          direct,
+          partner,
+          matrix,
+          leadership,
+          total
+        };
       }
-
-      // ✅ ИСПРАВЛЕНО: 3. Лидерские бонусы из LeaderPool - используем getPendingReward
-      let leaderBonusWei = 0n;
-      try {
-        const pendingReward = await this.contracts.leaderPool.getPendingReward(address);
-        leaderBonusWei = pendingReward;
-      } catch (e) {
-        console.warn('⚠️ Could not get leader reward:', e);
-      }
-
-      // Конвертируем в BNB
-      const direct = ethers.utils.formatEther(directBonusWei);
-      const partner = ethers.utils.formatEther(partnerBonusWei);
-      const matrix = ethers.utils.formatEther(matrixBonusWei);
-      const leadership = ethers.utils.formatEther(leaderBonusWei);
-
-      const total = (
-        parseFloat(direct) + 
-        parseFloat(partner) + 
-        parseFloat(matrix) + 
-        parseFloat(leadership)
-      ).toFixed(4);
-
-      this.state.earnings = {
-        direct,
-        partner,
-        matrix,
-        leadership,
-        total
-      };
 
       console.log('✅ Earnings loaded:', this.state.earnings);
       this.updateEarningsUI();
@@ -297,20 +323,20 @@ const partnersModule = {
       console.log(`📋 Loading partners for depth ${depth}...`);
       tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Загрузка...</td></tr>';
 
-      // Получаем всех рефералов из Stats
-      const result = await this.contracts.stats.getUserStructureStats(address);
-      const allReferrals = result[1]; // address[]
-
-      if (!allReferrals || allReferrals.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Партнеры не найдены</td></tr>';
-        return;
+      // ✅ Для depth=1 используем getDirectReferrals
+      let referrals = [];
+      if (depth === 1) {
+        referrals = await this.getDirectReferrals(address);
+      } else {
+        // Для depth > 1 получаем рефералов от прямых рефералов
+        const directRefs = await this.getDirectReferrals(address);
+        for (let ref of directRefs) {
+          const subRefs = await this.getDirectReferrals(ref);
+          referrals.push(...subRefs);
+        }
+        // Ограничиваем для производительности
+        referrals = referrals.slice(0, 50);
       }
-
-      // Фильтруем по глубине (для простоты показываем всех)
-      // В реальности нужна функция getReferralsByDepth из Stats
-      const referrals = depth === 1 ? 
-        await this.getDirectReferrals(address) : 
-        allReferrals.slice(0, 50); // Ограничиваем для производительности
 
       if (referrals.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Партнеры не найдены</td></tr>';
@@ -353,9 +379,14 @@ const partnersModule = {
   // ═══════════════════════════════════════════════════════════════
   async getDirectReferrals(address) {
     try {
-      // ✅ ИСПРАВЛЕНО: Используем функцию из GlobalWay
-      const referrals = await this.contracts.globalWay.getDirectReferrals(address);
-      return referrals;
+      // Получаем ID пользователя
+      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
+      
+      // Получаем всех зарегистрированных через события Registration
+      const filter = this.contracts.matrixRegistry.filters.UserRegistered(null, userId);
+      const events = await this.contracts.matrixRegistry.queryFilter(filter, -100000);
+      
+      return events.map(event => event.args.user);
     } catch (error) {
       console.error('❌ Error getting direct referrals:', error);
       return [];
