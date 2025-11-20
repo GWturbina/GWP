@@ -304,16 +304,17 @@ const matrixModule = {
     const tableBody = document.getElementById('matrixTableBody');
     if (!tableBody) return;
 
-    const allPositions = [structure.root, ...structure.positions]
-      .filter(p => p.address && p.address !== ethers.constants.AddressZero);
+    // ✅ ИСПРАВЛЕНО: Показываем только позиции выбранного уровня глубины
+    const levelDepth = this.state.currentLevel;
+    const levelPositions = structure.positions.filter(p => p.depth === levelDepth);
 
-    if (allPositions.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="7" class="no-data">Матрица пуста</td></tr>';
+    if (levelPositions.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="7" class="no-data">На этом уровне нет партнеров</td></tr>';
       return;
     }
 
     const positionsData = await Promise.all(
-      allPositions.map(async (pos, index) => {
+      levelPositions.map(async (pos, index) => {
         const userId = pos.userId || 'N/A';
         const sponsorId = pos.sponsorId ? `GW${pos.sponsorId}` : '-';
         const date = '-';
