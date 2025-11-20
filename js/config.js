@@ -31,7 +31,7 @@ const CONFIG = {
     GWTToken: '0x404Fd35Ad0FA85e2A0B47104683Fc869EDed25C1',
     
     // 3️⃣ Core системный контракт
-    GlobalWay: '0x9ec8586de228c82106c9869476F12b2d6810C82A',
+    GlobalWay: '0xF65fBEd21C4DbD2025F2792A46C3e90B592FAFC3',
     
     // 4️⃣ Partner Program
     PartnerProgram: '0xf28DfECc945f93fAF644fDC9E17Ee68e9b3DBf55',
