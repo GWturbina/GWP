@@ -121,9 +121,14 @@ const dashboardModule = {
         const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
         this.userData.maxLevel = Number(maxLevel);
 
-        // 5. Ранг (из MatrixPayments)
-        const rankId = await this.contracts.matrixPayments.getUserRank(address);
-        this.userData.rank = this.getRankName(Number(rankId));
+        // ✅ ИСПРАВЛЕНО: 5. Ранг из LeaderPool
+        try {
+          const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
+          this.userData.rank = this.getRankName(Number(rankInfo.rank));
+        } catch (e) {
+          console.warn('⚠️ Could not get rank:', e);
+          this.userData.rank = 'Бронза 🥉'; // По умолчанию
+        }
 
         console.log('✅ Personal info loaded:', {
           userId: this.userData.userId,
@@ -187,7 +192,7 @@ const dashboardModule = {
       const { address } = this.userData;
       console.log('💰 Loading balances...');
 
-      // 1. Partner Program баланс
+      // ✅ ИСПРАВЛЕНО: 1. Partner Program баланс
       try {
         const [fromSponsor, fromUpline, totalPartner] = 
           await this.contracts.partnerProgram.getUserEarnings(address);
@@ -197,39 +202,19 @@ const dashboardModule = {
         this.userData.balances.partner = '0';
       }
 
-      // 2. Leader Pool баланс
+      // ✅ ИСПРАВЛЕНО: 2. Leader Pool баланс - используем getPendingReward
       try {
-        // ✅ ИСПРАВЛЕНО: пробуем разные варианты функции
-        let leaderBalance;
-        if (this.contracts.leaderPool.getUserBalance) {
-          leaderBalance = await this.contracts.leaderPool.getUserBalance(address);
-        } else if (this.contracts.leaderPool.getUserPoolBalance) {
-          leaderBalance = await this.contracts.leaderPool.getUserPoolBalance(address);
-        } else if (this.contracts.leaderPool.balances) {
-          leaderBalance = await this.contracts.leaderPool.balances(address);
-        } else {
-          throw new Error('No balance function found');
-        }
-        this.userData.balances.leader = ethers.utils.formatEther(leaderBalance);
+        const pendingReward = await this.contracts.leaderPool.getPendingReward(address);
+        this.userData.balances.leader = ethers.utils.formatEther(pendingReward);
       } catch (e) {
         console.warn('⚠️ Leader balance not available:', e.message);
         this.userData.balances.leader = '0';
       }
 
-      // 3. Investment баланс
+      // ✅ ИСПРАВЛЕНО: 3. Investment Pool баланс - используем getUserInvestmentInfo
       try {
-        // ✅ ИСПРАВЛЕНО: пробуем разные варианты функции
-        let investmentBalance;
-        if (this.contracts.investment.getUserBalance) {
-          investmentBalance = await this.contracts.investment.getUserBalance(address);
-        } else if (this.contracts.investment.getUserInvestment) {
-          investmentBalance = await this.contracts.investment.getUserInvestment(address);
-        } else if (this.contracts.investment.balances) {
-          investmentBalance = await this.contracts.investment.balances(address);
-        } else {
-          throw new Error('No balance function found');
-        }
-        this.userData.balances.investment = ethers.utils.formatEther(investmentBalance);
+        const investInfo = await this.contracts.investment.getUserInvestmentInfo(address);
+        this.userData.balances.investment = ethers.utils.formatEther(investInfo.totalInvested);
       } catch (e) {
         console.warn('⚠️ Investment balance not available:', e.message);
         this.userData.balances.investment = '0';
