@@ -284,7 +284,7 @@ const matrixModule = {
   // РЕНДЕРИНГ МАТРИЦЫ (SVG)
   // ═══════════════════════════════════════════════════════════════
   renderMatrix(structure) {
-    const container = document.getElementById('matrixVisualization');
+    const container = document.querySelector('.matrix-container');
     if (!container) return;
 
     container.innerHTML = '';
@@ -410,7 +410,7 @@ const matrixModule = {
   // РЕНДЕРИНГ ТАБЛИЦЫ
   // ═══════════════════════════════════════════════════════════════
   async renderMatrixTable(structure) {
-    const tableBody = document.getElementById('matrixTable');
+    const tableBody = document.getElementById('matrixTableBody');
     if (!tableBody) return;
 
     const allPositions = [structure.root, ...structure.positions]
@@ -473,10 +473,10 @@ const matrixModule = {
       fromTechnical
     };
 
-    const totalEl = document.getElementById('matrixTotalPositions');
-    const partnersEl = document.getElementById('matrixFromPartners');
-    const charityEl = document.getElementById('matrixFromCharity');
-    const technicalEl = document.getElementById('matrixFromTechnical');
+    const totalEl = document.getElementById('totalActivePositions');
+    const partnersEl = document.getElementById('partnerPositions');
+    const charityEl = document.getElementById('charityPositions');
+    const technicalEl = document.getElementById('technicalPositions');
 
     if (totalEl) totalEl.textContent = total;
     if (partnersEl) partnersEl.textContent = fromPartners;
