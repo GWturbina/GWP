@@ -206,20 +206,16 @@ const matrixModule = {
 
   async getPositionType(address, rootAddress, nodeSponsorId) {
     try {
-      const rootUserId = await this.contracts.matrixRegistry.getUserIdByAddress(rootAddress);
-      
-      if (nodeSponsorId.toString() === rootUserId.toString()) {
-        return 'partner';
-      }
-
+      // Если это тех. место (sponsorId = 7777777)
       if (nodeSponsorId.toString() === '7777777') {
         return 'technical';
       }
 
-      return 'charity';
+      // Всё остальное - партнёр
+      return 'partner';
       
     } catch (error) {
-      return 'charity';
+      return 'partner';
     }
   },
 
@@ -275,13 +271,7 @@ const matrixModule = {
     let typeText = 'Partner';
     let typeClass = 'partner';
     
-    if (nodeData.isTechAccount) {
-      typeText = 'Technical';
-      typeClass = 'technical';
-    } else if (nodeData.type === 'charity') {
-      typeText = 'Charity';
-      typeClass = 'charity';
-    } else if (nodeData.type === 'technical') {
+    if (nodeData.isTechAccount || nodeData.type === 'technical') {
       typeText = 'Technical';
       typeClass = 'technical';
     }
@@ -422,6 +412,27 @@ const matrixModule = {
       return;
     }
 
+    // ✅ ИСПРАВЛЕНО: Получаем спонсора
+    let sponsorId = '-';
+    try {
+      const nodeData = await this.contracts.matrixRegistry.matrixNodes(node.userId);
+      const sponsorIdNum = nodeData[2].toString();
+      sponsorId = sponsorIdNum !== '0' ? `GW${sponsorIdNum}` : '-';
+    } catch (e) {
+      console.warn('⚠️ Could not get sponsor:', e);
+    }
+
+    // ✅ ИСПРАВЛЕНО: Получаем ранг
+    let rank = 'Никто';
+    try {
+      const leaderPool = await app.getContract('GlobalWayLeaderPool');
+      const rankInfo = await leaderPool.getUserRankInfo(node.address);
+      rank = this.getRankName(Number(rankInfo.rank));
+    } catch (e) {
+      console.warn('⚠️ Could not get rank:', e);
+      rank = 'Участник';
+    }
+
     const modalHTML = `
       <div id="nodeModal" class="modal">
         <div class="modal-content cosmic-card">
@@ -433,7 +444,9 @@ const matrixModule = {
             <div class="node-info">
               <p><strong>ID:</strong> ${node.userId !== 'N/A' && node.userId !== '0' ? 'GW' + node.userId : 'N/A'}</p>
               <p><strong>Address:</strong> ${app.formatAddress(node.address)}</p>
+              <p><strong>Спонсор:</strong> ${sponsorId}</p>
               <p><strong>Level:</strong> ${node.maxLevel}</p>
+              <p><strong>Ранг:</strong> ${rank}</p>
               <p><strong>Type:</strong> ${this.getTypeLabel(node.type, node.isTechAccount)}</p>
             </div>
             <div class="modal-actions">
@@ -459,32 +472,37 @@ const matrixModule = {
     const closeBtnBottom = document.getElementById('closeModalBtn');
     const viewMatrixBtn = document.getElementById('viewMatrixBtn');
 
-    closeBtn.onclick = () => modal.remove();
-    closeBtnBottom.onclick = () => modal.remove();
+    // ✅ ИСПРАВЛЕНО: Кнопки закрытия
+    const closeModal = () => {
+      modal.style.display = 'none';
+      setTimeout(() => modal.remove(), 300);
+    };
+
+    closeBtn.onclick = closeModal;
+    closeBtnBottom.onclick = closeModal;
     
+    // ✅ ИСПРАВЛЕНО: Кнопка просмотра матрицы
     if (viewMatrixBtn && node.userId && node.userId !== 'N/A' && node.userId !== '0') {
       viewMatrixBtn.onclick = async () => {
-        modal.remove();
+        closeModal();
         await this.loadMatrixData(node.userId, this.state.currentLevel);
       };
+    } else if (viewMatrixBtn) {
+      viewMatrixBtn.disabled = true;
+      viewMatrixBtn.style.opacity = '0.5';
     }
 
     modal.onclick = (e) => {
-      if (e.target === modal) modal.remove();
+      if (e.target === modal) closeModal();
     };
 
     modal.style.display = 'block';
   },
 
   getTypeLabel(type, isTechAccount) {
-    if (isTechAccount) return '🔵 Техническое место';
-    
-    const labels = {
-      partner: '🟢 Партнер',
-      charity: '🟠 Благотворительность',
-      technical: '🔵 Технический'
-    };
-    return labels[type] || '⚪ Доступно';
+    if (isTechAccount || type === 'technical') return '🔵 Техническое место';
+    if (type === 'partner') return '🟢 Партнер';
+    return '⚪ Доступно';
   },
 
   // ═══════════════════════════════════════════════════════════════
