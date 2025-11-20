@@ -316,10 +316,30 @@ const matrixModule = {
     const positionsData = await Promise.all(
       levelPositions.map(async (pos, index) => {
         const userId = pos.userId || 'N/A';
-        const sponsorId = pos.sponsorId ? `GW${pos.sponsorId}` : '-';
+        
+        // ✅ ИСПРАВЛЕНО: Получаем sponsorId из matrixNodes
+        let sponsorId = '-';
+        try {
+          const nodeData = await this.contracts.matrixRegistry.matrixNodes(userId);
+          const sponsorIdNum = nodeData[2].toString();
+          sponsorId = sponsorIdNum !== '0' ? `GW${sponsorIdNum}` : '-';
+        } catch (e) {
+          console.warn('⚠️ Could not get sponsor:', e);
+        }
+        
         const date = '-';
         const maxLevel = pos.maxLevel || 0;
-        const rank = pos.rank || 'Участник';
+        
+        // ✅ ИСПРАВЛЕНО: Получаем ранг из LeaderPool
+        let rank = 'Никто';
+        try {
+          const leaderPool = await app.getContract('GlobalWayLeaderPool');
+          const rankInfo = await leaderPool.getUserRankInfo(pos.address);
+          rank = this.getRankName(Number(rankInfo.rank));
+        } catch (e) {
+          console.warn('⚠️ Could not get rank:', e);
+          rank = 'Участник';
+        }
 
         return {
           num: index + 1,
@@ -344,6 +364,17 @@ const matrixModule = {
         <td><span class="badge">${p.rank}</span></td>
       </tr>
     `).join('');
+  },
+
+  getRankName(rankId) {
+    const ranks = {
+      0: 'Никто',
+      1: 'Бронза 🥉',
+      2: 'Серебро 🥈',
+      3: 'Золото 🥇',
+      4: 'Платина 💎'
+    };
+    return ranks[rankId] || 'Никто';
   },
 
   // ═══════════════════════════════════════════════════════════════
