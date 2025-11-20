@@ -126,6 +126,17 @@ const matrixModule = {
       // Получаем узел матрицы
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(userId);
       
+      // 🔍 ЛОГИРОВАНИЕ: смотрим что вернул контракт
+      console.log("📊 matrixNodes result:", {
+        id: nodeData[0].toString(),
+        address: nodeData[1],
+        sponsorId: nodeData[2].toString(),
+        leftChildId: nodeData[3].toString(),
+        rightChildId: nodeData[4].toString(),
+        isActive: nodeData[7],
+        isTechAccount: nodeData[8]
+      });
+      
       // nodeData - это массив: 
       // [0] id (uint256)
       // [1] userAddress (address)
