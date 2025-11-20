@@ -1,13 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Matrix Module - ИСПРАВЛЕННАЯ ВЕРСИЯ
-// Интерактивная бинарная матрица через matrixNodes
-// Date: 2025-01-19 - FIXED
+// GlobalWay DApp - Matrix Module - FINAL VERSION
+// Обновляет HTML элементы вместо создания SVG
+// Date: 2025-01-19
 // ═══════════════════════════════════════════════════════════════════
 
 const matrixModule = {
-  // ═══════════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════════
   contracts: {},
   
   state: {
@@ -23,17 +20,13 @@ const matrixModule = {
     }
   },
 
-  // Цвета для типов позиций
   colors: {
-    partner: '#00ff00',      // Зеленый - прямой реферал
-    charity: '#ff9500',      // Оранжевый - благотворительность/spillover
-    technical: '#00bfff',    // Синий - технические переливы
-    available: '#666666'     // Серый - доступно
+    partner: '#00ff00',
+    charity: '#ff9500',
+    technical: '#00bfff',
+    available: '#666666'
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ИНИЦИАЛИЗАЦИЯ
-  // ═══════════════════════════════════════════════════════════════
   async init() {
     console.log('🌐 Initializing Matrix...');
     
@@ -44,10 +37,8 @@ const matrixModule = {
       }
 
       this.state.currentUserAddress = app.state.userAddress;
-
       await this.loadContracts();
       
-      // Получаем ID текущего пользователя
       const userId = await this.contracts.matrixRegistry.getUserIdByAddress(
         this.state.currentUserAddress
       );
@@ -64,26 +55,17 @@ const matrixModule = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ЗАГРУЗКА КОНТРАКТОВ
-  // ═══════════════════════════════════════════════════════════════
   async loadContracts() {
     console.log('📥 Loading contracts for matrix...');
-    
     this.contracts.matrixRegistry = await app.getContract('MatrixRegistry');
     this.contracts.globalWay = await app.getContract('GlobalWay');
-    
     console.log('✅ All matrix contracts loaded');
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ЗАГРУЗКА ДАННЫХ МАТРИЦЫ
-  // ═══════════════════════════════════════════════════════════════
   async loadMatrixData(userId, level) {
     try {
       console.log(`📊 Loading matrix data for user ${userId}, level ${level}...`);
 
-      // Получаем адрес пользователя
       const userAddress = await this.contracts.matrixRegistry.getAddressById(userId);
       
       if (!userAddress || userAddress === ethers.constants.AddressZero) {
@@ -92,20 +74,13 @@ const matrixModule = {
         return;
       }
 
-      // Получаем структуру матрицы
       const matrixStructure = await this.getMatrixStructure(userId, level);
 
-      // Обновляем state
       this.state.matrixData = matrixStructure;
       this.state.currentLevel = level;
 
-      // Рендерим матрицу
       this.renderMatrix(matrixStructure);
-      
-      // Обновляем таблицу
       await this.renderMatrixTable(matrixStructure);
-      
-      // Обновляем статистику
       this.updateMatrixStats(matrixStructure);
 
       console.log('✅ Matrix data loaded');
@@ -116,48 +91,32 @@ const matrixModule = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ПОЛУЧЕНИЕ СТРУКТУРЫ МАТРИЦЫ (через matrixNodes)
-  // ═══════════════════════════════════════════════════════════════
   async getMatrixStructure(userId, level) {
     try {
       console.log(`🔍 Getting matrix structure for userId ${userId}...`);
 
-      // Получаем узел матрицы
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(userId);
-      
-      // nodeData - это массив: 
-      // [0] id (uint256)
-      // [1] userAddress (address)
-      // [2] sponsorId (uint256)
-      // [3] leftChildId (uint256)
-      // [4] rightChildId (uint256)
-      // [5] parentBinaryId (uint256)
-      // [6] registeredAt (uint256)
-      // [7] isActive (bool)
-      // [8] isTechAccount (bool)
 
-      if (!nodeData[7]) { // isActive
+      if (!nodeData[7]) {
         console.error('❌ Node not active');
         return this.getEmptyStructure(nodeData[1], level);
       }
 
       const structure = {
         root: {
-          address: nodeData[1], // userAddress
-          userId: nodeData[0].toString(), // id
+          address: nodeData[1],
+          userId: nodeData[0].toString(),
           level: level,
           maxLevel: await this.getUserMaxLevel(nodeData[1]),
           rank: 'Участник',
-          leftChildId: nodeData[3].toString(), // leftChildId
-          rightChildId: nodeData[4].toString(), // rightChildId
-          sponsorId: nodeData[2].toString(), // sponsorId
-          isTechAccount: nodeData[8] // isTechAccount
+          leftChildId: nodeData[3].toString(),
+          rightChildId: nodeData[4].toString(),
+          sponsorId: nodeData[2].toString(),
+          isTechAccount: nodeData[8]
         },
         positions: []
       };
 
-      // Рекурсивно загружаем дерево
       if (nodeData[3].toString() !== '0') {
         await this.buildMatrixTreeFromNodes(structure, nodeData[3], level, 1, 0, 'left');
       }
@@ -170,8 +129,6 @@ const matrixModule = {
       
     } catch (error) {
       console.error('❌ Error getting matrix structure:', error);
-      
-      // Получаем адрес из userId
       try {
         const addr = await this.contracts.matrixRegistry.getAddressById(userId);
         return this.getEmptyStructure(addr, level);
@@ -198,20 +155,14 @@ const matrixModule = {
     };
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ПОСТРОЕНИЕ ДЕРЕВА МАТРИЦЫ (рекурсивно через matrixNodes)
-  // ═══════════════════════════════════════════════════════════════
   async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side) {
-    // Ограничиваем глубину (максимум 12 уровней)
     if (depth >= 12 || childId.toString() === '0') return;
 
     try {
-      // Получаем узел ребенка
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
       
-      if (!nodeData[7]) return; // Если не активен
+      if (!nodeData[7]) return;
 
-      // Создаем узел
       const node = {
         address: nodeData[1],
         userId: nodeData[0].toString(),
@@ -226,7 +177,6 @@ const matrixModule = {
       
       structure.positions.push(node);
       
-      // Рекурсивно загружаем потомков
       if (nodeData[3].toString() !== '0') {
         await this.buildMatrixTreeFromNodes(
           structure, 
@@ -254,25 +204,18 @@ const matrixModule = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ОПРЕДЕЛЕНИЕ ТИПА ПОЗИЦИИ
-  // ═══════════════════════════════════════════════════════════════
   async getPositionType(address, rootAddress, nodeSponsorId) {
     try {
-      // Получаем sponsorId корневого пользователя
       const rootUserId = await this.contracts.matrixRegistry.getUserIdByAddress(rootAddress);
       
-      // Если sponsorId узла совпадает с ID корня - это прямой реферал
       if (nodeSponsorId.toString() === rootUserId.toString()) {
         return 'partner';
       }
 
-      // Если это тех. место (sponsorId = 7777777)
       if (nodeSponsorId.toString() === '7777777') {
         return 'technical';
       }
 
-      // Иначе - spillover (благотворительность)
       return 'charity';
       
     } catch (error) {
@@ -281,137 +224,83 @@ const matrixModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // РЕНДЕРИНГ МАТРИЦЫ (SVG)
+  // РЕНДЕРИНГ МАТРИЦЫ (обновляем HTML элементы)
   // ═══════════════════════════════════════════════════════════════
   renderMatrix(structure) {
-    // ✅ ИСПРАВЛЕНО: Используем .matrix-container вместо #matrixVisualization
-    const container = document.querySelector('.matrix-container');
-    if (!container) return;
+    // Обновляем топ-позицию (корень)
+    this.updateMatrixPosition('topPosition', structure.root);
 
-    container.innerHTML = '';
+    // Обновляем позиции первой линии (2 позиции)
+    const firstLine = structure.positions.filter(p => p.depth === 1);
+    this.updateMatrixPosition('position1', firstLine[0] || null);
+    this.updateMatrixPosition('position2', firstLine[1] || null);
 
-    // Создаем SVG
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', '600');
-    svg.setAttribute('viewBox', '0 0 800 600');
-    svg.style.background = 'transparent';
-
-    // Рендерим корневой узел
-    this.renderNode(svg, structure.root, 400, 50, 0, true);
-
-    // Рендерим дочерние узлы (первые 4 уровня)
-    const maxDepth = Math.min(4, 12);
-    this.renderTreeLevel(svg, structure, 1, maxDepth);
-
-    container.appendChild(svg);
+    // Обновляем позиции второй линии (4 позиции)
+    const secondLine = structure.positions.filter(p => p.depth === 2);
+    this.updateMatrixPosition('position3', secondLine[0] || null);
+    this.updateMatrixPosition('position4', secondLine[1] || null);
+    this.updateMatrixPosition('position5', secondLine[2] || null);
+    this.updateMatrixPosition('position6', secondLine[3] || null);
   },
 
-  renderNode(svg, node, x, y, depth, isRoot = false) {
-    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    group.setAttribute('class', 'matrix-node');
-    group.style.cursor = 'pointer';
+  updateMatrixPosition(elementId, nodeData) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
 
-    // Цвет
-    let fillColor = this.colors.available;
-    if (node.address && node.address !== ethers.constants.AddressZero) {
-      if (node.isTechAccount) {
-        fillColor = this.colors.technical;
-      } else {
-        fillColor = this.colors[node.type] || this.colors.partner;
-      }
+    const idSpan = element.querySelector('.position-id');
+    const typeSpan = element.querySelector('.position-type');
+    const levelSpan = element.querySelector('.position-level');
+    const avatar = element.querySelector('.position-avatar');
+
+    if (!nodeData || !nodeData.address || nodeData.address === ethers.constants.AddressZero) {
+      // Пустая позиция
+      if (idSpan) idSpan.textContent = 'Empty';
+      if (typeSpan) typeSpan.textContent = 'Available';
+      if (levelSpan) levelSpan.textContent = '';
+      if (avatar) avatar.textContent = '?';
+      element.style.background = '';
+      element.classList.remove('filled', 'partner', 'charity', 'technical');
+      return;
     }
 
-    // Круг
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('cx', x);
-    circle.setAttribute('cy', y);
-    circle.setAttribute('r', isRoot ? '40' : '30');
-    circle.setAttribute('fill', fillColor);
-    circle.setAttribute('stroke', '#ffd700');
-    circle.setAttribute('stroke-width', isRoot ? '3' : '2');
+    // Заполненная позиция
+    const userId = nodeData.userId || 'N/A';
+    const idText = userId !== 'N/A' && userId !== '0' ? `GW${userId}` : app.formatAddress(nodeData.address);
+    
+    if (idSpan) idSpan.textContent = idText;
+    if (levelSpan) levelSpan.textContent = `Level ${nodeData.maxLevel || 0}`;
+    if (avatar) avatar.textContent = '✓';
 
-    // Иконка
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', x);
-    text.setAttribute('y', y + 5);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('fill', '#fff');
-    text.setAttribute('font-size', isRoot ? '24' : '20');
-    text.textContent = node.address && node.address !== ethers.constants.AddressZero ? '✓' : '?';
-
-    // ID
-    if (node.userId && node.userId !== 'N/A' && node.userId !== '0') {
-      const idText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      idText.setAttribute('x', x);
-      idText.setAttribute('y', y + (isRoot ? 60 : 50));
-      idText.setAttribute('text-anchor', 'middle');
-      idText.setAttribute('fill', '#ffd700');
-      idText.setAttribute('font-size', '12');
-      idText.textContent = `GW${node.userId}`;
-      group.appendChild(idText);
+    // Тип позиции
+    let typeText = 'Partner';
+    let typeClass = 'partner';
+    
+    if (nodeData.isTechAccount) {
+      typeText = 'Technical';
+      typeClass = 'technical';
+    } else if (nodeData.type === 'charity') {
+      typeText = 'Charity';
+      typeClass = 'charity';
+    } else if (nodeData.type === 'technical') {
+      typeText = 'Technical';
+      typeClass = 'technical';
     }
 
-    // Level
-    if (node.maxLevel > 0) {
-      const levelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      levelText.setAttribute('x', x);
-      levelText.setAttribute('y', y + (isRoot ? 75 : 65));
-      levelText.setAttribute('text-anchor', 'middle');
-      levelText.setAttribute('fill', '#fff');
-      levelText.setAttribute('font-size', '10');
-      levelText.textContent = `Level ${node.maxLevel}`;
-      group.appendChild(levelText);
-    }
-
-    group.appendChild(circle);
-    group.appendChild(text);
+    if (typeSpan) typeSpan.textContent = typeText;
+    
+    // Добавляем классы
+    element.classList.add('filled', typeClass);
+    element.classList.remove('partner', 'charity', 'technical');
+    element.classList.add(typeClass);
 
     // Клик
-    group.addEventListener('click', () => {
-      this.showNodeModal(node);
-    });
-
-    svg.appendChild(group);
-  },
-
-  renderTreeLevel(svg, structure, currentDepth, maxDepth) {
-    if (currentDepth > maxDepth) return;
-
-    const positions = structure.positions.filter(p => p.depth === currentDepth);
-    const levelY = 50 + currentDepth * 120;
-    const totalWidth = 800;
-    const nodeCount = Math.pow(2, currentDepth);
-    const spacing = totalWidth / (nodeCount + 1);
-
-    positions.forEach((node, index) => {
-      const x = spacing * (index + 1);
-      this.renderNode(svg, node, x, levelY, currentDepth);
-
-      // Линия к родителю
-      if (currentDepth > 1) {
-        const parentY = levelY - 120;
-        const parentX = spacing * Math.floor(index / 2 + 1);
-        
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', parentX);
-        line.setAttribute('y1', parentY + 30);
-        line.setAttribute('x2', x);
-        line.setAttribute('y2', levelY - 30);
-        line.setAttribute('stroke', '#ffd700');
-        line.setAttribute('stroke-width', '2');
-        line.setAttribute('opacity', '0.5');
-        
-        svg.insertBefore(line, svg.firstChild);
-      }
-    });
+    element.onclick = () => this.showNodeModal(nodeData);
   },
 
   // ═══════════════════════════════════════════════════════════════
   // РЕНДЕРИНГ ТАБЛИЦЫ
   // ═══════════════════════════════════════════════════════════════
   async renderMatrixTable(structure) {
-    // ✅ ИСПРАВЛЕНО: matrixTable → matrixTableBody
     const tableBody = document.getElementById('matrixTableBody');
     if (!tableBody) return;
 
@@ -475,7 +364,6 @@ const matrixModule = {
       fromTechnical
     };
 
-    // ✅ ИСПРАВЛЕНО: Правильные ID из HTML
     const totalEl = document.getElementById('totalActivePositions');
     const partnersEl = document.getElementById('partnerPositions');
     const charityEl = document.getElementById('charityPositions');
@@ -613,9 +501,6 @@ const matrixModule = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ВСПОМОГАТЕЛЬНЫЕ
-  // ═══════════════════════════════════════════════════════════════
   async getUserMaxLevel(address) {
     try {
       return Number(await this.contracts.globalWay.getUserMaxLevel(address));
