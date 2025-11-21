@@ -425,7 +425,7 @@ const dashboardModule = {
 
     // Реферальная ссылка
     if (userId) {
-      const refLink = `${window.location.origin}?ref=${userId}`;
+      const refLink = `${window.location.origin}${window.location.pathname}#dashboard?ref=${userId}`;
       const refLinkInput = document.getElementById('refLink');
       if (refLinkInput) refLinkInput.value = refLink;
     }
@@ -739,28 +739,41 @@ const dashboardModule = {
   // UI ИНИЦИАЛИЗАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   initUI() {
-    // Кнопка копирования реф. ссылки
     const copyBtn = document.getElementById('copyRefLink');
+    const refLinkInput = document.getElementById('refLink');
+    
     if (copyBtn) {
-      copyBtn.onclick = () => {
-        const refLink = document.getElementById('refLink').value;
-        app.copyToClipboard(refLink);
+      copyBtn.onclick = async () => {
+        if (!refLinkInput || !refLinkInput.value) {
+          app.showNotification('Ошибка: ссылка пуста', 'error');
+          return;
+        }
+        
+        try {
+          await navigator.clipboard.writeText(refLinkInput.value);
+          app.showNotification('Реферальная ссылка скопирована! ✓', 'success');
+        } catch (error) {
+          try {
+            refLinkInput.select();
+            document.execCommand('copy');
+            app.showNotification('Реферальная ссылка скопирована! ✓', 'success');
+          } catch (fallbackError) {
+            app.showNotification('Ошибка копирования. Скопируйте вручную.', 'error');
+          }
+        }
       };
     }
 
-    // Кнопка оплаты quarterly
     const payBtn = document.getElementById('payActivityBtn');
     if (payBtn) {
       payBtn.onclick = () => this.payQuarterly();
     }
 
-    // Фильтр истории
     const historyFilter = document.getElementById('historyFilter');
     if (historyFilter) {
       historyFilter.onchange = () => this.filterHistory();
     }
 
-    // Обновление истории
     const refreshBtn = document.getElementById('refreshHistory');
     if (refreshBtn) {
       refreshBtn.onclick = () => this.loadTransactionHistory();
