@@ -173,7 +173,7 @@ const app = {
       const globalWay = await this.getContract('GlobalWay');
 
       // Проверяем регистрацию
-      this.state.isRegistered = await matrixRegistry.isRegistered(userAddress);
+      this.state.isRegistered = await globalWay.isUserRegistered(userAddress);
 
       if (this.state.isRegistered) {
         // Получаем ID пользователя
@@ -219,8 +219,8 @@ const app = {
     try {
       console.log('🔍 Checking registration status for:', this.state.userAddress);
       
-      const matrixRegistry = await this.getContract('MatrixRegistry');
-      const isRegistered = await matrixRegistry.isRegistered(this.state.userAddress);
+      const globalWay = await this.getContract('GlobalWay');
+      const isRegistered = await globalWay.isUserRegistered(this.state.userAddress);
       
       console.log('📋 Registration status:', isRegistered);
       
@@ -228,12 +228,12 @@ const app = {
         console.log('✅ User is already registered');
         this.state.isRegistered = true;
         
+        const matrixRegistry = await this.getContract('MatrixRegistry');
         const userId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
         this.state.userId = userId.toString();
         console.log('🆔 User ID:', this.state.userId);
         
         try {
-          const globalWay = await this.getContract('GlobalWay');
           const maxLevel = await globalWay.getUserMaxLevel(this.state.userAddress);
           this.state.maxLevel = Number(maxLevel);
           console.log('📊 Max level:', this.state.maxLevel);
@@ -282,9 +282,9 @@ const app = {
         throw new Error('Invalid sponsor ID: ' + sponsorId);
       }
       
-      console.log('📝 Calling MatrixRegistry.register(' + sponsorId + ')...');
+      console.log('📝 Calling GlobalWay.register(' + sponsorId + ')...');
       
-      const matrixRegistrySigned = await this.getSignedContract('MatrixRegistry');
+      const matrixRegistrySigned = await this.getSignedContract('GlobalWay');
       
       this.showNotification('Подтвердите транзакцию в кошельке...', 'info');
       
@@ -302,6 +302,7 @@ const app = {
       
       this.state.isRegistered = true;
       
+      const matrixRegistry = await this.getContract("MatrixRegistry");
       const newUserId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
       this.state.userId = newUserId.toString();
 
