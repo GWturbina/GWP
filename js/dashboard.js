@@ -110,7 +110,7 @@ const dashboardModule = {
       this.userData.balance = ethers.utils.formatEther(balance);
 
       // 2. Проверка регистрации
-      this.userData.isRegistered = await this.contracts.globalWay.isUserRegistered(address);
+      this.userData.isRegistered = await this.contracts.matrixRegistry.isRegistered(address);
 
       if (this.userData.isRegistered) {
         // 3. User ID
