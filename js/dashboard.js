@@ -534,54 +534,83 @@ const dashboardModule = {
     console.log(`=== 🛒 buyLevel() START for level ${level} ===`);
     
     if (!app.state.userAddress) {
+      console.log('❌ No user address');
       app.showNotification('Подключите кошелек', 'error');
       this.buyLevelInProgress = false;
       return;
     }
     
-    if (!await app.checkNetwork()) {
+    console.log('✅ User address OK:', app.state.userAddress);
+    
+    const networkCheck = await app.checkNetwork();
+    console.log('🌐 Network check result:', networkCheck);
+    
+    if (!networkCheck) {
+      console.log('❌ Network check failed');
       this.buyLevelInProgress = false;
       return;
     }
     
+    console.log('✅ Network check passed');
+    
     try {
-      // 1. Проверка регистрации
+      console.log('1️⃣ Checking registration...');
+      
       if (!this.userData.isRegistered) {
+        console.log('❌ User not registered');
         app.showNotification('Сначала зарегистрируйтесь', 'error');
         this.buyLevelInProgress = false;
         return;
       }
       
-      // 2. Проверка предыдущих уровней
+      console.log('✅ User registered');
+      console.log('2️⃣ Checking previous levels...');
+      
       if (level > 1) {
         const maxLevel = await this.contracts.globalWay.getUserMaxLevel(app.state.userAddress);
+        console.log('   Current max level:', Number(maxLevel));
         if (Number(maxLevel) < level - 1) {
+          console.log('❌ Previous level not activated');
           app.showNotification(`Сначала активируйте уровень ${level - 1}`, 'error');
           this.buyLevelInProgress = false;
           return;
         }
       }
       
-      // 3. Проверка что уровень не активен
+      console.log('✅ Previous levels OK');
+      console.log('3️⃣ Checking if level already active...');
+      
       const isActive = await this.contracts.globalWay.isLevelActive(app.state.userAddress, level);
+      console.log('   Level', level, 'active:', isActive);
+      
       if (isActive) {
+        console.log('❌ Level already active');
         app.showNotification('Уровень уже активен', 'error');
         this.buyLevelInProgress = false;
         return;
       }
       
-      // 4. Проверка баланса
+      console.log('✅ Level not active yet');
+      console.log('4️⃣ Getting price...');
+      
       const price = CONFIG.LEVEL_PRICES[level - 1];
       const priceWei = ethers.utils.parseEther(price);
+      console.log('   Price:', price, 'BNB');
+      
+      console.log('5️⃣ Checking balance...');
       const balance = await this.web3Provider.getBalance(app.state.userAddress);
+      console.log('   Balance:', ethers.utils.formatEther(balance), 'BNB');
       
       if (balance.lt(priceWei)) {
+        console.log('❌ Insufficient balance');
         app.showNotification('Недостаточно BNB', 'error');
         this.buyLevelInProgress = false;
         return;
       }
       
-      // 5. Подтверждение
+      console.log('✅ Balance sufficient');
+      console.log('6️⃣ Asking user confirmation...');
+      
       const confirmed = confirm(
         `Активировать уровень ${level}?\n\n` +
         `Стоимость: ${price} BNB\n` +
@@ -590,16 +619,20 @@ const dashboardModule = {
       );
       
       if (!confirmed) {
+        console.log('❌ User cancelled');
         this.buyLevelInProgress = false;
         return;
       }
       
-      // 6. Покупка
+      console.log('✅ User confirmed');
+      console.log('7️⃣ Disabling buttons...');
       document.querySelectorAll('.level-btn').forEach(btn => btn.disabled = true);
       
+      console.log('8️⃣ Calling GlobalWay.activateLevel(' + level + ')...');
       app.showNotification(`Покупка уровня ${level}...`, 'info');
       
       const contract = await app.getSignedContract('GlobalWay');
+      console.log('   Contract loaded:', contract.address);
       
       const tx = await contract.activateLevel(level, {
         value: priceWei,
@@ -616,7 +649,6 @@ const dashboardModule = {
         throw new Error('Transaction failed');
       }
       
-      // 7. Успех
       app.showNotification(
         `✅ Уровень ${level} активирован!\n🎁 Получено ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
         'success'
