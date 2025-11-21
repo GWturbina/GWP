@@ -282,9 +282,9 @@ const app = {
         throw new Error('Invalid sponsor ID: ' + sponsorId);
       }
       
-      console.log('📝 Calling GlobalWay.register(' + sponsorId + ')...');
+      console.log('📝 Calling MatrixRegistry.register(' + sponsorId + ')...');
       
-      const matrixRegistrySigned = await this.getSignedContract('GlobalWay');
+      const matrixRegistrySigned = await this.getSignedContract('MatrixRegistry');
       
       this.showNotification('Подтвердите транзакцию в кошельке...', 'info');
       
