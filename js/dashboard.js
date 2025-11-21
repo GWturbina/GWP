@@ -425,7 +425,7 @@ const dashboardModule = {
 
     // Реферальная ссылка
     if (userId) {
-      const refLink = `${window.location.origin}${window.location.pathname}#dashboard?ref=${userId}`;
+      const refLink = `${window.location.origin}${window.location.pathname}?ref=${userId}`;
       const refLinkInput = document.getElementById('refLink');
       if (refLinkInput) refLinkInput.value = refLink;
     }
