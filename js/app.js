@@ -409,15 +409,22 @@ const app = {
   // ═══════════════════════════════════════════════════════════════
 
   checkAndShowActivationModal() {
+    console.log('🔍 Checking activation modal conditions:');
+    console.log('   isRegistered:', this.state.isRegistered);
+    console.log('   maxLevel:', this.state.maxLevel);
+    console.log('   activationModalShown:', this.state.activationModalShown);
+    
     if (this.state.isRegistered && 
         this.state.maxLevel === 0 && 
         !this.state.activationModalShown) {
       
-      console.log('🎯 Conditions met for activation modal');
+      console.log('✅ Conditions met for activation modal');
       
       setTimeout(() => {
         this.showActivationModal();
       }, 2000);
+    } else {
+      console.log('❌ Conditions NOT met for activation modal');
     }
   },
 
