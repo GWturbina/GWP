@@ -173,7 +173,7 @@ const app = {
       const globalWay = await this.getContract('GlobalWay');
 
       // Проверяем регистрацию
-      this.state.isRegistered = await globalWay.isUserRegistered(userAddress);
+      this.state.isRegistered = await matrixRegistry.isRegistered(userAddress);
 
       if (this.state.isRegistered) {
         // Получаем ID пользователя
@@ -219,8 +219,8 @@ const app = {
     try {
       console.log('🔍 Checking registration status for:', this.state.userAddress);
       
-      const globalWay = await this.getContract('GlobalWay');
-      const isRegistered = await globalWay.isUserRegistered(this.state.userAddress);
+      const matrixRegistry = await this.getContract('MatrixRegistry');
+      const isRegistered = await matrixRegistry.isRegistered(this.state.userAddress);
       
       console.log('📋 Registration status:', isRegistered);
       
@@ -228,11 +228,11 @@ const app = {
         console.log('✅ User is already registered');
         this.state.isRegistered = true;
         
-        const matrixRegistry = await this.getContract('MatrixRegistry');
         const userId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
         this.state.userId = userId.toString();
         console.log('🆔 User ID:', this.state.userId);
         
+        const globalWay = await this.getContract("GlobalWay");
         try {
           const maxLevel = await globalWay.getUserMaxLevel(this.state.userAddress);
           this.state.maxLevel = Number(maxLevel);
@@ -284,9 +284,11 @@ const app = {
       
       console.log('📝 Calling MatrixRegistry.register(' + sponsorId + ')...');
       
-      const matrixRegistrySigned = await this.getSignedContract('MatrixRegistry');
       
       this.showNotification('Подтвердите транзакцию в кошельке...', 'info');
+      
+      // Блокируем навигацию
+      document.querySelectorAll('.nav-link, button').forEach(el => el.style.pointerEvents = 'none');
       
       const registerTx = await matrixRegistrySigned.register(sponsorId, { 
         gasLimit: CONFIG.GAS.register 
@@ -295,14 +297,17 @@ const app = {
       console.log('⏳ Transaction sent:', registerTx.hash);
       console.log('⏳ Waiting for confirmation...');
       
-      this.showNotification('Регистрация... Ожидайте подтверждения.', 'info');
+      this.showNotification('⏳ Регистрация... НЕ ЗАКРЫВАЙТЕ СТРАНИЦУ!', 'info');
       
       const receipt = await registerTx.wait();
       console.log('✅ Transaction confirmed:', receipt.transactionHash);
       
+      // Разблокируем навигацию
+      document.querySelectorAll('.nav-link, button').forEach(el => el.style.pointerEvents = '');
+      
       this.state.isRegistered = true;
       
-      const matrixRegistry = await this.getContract("MatrixRegistry");
+      matrixRegistry = await this.getContract("MatrixRegistry");
       const newUserId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
       this.state.userId = newUserId.toString();
 
