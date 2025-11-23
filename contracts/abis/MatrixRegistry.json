@@ -1,17 +1,11 @@
 {
   "contractName": "MatrixRegistry",
-  "address": "0x365300726414a5959da1Bb4fE1A6356Fb9D7c7e7",
+  "address": "0x430D2A235EDA59Cd289aCBf2F3CfB8a335024037",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
     {
-      "inputs": [
-        {
-          "internalType": "address[4]",
-          "name": "_founderAddresses",
-          "type": "address[4]"
-        }
-      ],
+      "inputs": [],
       "stateMutability": "nonpayable",
       "type": "constructor"
     },
@@ -310,44 +304,6 @@
           "internalType": "bool",
           "name": "",
           "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "founderAddresses",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "founderIds",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -740,8 +696,14 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "registerFourthFounder",
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "firstUserAddress",
+          "type": "address"
+        }
+      ],
+      "name": "registerFirstUser",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -751,25 +713,6 @@
       "name": "renounceOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "reservedFounderIds",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "view",
       "type": "function"
     },
     {
