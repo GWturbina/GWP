@@ -1,16 +1,11 @@
 {
   "contractName": "GlobalWayGovernance",
-  "address": "0x279c1c2710Fe67223Dff342648E441Bc4A2Fb0F0",
+  "address": "0xec5D65016E5B982C312627E2ffC111A3A4178037",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
     {
       "inputs": [
-        {
-          "internalType": "address",
-          "name": "_globalWay",
-          "type": "address"
-        },
         {
           "internalType": "address",
           "name": "_treasury",
@@ -169,6 +164,25 @@
           "type": "uint256"
         },
         {
+          "indexed": false,
+          "internalType": "enum GlobalWayGovernance.ProposalStatus",
+          "name": "newStatus",
+          "type": "uint8"
+        }
+      ],
+      "name": "ProposalStatusChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "proposalId",
+          "type": "uint256"
+        },
+        {
           "indexed": true,
           "internalType": "address",
           "name": "voter",
@@ -179,12 +193,6 @@
           "internalType": "bool",
           "name": "support",
           "type": "bool"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "weight",
-          "type": "uint256"
         }
       ],
       "name": "VoteCast",
@@ -192,7 +200,7 @@
     },
     {
       "inputs": [],
-      "name": "APPROVAL_THRESHOLD",
+      "name": "MIN_GUARDIANS",
       "outputs": [
         {
           "internalType": "uint256",
@@ -205,33 +213,7 @@
     },
     {
       "inputs": [],
-      "name": "GUARDIAN_THRESHOLD",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "MIN_VOTING_POWER",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "QUORUM_PERCENTAGE",
+      "name": "MIN_VOTES_REQUIRED",
       "outputs": [
         {
           "internalType": "uint256",
@@ -423,6 +405,19 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "getGuardiansCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "uint256",
@@ -449,12 +444,12 @@
         },
         {
           "internalType": "uint256",
-          "name": "forVotes",
+          "name": "votesFor",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "againstVotes",
+          "name": "votesAgainst",
           "type": "uint256"
         },
         {
@@ -466,53 +461,11 @@
           "internalType": "enum GlobalWayGovernance.ProposalStatus",
           "name": "status",
           "type": "uint8"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "proposalId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "address",
-          "name": "voter",
-          "type": "address"
-        }
-      ],
-      "name": "getVote",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "hasVoted_",
-          "type": "bool"
         },
         {
           "internalType": "bool",
-          "name": "support",
+          "name": "executed",
           "type": "bool"
-        },
-        {
-          "internalType": "uint256",
-          "name": "weight",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "globalWay",
-      "outputs": [
-        {
-          "internalType": "contract IGlobalWay",
-          "name": "",
-          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -632,19 +585,6 @@
     },
     {
       "inputs": [],
-      "name": "leaderPool",
-      "outputs": [
-        {
-          "internalType": "contract ILeaderPool",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
       "name": "leaderPoolContract",
       "outputs": [
         {
@@ -737,12 +677,12 @@
         },
         {
           "internalType": "uint256",
-          "name": "forVotes",
+          "name": "votesFor",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
-          "name": "againstVotes",
+          "name": "votesAgainst",
           "type": "uint256"
         },
         {
@@ -806,17 +746,25 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "_charity",
+          "type": "address"
+        }
+      ],
+      "name": "setCharity",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "_marketing",
           "type": "address"
         },
         {
           "internalType": "address",
           "name": "_quarterly",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "_techAccounts",
           "type": "address"
         },
         {
@@ -844,26 +792,26 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_globalWay",
+          "name": "_tokenomics",
           "type": "address"
         }
       ],
-      "name": "setGlobalWay",
+      "name": "setTokenomics",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "techAccountsContract",
-      "outputs": [
+      "inputs": [
         {
           "internalType": "address",
-          "name": "",
+          "name": "_treasury",
           "type": "address"
         }
       ],
-      "stateMutability": "view",
+      "name": "setTreasury",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -921,40 +869,6 @@
       "name": "vote",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        },
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "votes",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "hasVoted",
-          "type": "bool"
-        },
-        {
-          "internalType": "bool",
-          "name": "support",
-          "type": "bool"
-        },
-        {
-          "internalType": "uint256",
-          "name": "weight",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
       "type": "function"
     },
     {
