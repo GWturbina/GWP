@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWay",
-  "address": "0xF65fBEd21C4DbD2025F2792A46C3e90B592FAFC3",
+  "address": "0x17dafd5f2eC1F042274f6A6d3F8B7Bf31299589F",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -946,19 +946,6 @@
         }
       ],
       "name": "setTreasury",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address[]",
-          "name": "existingUsers",
-          "type": "address[]"
-        }
-      ],
-      "name": "syncExistingUsers",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
