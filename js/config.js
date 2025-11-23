@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Configuration
 // opBNB Mainnet (Chain ID: 204)
+// Deployed: November 23, 2025
 // ═══════════════════════════════════════════════════════════════════
 
 const CONFIG = {
@@ -21,41 +22,41 @@ const CONFIG = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // SMART CONTRACTS ADDRESSES
+  // SMART CONTRACTS ADDRESSES - НОВЫЙ ДЕПЛОЙ
   // ═══════════════════════════════════════════════════════════════
   CONTRACTS: {
     // 1️⃣ Registry & Matrix
-    MatrixRegistry: '0x365300726414a5959da1Bb4fE1A6356Fb9D7c7e7',
+    MatrixRegistry: '0x430D2A235EDA59Cd289aCBf2F3CfB8a335024037',
     
     // 2️⃣ Token
-    GWTToken: '0x404Fd35Ad0FA85e2A0B47104683Fc869EDed25C1',
+    GWTToken: '0xD393a7c770e66000F42D91F9353C775E9a1c0895',
     
     // 3️⃣ Core системный контракт
-    GlobalWay: '0xF65fBEd21C4DbD2025F2792A46C3e90B592FAFC3',
+    GlobalWay: '0x17dafd5f2eC1F042274f6A6d3F8B7Bf31299589F',
     
     // 4️⃣ Partner Program
-    PartnerProgram: '0xf28DfECc945f93fAF644fDC9E17Ee68e9b3DBf55',
+    PartnerProgram: '0xA657E363126F0aa6607959ba73B6A4B2409cCB2e',
     
     // 5️⃣ Matrix Payments
-    MatrixPayments: '0xac3e1021AA720F1327fE00d098dbEd13A6fC266f',
+    MatrixPayments: '0x9D89F7e88Ac26500F5784a7580f7453120c98ADb',
     
     // 6️⃣ Quarterly Payments
-    QuarterlyPayments: '0xc4B71B952ba4722501F7502d39330bCe2304b4c5',
+    QuarterlyPayments: '0x49f8aFf9bCFA1eBDBF66c789e65E6D39420B0FF4',
     
     // 7️⃣ Investment Pool
-    GlobalWayInvestment: '0x6F60eb0AffFe177857883958294F8915754689C3',
+    GlobalWayInvestment: '0x4274e4412c1047b8300CC5A5dF2495e8986e40A1',
     
     // 8️⃣ Leader Pool
-    GlobalWayLeaderPool: '0x7F467E27728BAc91439C005454550A6f18eDF68E',
+    GlobalWayLeaderPool: '0x5fBaCc773F75c95B95CBD3B9f483a22D15AAB1B4',
     
     // 9️⃣ Governance
-    GlobalWayGovernance: '0x279c1c2710Fe67223Dff342648E441Bc4A2Fb0F0',
+    GlobalWayGovernance: '0xec5D65016E5B982C312627E2ffC111A3A4178037',
     
     // 🔟 Bridge
-    GlobalWayBridge: '0x09Ab7fB5fb538eA9719c34794225B1C6E2B7b837',
+    GlobalWayBridge: '0x806BA9ced6AeD93562fCdc8a9Ef9c9d1bC75b7F9',
     
     // 1️⃣1️⃣ Stats
-    GlobalWayStats: '0xF44918E4Fc3A4db23ed1dD2f340326bc78F4d834'
+    GlobalWayStats: '0x98fcaAa0ab14Adc54C0Fe6785200A4612FFC6E19'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -142,36 +143,34 @@ const CONFIG = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ADMIN
+  // ADMIN - ОБНОВЛЁННЫЕ АДРЕСА
   // ═══════════════════════════════════════════════════════════════
   ADMIN: {
-    // Owner (главный администратор)
-    owner: '0x7261b8aeaee2f806f64001596a67d68f2055acd2',
+    // Owner (главный администратор - deployer)
+    owner: '0x7bCD1753868895971E12448412cB3216d47884c8',
     
-    // Founders с правами админки (только 1, 2, 3)
-    founders: [
-      '0x03284a899147f5a07f82c622f34df92198671635', // Founder 1
-      '0x9b49bd9c9458615e11c051afd1ebe983563b67ee', // Founder 2
-      '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7'  // Founder 3
+    // Guardians (3 человека с правами governance)
+    guardians: [
+      '0x48635e0ad72cf5e8e8ad722fd7d823ec7cb197d1', // Guardian 1
+      '0xde4fb5fb406c6356247bea6b4822b9b2e2c7fccf', // Guardian 2
+      '0x5e2572d9a414667babcd5c7b59ca643b09e48e46'  // Guardian 3
     ],
     
-    // Founder 4 (БЕЗ прав админки, но в составе board)
-    founder4: '0xa3496cacc8523421dd151f1d92a456c2dafa28c2',
-    
-    // Board members (директора для голосования) - всего 7 человек
-    board: [
-      '0x03284a899147f5a07f82c622f34df92198671635', // Founder 1
-      '0x9b49bd9c9458615e11c051afd1ebe983563b67ee', // Founder 2
-      '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7', // Founder 3
-      '0x372d4c15bfd4e28241399853ab2ad59ef837e44d', // Director 1
-      '0xa3496cacc8523421dd151f1d92a456c2dafa28c2', // Founder 4 (Director 2)
-      '0x28041d893ea97ab71dee19fceaae0822e96fc0b5', // Director 3
-      '0x8603aaee4d81c85ac03d81cd06b23a1979a02444'  // Director 4
+    // Directors (6 человек для Bridge голосований)
+    directors: [
+      '0x48635e0ad72cf5e8e8ad722fd7d823ec7cb197d1', // Director 1
+      '0xde4fb5fb406c6356247bea6b4822b9b2e2c7fccf', // Director 2
+      '0x5e2572d9a414667babcd5c7b59ca643b09e48e46', // Director 3
+      '0x3Faa7fB3698D746AdA965Cae9d8e133BEf1fBc01', // Director 4
+      '0x3f7ED3960147a3A6f23B52D5707160Be0951F863', // Director 5
+      '0x372d4c15bfd4e28241399853ab2ad59ef837e44d'  // Director 6
     ],
     
     // Treasury addresses
-    charity: '0x742F2200BAb0c175c107c576E3Eb9E5A8ab7Ba4b',
-    development: '0x742F2200BAb0c175c107c576E3Eb9E5A8ab7Ba4b'
+    treasury: '0x11dac11d92147b70b03e43a9c02fffe4ec366bc7',
+    charity: '0x81d94f0b3252148f55bb77464041eb90c6d97439',
+    tokenomics: '0xcfefcd8080b3109314aa0a211b7ba00f9cc8e380',
+    development: '0xfdb4e5da1de4a108812b54fb5386da410fd26825'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -216,7 +215,7 @@ const CONFIG = {
     enableQuarterlyPayments: true,
     enableTokenRewards: true,
     enableVoting: true,
-    enableBridge: false, // временно отключен
+    enableBridge: true, // включен
     debugMode: false
   },
 
@@ -224,10 +223,12 @@ const CONFIG = {
   // VOTING SYSTEM
   // ═══════════════════════════════════════════════════════════════
   VOTING: {
-    totalBoardMembers: 7,        // Всего членов board
-    requiredVotes: 5,             // Нужно 5 из 7 для принятия решения
+    totalGuardians: 3,           // Всего guardians (Governance)
+    requiredVotesGovernance: 3,  // Нужно 3 из 3 для Governance
+    totalDirectors: 6,           // Всего directors (Bridge)
+    requiredVotesBridge: 4,      // Нужно 4 из 6 для Bridge
     votingPeriod: 7 * 24 * 60 * 60, // 7 дней в секундах
-    quorum: 5                     // Минимум голосов для кворума
+    quorum: 3                    // Минимум голосов для кворума
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -285,16 +286,17 @@ CONFIG.getRankByLevel = function(maxLevel) {
 CONFIG.hasAdminAccess = function(address) {
   const addr = address.toLowerCase();
   return addr === this.ADMIN.owner.toLowerCase() ||
-         this.ADMIN.founders.some(f => f.toLowerCase() === addr);
+         this.ADMIN.guardians.some(g => g.toLowerCase() === addr);
 };
 
-CONFIG.isBoardMember = function(address) {
+CONFIG.isGuardian = function(address) {
   const addr = address.toLowerCase();
-  return this.ADMIN.board.some(b => b.toLowerCase() === addr);
+  return this.ADMIN.guardians.some(g => g.toLowerCase() === addr);
 };
 
-CONFIG.isFounder4 = function(address) {
-  return address.toLowerCase() === this.ADMIN.founder4.toLowerCase();
+CONFIG.isDirector = function(address) {
+  const addr = address.toLowerCase();
+  return this.ADMIN.directors.some(d => d.toLowerCase() === addr);
 };
 
 // Экспорт для использования в других модулях
