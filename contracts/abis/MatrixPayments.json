@@ -1,6 +1,6 @@
 {
   "contractName": "MatrixPayments",
-  "address": "0xceBf6853dE4532284862Dde07fF0B1D0435B5608",
+  "address": "0x9E81F115935a00cef4724A34830b87338C7E0B9f",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -379,19 +379,6 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "deploymentTime",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [
         {
           "internalType": "address",
@@ -515,8 +502,8 @@
     {
       "inputs": [
         {
-          "internalType": "uint8",
-          "name": "rankValue",
+          "internalType": "enum MatrixPayments.Rank",
+          "name": "rank",
           "type": "uint8"
         }
       ],
@@ -590,7 +577,7 @@
       "name": "getUserRank",
       "outputs": [
         {
-          "internalType": "uint8",
+          "internalType": "enum MatrixPayments.Rank",
           "name": "",
           "type": "uint8"
         }
