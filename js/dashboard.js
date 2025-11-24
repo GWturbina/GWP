@@ -390,7 +390,7 @@ const dashboardModule = {
         const block = await event.getBlock();
         events.push({
           level: Number(event.args.level),
-          amount: ethers.utils.formatEther(event.args.price) + ' BNB',
+          amount: ethers.utils.formatEther(event.args.amount) + ' BNB',
           date: new Date(block.timestamp * 1000).toLocaleDateString(),
           txHash: event.transactionHash.slice(0, 10) + '...',
           type: 'level',
