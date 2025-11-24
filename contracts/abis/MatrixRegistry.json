@@ -1,6 +1,6 @@
 {
   "contractName": "MatrixRegistry",
-  "address": "0xB985fa02dfef3633b11209C63986378d5b93D7E3",
+  "address": "0xa9A5Cc68296cF4508a529CfdF1a44d37b9025B18",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -758,6 +758,30 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
+        }
+      ],
+      "name": "registerUser",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "renounceOwnership",
       "outputs": [],
@@ -792,30 +816,6 @@
       ],
       "name": "setTechAccountsSponsor",
       "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "userAddress",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "sponsorId",
-          "type": "uint256"
-        }
-      ],
-      "name": "specialRegister",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
