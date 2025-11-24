@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWay",
-  "address": "0xE1D699C80956176ae172060c4cd4023Ecd1c88C2",
+  "address": "0x8B8cc63BD6D6DDf411dD72A51f16afD38719e51F",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -716,42 +716,6 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "internalType": "uint8",
-          "name": "maxLevel",
-          "type": "uint8"
-        }
-      ],
-      "name": "ownerActivateLevels",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address[]",
-          "name": "usersList",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint8[]",
-          "name": "maxLevels",
-          "type": "uint8[]"
-        }
-      ],
-      "name": "ownerBatchActivateLevels",
-      "outputs": [],
-      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
