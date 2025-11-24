@@ -1,6 +1,6 @@
 {
   "contractName": "MatrixRegistry",
-  "address": "0x430D2A235EDA59Cd289aCBf2F3CfB8a335024037",
+  "address": "0xB985fa02dfef3633b11209C63986378d5b93D7E3",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -35,6 +35,31 @@
       "inputs": [],
       "name": "ReentrancyGuardReentrantCall",
       "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "userId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldAddress",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "AddressFixed",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -293,6 +318,24 @@
           "type": "uint256"
         }
       ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "userId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "emergencyFixNodeAddress",
+      "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -699,12 +742,18 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "firstUserAddress",
+          "name": "rootAddress",
           "type": "address"
         }
       ],
-      "name": "registerFirstUser",
-      "outputs": [],
+      "name": "registerRoot",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -743,6 +792,30 @@
       ],
       "name": "setTechAccountsSponsor",
       "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
+        }
+      ],
+      "name": "specialRegister",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
