@@ -21,27 +21,27 @@ const CONFIG = {
     }
   },
 
- // ═══════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
   // SMART CONTRACTS ADDRESSES - ФИНАЛЬНЫЙ ДЕПЛОЙ 25.11.2025
   // ═══════════════════════════════════════════════════════════════
   CONTRACTS: {
-    GWTToken: '0x6E4696106c133a5698a46722f1e3A7E16bB6a3bA',
-    MatrixRegistry: '0xa9A5Cc68296cF4508a529CfdF1a44d37b9025B18',
-    GlobalWay: '0x8B8cc63BD6D6DDf411dD72A51f16afD38719e51F',
-    PartnerProgram: '0x51A2d78bBFE0d3daFbAcC07B946aA8902F4FdA3b',
-    MatrixPayments: '0x9E81F115935a00cef4724A34830b87338C7E0B9f',
-    QuarterlyPayments: '0xfd4C11E7Ee11132f3741293713166C0a5BD4482C',
-    GlobalWayInvestment: '0x200Cf6fe23Db4BF429d5040083C1958F9AcAaF6c',
-    GlobalWayLeaderPool: '0x80cC00aA7661AA0C1A858d14F47779277e85eFBA',
-    GlobalWayGovernance: '0xdD93137b93962570322F39E0E152fd58A8b60320',
-    GlobalWayBridge: '0x6F7cEdDa328C79E9968A42F95d831dA1398A05B9',
-    GlobalWayStats: '0xbf6191b681F4b55f7E3E2798872c5FD1b70c83E9'
+    GWTToken: '0x542Ca6F390ad8ab73C9BA10d9e3CE4FDFfda2261',
+    MatrixRegistry: '0x36ffc948b4c81aB941b23ba5Ce1feEbF1673fFE0',
+    GlobalWay: '0xad1519AD4351dd22b6e97637b06053eBED65d475',
+    PartnerProgram: '0xc005b178C6D5c695085D7C9BD38cDEC91CEcF1B3',
+    MatrixPayments: '0x25437453c67938a0D340Ab62c70Cfb5e1Ceb72e2',
+    QuarterlyPayments: '0xD3E69A69c31A3f4Acf24C5eE78D946A9B64F844d',
+    GlobalWayInvestment: '0xaF43e7A232dCb3DAF1c923d081ea8567aA9DB25a',
+    GlobalWayLeaderPool: '0x070CD1F46c1d8a8fCa52baf1a5Ab58e1437a4B76',
+    GlobalWayGovernance: '0xBf6b247933CD5Cd7F144A218b879A986fB008029',
+    GlobalWayBridge: '0x398C03828cA494e2125B2aFE284af9A255e0f56a',
+    GlobalWayStats: '0x27815548acf27d5B53462615151eFc3Ab7F4FD7e'
   },
 
   // ═══════════════════════════════════════════════════════════════
   // ROOT ID - ДЛЯ ПЕРВЫХ РЕГИСТРАЦИЙ
   // ═══════════════════════════════════════════════════════════════
-  ROOT_ID: '8033863',
+  ROOT_ID: '7622603',
 
   // ═══════════════════════════════════════════════════════════════
   // ABI FILES - Относительные пути от js/config.js
