@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWay",
-  "address": "0x8B8cc63BD6D6DDf411dD72A51f16afD38719e51F",
+  "address": "0xad1519AD4351dd22b6e97637b06053eBED65d475",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -432,6 +432,55 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getFullUserInfo",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "isRegistered",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "userId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "personalInvites",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "maxActiveLevel",
+          "type": "uint8"
+        },
+        {
+          "internalType": "uint256",
+          "name": "level1Time",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lastActivity",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "getTotalUsers",
       "outputs": [
@@ -458,45 +507,6 @@
           "internalType": "uint256[]",
           "name": "",
           "type": "uint256[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        }
-      ],
-      "name": "getUserInfo",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "isRegistered",
-          "type": "bool"
-        },
-        {
-          "internalType": "uint256",
-          "name": "registrationTime",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "lastActivity",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "level1Time",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint8",
-          "name": "maxLevel",
-          "type": "uint8"
         }
       ],
       "stateMutability": "view",
@@ -1013,26 +1023,16 @@
           "type": "address"
         }
       ],
-      "name": "users",
+      "name": "userLevels",
       "outputs": [
         {
-          "internalType": "bool",
-          "name": "isRegistered",
-          "type": "bool"
-        },
-        {
           "internalType": "uint256",
-          "name": "registrationTime",
+          "name": "level1ActivationTime",
           "type": "uint256"
         },
         {
           "internalType": "uint256",
           "name": "lastActivity",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "level1ActivationTime",
           "type": "uint256"
         }
       ],
