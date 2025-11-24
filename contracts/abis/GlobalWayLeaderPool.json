@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWayLeaderPool",
-  "address": "0x8245b28Fd55565ed827a02CaD3B5756186AF8b61",
+  "address": "0x80cC00aA7661AA0C1A858d14F47779277e85eFBA",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -747,25 +747,6 @@
           "type": "address"
         }
       ],
-      "name": "getUserRank",
-      "outputs": [
-        {
-          "internalType": "uint8",
-          "name": "",
-          "type": "uint8"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        }
-      ],
       "name": "getUserRankInfo",
       "outputs": [
         {
@@ -944,6 +925,19 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "_techAccounts",
+          "type": "address"
+        }
+      ],
+      "name": "setTechAccountsContract",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "user",
           "type": "address"
         },
@@ -956,6 +950,19 @@
       "name": "setUserRank",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "techAccounts",
+      "outputs": [
+        {
+          "internalType": "contract ITechAccounts",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
