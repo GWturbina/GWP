@@ -334,62 +334,43 @@ async connect() {
     }
   }
 
+  // Замени функцию openSafePalApp() (строка ~333) на:
+
   async openSafePalApp() {
-    const currentUrl = window.location.href;
-    const deepLink = `safepal://wc?uri=${encodeURIComponent(currentUrl)}`;
-    
-    console.log('🔗 Opening SafePal app via deep link');
+    const currentUrl = encodeURIComponent(window.location.href);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  
+    let deepLink;
+    let storeUrl;
+  
+    if (isAndroid) {
+      deepLink = `safepalwallet://open?url=${currentUrl}`;
+      storeUrl = 'https://play.google.com/store/apps/details?id=io.safepal.wallet';
+    } else if (isIOS) {
+      deepLink = `https://link.safepal.io/open?url=${currentUrl}`;
+      storeUrl = 'https://apps.apple.com/app/safepal-wallet/id1548297139';
+    } else {
+      throw new Error('Unsupported mobile platform');
+    }
+  
+    console.log('🔗 Opening SafePal:', deepLink);
+  
+    // Пробуем открыть приложение
     window.location.href = deepLink;
-    
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-
-  async autoConnect() {
-    try {
-      console.log('🔄 Auto-connecting...');
-      
-      // 🔥 ИСПРАВЛЕНО: Умное ожидание
-      if (this.isSafePalBrowser) {
-        await this.waitForSafePal(5000); // 🔥 5 секунд
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 300)); // 🔥 300ms
-      }
-
-      let provider = null;
-
-      if (this.hasSafePalProvider()) {
-        if (window.safepal) provider = new ethers.providers.Web3Provider(window.safepal);
-        else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
-          const p = window.ethereum.providers.find(p => p && (p.isSafePal || p.isSafePalWallet));
-          if (p) provider = new ethers.providers.Web3Provider(p);
-        } else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-        }
-        console.log('🔄 Auto-connect using SafePal provider');
-      } else if (window.ethereum && !window.ethereum.isMetaMask) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        console.log('🔄 Auto-connect using ethereum provider');
-      }
-
-      if (!provider) {
-        console.log('⚠️ No provider available for auto-connect');
-        return;
-      }
-
-      const accounts = await provider.listAccounts();
-
-      if (accounts && accounts.length > 0) {
-        this.provider = provider;
-        this.signer = provider.getSigner();
-        this.address = accounts[0].toLowerCase(); // 🔥 FIX: Normalize to lowercase
-        this.connected = true;
-        await this.checkNetwork();
-        console.log('✅ Auto-connected:', this.address);
-      } else {
-        console.log('ℹ️ Auto-connect: no accounts available yet');
-      }
-    } catch (error) {
-      console.error('❌ Auto-connect failed:', error);
+  
+    // Через 2.5 сек проверяем — если страница ещё видна, значит SafePal не установлен
+    await new Promise(resolve => setTimeout(resolve, 2500));
+  
+    // Если мы всё ещё здесь — приложение не открылось
+    const install = confirm(
+      'SafePal не установлен.\n\n' +
+      'Установить SafePal Wallet?\n\n' +
+      'После установки откройте эту ссылку в браузере SafePal (вкладка "Browser" в приложении).'
+    );
+  
+    if (install) {
+      window.open(storeUrl, '_blank');
     }
   }
 
