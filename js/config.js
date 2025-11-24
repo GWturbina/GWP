@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Configuration
 // opBNB Mainnet (Chain ID: 204)
-// Deployed: November 23, 2025
+// Deployed: November 24, 2025
 // ═══════════════════════════════════════════════════════════════════
 
 const CONFIG = {
@@ -22,71 +22,42 @@ const CONFIG = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // SMART CONTRACTS ADDRESSES - НОВЫЙ ДЕПЛОЙ
+  // SMART CONTRACTS ADDRESSES - ФИНАЛЬНЫЙ ДЕПЛОЙ 24.11.2025
   // ═══════════════════════════════════════════════════════════════
   CONTRACTS: {
-    // 1️⃣ Registry & Matrix
-    MatrixRegistry: '0x430D2A235EDA59Cd289aCBf2F3CfB8a335024037',
-    
-    // 2️⃣ Token
-    GWTToken: '0xD393a7c770e66000F42D91F9353C775E9a1c0895',
-    
-    // 3️⃣ Core системный контракт
-    GlobalWay: '0x17dafd5f2eC1F042274f6A6d3F8B7Bf31299589F',
-    
-    // 4️⃣ Partner Program
-    PartnerProgram: '0xA657E363126F0aa6607959ba73B6A4B2409cCB2e',
-    
-    // 5️⃣ Matrix Payments
-    MatrixPayments: '0x9D89F7e88Ac26500F5784a7580f7453120c98ADb',
-    
-    // 6️⃣ Quarterly Payments
-    QuarterlyPayments: '0x49f8aFf9bCFA1eBDBF66c789e65E6D39420B0FF4',
-    
-    // 7️⃣ Investment Pool
-    GlobalWayInvestment: '0x4274e4412c1047b8300CC5A5dF2495e8986e40A1',
-    
-    // 8️⃣ Leader Pool
-    GlobalWayLeaderPool: '0x5fBaCc773F75c95B95CBD3B9f483a22D15AAB1B4',
-    
-    // 9️⃣ Governance
-    GlobalWayGovernance: '0xec5D65016E5B982C312627E2ffC111A3A4178037',
-    
-    // 🔟 Bridge
-    GlobalWayBridge: '0x806BA9ced6AeD93562fCdc8a9Ef9c9d1bC75b7F9',
-    
-    // 1️⃣1️⃣ Stats
-    GlobalWayStats: '0x98fcaAa0ab14Adc54C0Fe6785200A4612FFC6E19'
+    GWTToken: '0x9Ee8E0aA76274416554b51e7BFFacb1cb2013b4E',
+    MatrixRegistry: '0xB985fa02dfef3633b11209C63986378d5b93D7E3',
+    GlobalWay: '0xE1D699C80956176ae172060c4cd4023Ecd1c88C2',
+    PartnerProgram: '0x17b558703604E1Df476cF7E0726c2DD0a2d7afbA',
+    MatrixPayments: '0xceBf6853dE4532284862Dde07fF0B1D0435B5608',
+    QuarterlyPayments: '0x3d2231F1a6F9073b7CF6f35a73bCaC03401F7264',
+    GlobalWayInvestment: '0xB2c833D3d69cD219aaE34E879Bcb9428D148Bf57',
+    GlobalWayLeaderPool: '0x8245b28Fd55565ed827a02CaD3B5756186AF8b61',
+    GlobalWayGovernance: '0xd0CA6E44C70747F8fc8db30Cb6DCa96707a285fB',
+    GlobalWayBridge: '0x8BDf0D9325834824C01D5b393bdA9210b9Bf3Df0',
+    GlobalWayStats: '0x927CAA2A4f7F04c968f25B19da993B3B065BBB48'
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ABI FILES - Пути к отдельным ABI файлам на хостинге
+  // ROOT ID - ДЛЯ ПЕРВЫХ РЕГИСТРАЦИЙ
+  // ═══════════════════════════════════════════════════════════════
+  ROOT_ID: '3074844',
+
+  // ═══════════════════════════════════════════════════════════════
+  // ABI FILES - Относительные пути от js/config.js
   // ═══════════════════════════════════════════════════════════════
   ABI_PATHS: {
-    // 1️⃣ Registry & Matrix
-    MatrixRegistry: './contracts/abis/MatrixRegistry.json',
-    MatrixPayments: './contracts/abis/MatrixPayments.json',
-    
-    // 2️⃣ Token
-    GWTToken: './contracts/abis/GWTToken.json',
-    
-    // 3️⃣ Core
-    GlobalWay: './contracts/abis/GlobalWay.json',
-    
-    // 4️⃣ Payment Systems
-    PartnerProgram: './contracts/abis/PartnerProgram.json',
-    QuarterlyPayments: './contracts/abis/QuarterlyPayments.json',
-    
-    // 5️⃣ Pools
-    GlobalWayInvestment: './contracts/abis/GlobalWayInvestment.json',
-    GlobalWayLeaderPool: './contracts/abis/GlobalWayLeaderPool.json',
-    
-    // 6️⃣ Governance & Stats
-    GlobalWayGovernance: './contracts/abis/GlobalWayGovernance.json',
-    GlobalWayStats: './contracts/abis/GlobalWayStats.json',
-    
-    // 7️⃣ Bridge
-    GlobalWayBridge: './contracts/abis/GlobalWayBridge.json'
+    GWTToken: '../contracts/abis/GWTToken.json',
+    MatrixRegistry: '../contracts/abis/MatrixRegistry.json',
+    MatrixPayments: '../contracts/abis/MatrixPayments.json',
+    GlobalWay: '../contracts/abis/GlobalWay.json',
+    PartnerProgram: '../contracts/abis/PartnerProgram.json',
+    QuarterlyPayments: '../contracts/abis/QuarterlyPayments.json',
+    GlobalWayInvestment: '../contracts/abis/GlobalWayInvestment.json',
+    GlobalWayLeaderPool: '../contracts/abis/GlobalWayLeaderPool.json',
+    GlobalWayGovernance: '../contracts/abis/GlobalWayGovernance.json',
+    GlobalWayStats: '../contracts/abis/GlobalWayStats.json',
+    GlobalWayBridge: '../contracts/abis/GlobalWayBridge.json'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -143,30 +114,26 @@ const CONFIG = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ADMIN - ОБНОВЛЁННЫЕ АДРЕСА
+  // ADMIN
   // ═══════════════════════════════════════════════════════════════
   ADMIN: {
-    // Owner (главный администратор - deployer)
     owner: '0x7bCD1753868895971E12448412cB3216d47884c8',
     
-    // Guardians (3 человека с правами governance)
     guardians: [
-      '0x48635e0ad72cf5e8e8ad722fd7d823ec7cb197d1', // Guardian 1
-      '0xde4fb5fb406c6356247bea6b4822b9b2e2c7fccf', // Guardian 2
-      '0x5e2572d9a414667babcd5c7b59ca643b09e48e46'  // Guardian 3
+      '0x48635e0ad72cf5e8e8ad722fd7d823ec7cb197d1',
+      '0xde4fb5fb406c6356247bea6b4822b9b2e2c7fccf',
+      '0x5e2572d9a414667babcd5c7b59ca643b09e48e46'
     ],
     
-    // Directors (6 человек для Bridge голосований)
     directors: [
-      '0x48635e0ad72cf5e8e8ad722fd7d823ec7cb197d1', // Director 1
-      '0xde4fb5fb406c6356247bea6b4822b9b2e2c7fccf', // Director 2
-      '0x5e2572d9a414667babcd5c7b59ca643b09e48e46', // Director 3
-      '0x3Faa7fB3698D746AdA965Cae9d8e133BEf1fBc01', // Director 4
-      '0x3f7ED3960147a3A6f23B52D5707160Be0951F863', // Director 5
-      '0x372d4c15bfd4e28241399853ab2ad59ef837e44d'  // Director 6
+      '0x48635e0ad72cf5e8e8ad722fd7d823ec7cb197d1',
+      '0xde4fb5fb406c6356247bea6b4822b9b2e2c7fccf',
+      '0x5e2572d9a414667babcd5c7b59ca643b09e48e46',
+      '0x3Faa7fB3698D746AdA965Cae9d8e133BEf1fBc01',
+      '0x3f7ED3960147a3A6f23B52D5707160Be0951F863',
+      '0x372d4c15bfd4e28241399853ab2ad59ef837e44d'
     ],
     
-    // Treasury addresses
     treasury: '0x11dac11d92147b70b03e43a9c02fffe4ec366bc7',
     charity: '0x81d94f0b3252148f55bb77464041eb90c6d97439',
     tokenomics: '0xcfefcd8080b3109314aa0a211b7ba00f9cc8e380',
@@ -177,8 +144,8 @@ const CONFIG = {
   // UI SETTINGS
   // ═══════════════════════════════════════════════════════════════
   UI: {
-    notificationDuration: 3000, // ms
-    refreshInterval: 30000, // ms (30 sec)
+    notificationDuration: 3000,
+    refreshInterval: 30000,
     maxRecentTransactions: 50,
     defaultLanguage: 'ru'
   },
@@ -187,24 +154,21 @@ const CONFIG = {
   // CACHE SETTINGS
   // ═══════════════════════════════════════════════════════════════
   CACHE: {
-    tokenPriceDuration: 30000, // 30 sec
-    userDataDuration: 10000,   // 10 sec
-    statsDataDuration: 60000   // 60 sec
+    tokenPriceDuration: 30000,
+    userDataDuration: 10000,
+    statsDataDuration: 60000
   },
 
   // ═══════════════════════════════════════════════════════════════
   // GAS SETTINGS
   // ═══════════════════════════════════════════════════════════════
   GAS: {
-    // Gas limits для разных операций
     register: 500000,
     buyLevel: 800000,
     payQuarterly: 800000,
     withdraw: 300000,
-    
-    // Gas price (в gwei)
-    defaultGasPrice: '0.001', // 0.001 gwei для opBNB
-    maxGasPrice: '0.01'       // максимум 0.01 gwei
+    defaultGasPrice: '0.001',
+    maxGasPrice: '0.01'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -215,7 +179,7 @@ const CONFIG = {
     enableQuarterlyPayments: true,
     enableTokenRewards: true,
     enableVoting: true,
-    enableBridge: true, // включен
+    enableBridge: true,
     debugMode: false
   },
 
@@ -223,12 +187,12 @@ const CONFIG = {
   // VOTING SYSTEM
   // ═══════════════════════════════════════════════════════════════
   VOTING: {
-    totalGuardians: 3,           // Всего guardians (Governance)
-    requiredVotesGovernance: 3,  // Нужно 3 из 3 для Governance
-    totalDirectors: 6,           // Всего directors (Bridge)
-    requiredVotesBridge: 4,      // Нужно 4 из 6 для Bridge
-    votingPeriod: 7 * 24 * 60 * 60, // 7 дней в секундах
-    quorum: 3                    // Минимум голосов для кворума
+    totalGuardians: 3,
+    requiredVotesGovernance: 3,
+    totalDirectors: 6,
+    requiredVotesBridge: 4,
+    votingPeriod: 7 * 24 * 60 * 60,
+    quorum: 3
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -247,7 +211,7 @@ const CONFIG = {
   // ═══════════════════════════════════════════════════════════════
   VALIDATION: {
     minSponsorLevel: 1,
-    minWithdrawAmount: '0.001', // BNB
+    minWithdrawAmount: '0.001',
     maxLevels: 12
   }
 };
@@ -282,7 +246,6 @@ CONFIG.getRankByLevel = function(maxLevel) {
   return this.RANKS.NONE;
 };
 
-// Проверка прав доступа
 CONFIG.hasAdminAccess = function(address) {
   const addr = address.toLowerCase();
   return addr === this.ADMIN.owner.toLowerCase() ||
@@ -299,7 +262,6 @@ CONFIG.isDirector = function(address) {
   return this.ADMIN.directors.some(d => d.toLowerCase() === addr);
 };
 
-// Экспорт для использования в других модулях
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = CONFIG;
 }
