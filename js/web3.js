@@ -334,6 +334,52 @@ async connect() {
     }
   }
 
+  async autoConnect() {
+    try {
+      console.log('🔄 Auto-connecting...');
+      
+      // Ждём провайдер
+      if (this.isSafePalBrowser) {
+        await this.waitForSafePal(3000);
+      }
+
+      let provider = null;
+
+      // Ищем SafePal провайдер
+      if (window.safepal) {
+        provider = new ethers.providers.Web3Provider(window.safepal);
+      } else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+      } else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+        const safePal = window.ethereum.providers.find(p => p && (p.isSafePal || p.isSafePalWallet));
+        if (safePal) {
+          provider = new ethers.providers.Web3Provider(safePal);
+        }
+      }
+
+      if (!provider) {
+        console.log('⚠️ No provider for auto-connect');
+        return;
+      }
+
+      // Проверяем уже подключённые аккаунты (без popup)
+      const accounts = await provider.listAccounts();
+
+      if (accounts && accounts.length > 0) {
+        this.provider = provider;
+        this.signer = provider.getSigner();
+        this.address = accounts[0].toLowerCase();
+        this.connected = true;
+        await this.checkNetwork();
+        console.log('✅ Auto-connected:', this.address);
+      } else {
+        console.log('ℹ️ No accounts available for auto-connect');
+      }
+    } catch (error) {
+      console.error('❌ Auto-connect failed:', error);
+    }
+  }
+
   // Замени функцию openSafePalApp() (строка ~333) на:
 
   async openSafePalApp() {
