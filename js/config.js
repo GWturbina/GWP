@@ -164,12 +164,12 @@ const CONFIG = {
   // ═══════════════════════════════════════════════════════════════
   GAS: {
     register: 500000,
-    buyLevel: 800000,
-    payQuarterly: 800000,
+    buyLevel: 1000000,      // Было 800000 → теперь 1000000
+    payQuarterly: 1000000,  // Тоже увеличь на всякий случай
     withdraw: 300000,
-    defaultGasPrice: '0.001',
-    maxGasPrice: '0.01'
-  },
+    defaultGasPrice: "0.001",
+    maxGasPrice: "0.01"
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // FEATURES FLAGS
