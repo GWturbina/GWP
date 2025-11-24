@@ -169,7 +169,7 @@ const CONFIG = {
     withdraw: 300000,
     defaultGasPrice: "0.001",
     maxGasPrice: "0.01"
-  }
+  },
 
   // ═══════════════════════════════════════════════════════════════
   // FEATURES FLAGS
