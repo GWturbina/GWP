@@ -110,7 +110,7 @@ const dashboardModule = {
       this.userData.balance = ethers.utils.formatEther(balance);
 
       // 2. Проверка регистрации
-      this.userData.isRegistered = await this.contracts.matrixRegistry.isRegistered(address);
+      this.userData.isRegistered = await this.contracts.globalWay.isUserRegistered(address);
 
       if (this.userData.isRegistered) {
         // 3. User ID
@@ -150,53 +150,40 @@ const dashboardModule = {
     try {
       const { address } = this.userData;
       console.log('📅 Loading quarterly info...');
-      
-      // Используем прямой вызов маппинга (не getQuarterlyInfo)
-      const info = await this.contracts.quarterlyPayments.quarterlyInfo(address);
-      const lastPayment = Number(info[0] || info.lastPaymentTime || 0);
-      const quarterCount = Number(info[1] || info.quartersPaid || 0);
-    
-      // Вычисляем следующий платёж
-      const QUARTERLY_INTERVAL = 7776000; // 90 дней в секундах
-      const now = Math.floor(Date.now() / 1000);
-      const nextPaymentTime = lastPayment > 0 ? lastPayment + QUARTERLY_INTERVAL : 0;
-      const canPayNow = lastPayment === 0 || now >= nextPaymentTime;
-    
+
+      // ✅ ИСПРАВЛЕНО: правильная функция getQuarterlyInfo
+      const [lastPayment, quarterCount, techAccountIds, nextPaymentTime, canPayNow, pensionBalance] = 
+        await this.contracts.quarterlyPayments.getQuarterlyInfo(address);
+
       this.userData.quarterlyInfo = {
         canPay: canPayNow,
-        quarter: quarterCount,
-        lastPayment: lastPayment,
-        nextPayment: nextPaymentTime,
-        daysRemaining: nextPaymentTime > 0 ? Math.max(0, Math.floor((nextPaymentTime - now) / 86400)) : 0,
-        cost: CONFIG.QUARTERLY_COST || '0.075',
-        pensionBalance: '0'
+        quarter: Number(quarterCount),
+        lastPayment: Number(lastPayment),
+        nextPayment: Number(nextPaymentTime),
+        daysRemaining: nextPaymentTime > 0 ? Math.floor((Number(nextPaymentTime) - Date.now() / 1000) / 86400) : 0,
+        cost: CONFIG.QUARTERLY_COST || '0.015',
+        pensionBalance: ethers.utils.formatEther(pensionBalance)
       };
-    
-      // Пробуем получить пенсионный баланс отдельно
-      try {
-        const pension = await this.contracts.quarterlyPayments.getPensionBalance(address);
-        this.userData.quarterlyInfo.pensionBalance = ethers.utils.formatEther(pension);
-      } catch(e) {
-        console.log('⚠️ getPensionBalance not available');
-      }
-    
+
       console.log('✅ Quarterly info loaded:', this.userData.quarterlyInfo);
+
       this.updateQuarterlyUI();
-      
     } catch (error) {
       console.error('❌ Error loading quarterly info:', error);
+      // Устанавливаем дефолтные значения
       this.userData.quarterlyInfo = {
         canPay: false,
         quarter: 0,
         lastPayment: 0,
         nextPayment: 0,
         daysRemaining: 0,
-        cost: CONFIG.QUARTERLY_COST || '0.075',
+        cost: CONFIG.QUARTERLY_COST || '0.015',
         pensionBalance: '0'
       };
       this.updateQuarterlyUI();
     }
-  }
+  },
+
   // ═══════════════════════════════════════════════════════════════
   // БАЛАНСЫ КОНТРАКТОВ
   // ═══════════════════════════════════════════════════════════════
