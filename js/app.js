@@ -282,20 +282,19 @@ const app = {
         throw new Error('Invalid sponsor ID: ' + sponsorId);
       }
       
-      console.log('📝 Calling MatrixRegistry.register(' + sponsorId + ')...');
-      
-      
-      const matrixRegistrySigned = await this.getSignedContract('MatrixRegistry');
-      
-      if (!matrixRegistrySigned) {
-        throw new Error('Failed to get signed MatrixRegistry contract');
+      console.log('📝 Calling GlobalWay.register(' + sponsorId + ')...');
+
+      const globalWaySigned = await this.getSignedContract('GlobalWay');
+
+      if (!globalWaySigned) {
+        throw new Error('Failed to get signed GlobalWay contract');
       }
-      
+
       console.log('✅ Signed contract ready, requesting transaction...');
-      
+
       this.showNotification('Подтвердите транзакцию в кошельке...', 'info');
-      
-      const registerTx = await matrixRegistrySigned.register(sponsorId, { 
+
+      const registerTx = await globalWaySigned.register(sponsorId, { 
         gasLimit: CONFIG.GAS.register 
       });
       
