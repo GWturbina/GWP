@@ -21,27 +21,27 @@ const CONFIG = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // SMART CONTRACTS ADDRESSES - ФИНАЛЬНЫЙ ДЕПЛОЙ 24.11.2025
+ // ═══════════════════════════════════════════════════════════════
+  // SMART CONTRACTS ADDRESSES - ФИНАЛЬНЫЙ ДЕПЛОЙ 25.11.2025
   // ═══════════════════════════════════════════════════════════════
   CONTRACTS: {
-    GWTToken: '0x9Ee8E0aA76274416554b51e7BFFacb1cb2013b4E',
-    MatrixRegistry: '0xB985fa02dfef3633b11209C63986378d5b93D7E3',
-    GlobalWay: '0xE1D699C80956176ae172060c4cd4023Ecd1c88C2',
-    PartnerProgram: '0x17b558703604E1Df476cF7E0726c2DD0a2d7afbA',
-    MatrixPayments: '0xceBf6853dE4532284862Dde07fF0B1D0435B5608',
-    QuarterlyPayments: '0x3d2231F1a6F9073b7CF6f35a73bCaC03401F7264',
-    GlobalWayInvestment: '0xB2c833D3d69cD219aaE34E879Bcb9428D148Bf57',
-    GlobalWayLeaderPool: '0x8245b28Fd55565ed827a02CaD3B5756186AF8b61',
-    GlobalWayGovernance: '0xd0CA6E44C70747F8fc8db30Cb6DCa96707a285fB',
-    GlobalWayBridge: '0x8BDf0D9325834824C01D5b393bdA9210b9Bf3Df0',
-    GlobalWayStats: '0x927CAA2A4f7F04c968f25B19da993B3B065BBB48'
+    GWTToken: '0x6E4696106c133a5698a46722f1e3A7E16bB6a3bA',
+    MatrixRegistry: '0xa9A5Cc68296cF4508a529CfdF1a44d37b9025B18',
+    GlobalWay: '0x8B8cc63BD6D6DDf411dD72A51f16afD38719e51F',
+    PartnerProgram: '0x51A2d78bBFE0d3daFbAcC07B946aA8902F4FdA3b',
+    MatrixPayments: '0x9E81F115935a00cef4724A34830b87338C7E0B9f',
+    QuarterlyPayments: '0xfd4C11E7Ee11132f3741293713166C0a5BD4482C',
+    GlobalWayInvestment: '0x200Cf6fe23Db4BF429d5040083C1958F9AcAaF6c',
+    GlobalWayLeaderPool: '0x80cC00aA7661AA0C1A858d14F47779277e85eFBA',
+    GlobalWayGovernance: '0xdD93137b93962570322F39E0E152fd58A8b60320',
+    GlobalWayBridge: '0x6F7cEdDa328C79E9968A42F95d831dA1398A05B9',
+    GlobalWayStats: '0xbf6191b681F4b55f7E3E2798872c5FD1b70c83E9'
   },
 
   // ═══════════════════════════════════════════════════════════════
   // ROOT ID - ДЛЯ ПЕРВЫХ РЕГИСТРАЦИЙ
   // ═══════════════════════════════════════════════════════════════
-  ROOT_ID: '3074844',
+  ROOT_ID: '8033863',
 
   // ═══════════════════════════════════════════════════════════════
   // ABI FILES - Относительные пути от js/config.js
