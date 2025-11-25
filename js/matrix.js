@@ -2,6 +2,7 @@
 // GlobalWay DApp - Matrix Module - FINAL VERSION
 // Обновляет HTML элементы вместо создания SVG
 // Date: 2025-01-19
+// FIX: Показывает только пользователей с активированным уровнем
 // ═══════════════════════════════════════════════════════════════════
 
 const matrixModule = {
@@ -163,10 +164,17 @@ const matrixModule = {
       
       if (!nodeData[7]) return;
 
+      // ✅ КРИТИЧНО: Проверяем что уровень активирован!
+      const userMaxLevel = await this.getUserMaxLevel(nodeData[1]);
+      if (userMaxLevel < level) {
+        console.log(`⚠️ User ${childId} skipped - level ${level} not activated (maxLevel: ${userMaxLevel})`);
+        return;
+      }
+
       const node = {
         address: nodeData[1],
         userId: nodeData[0].toString(),
-        maxLevel: await this.getUserMaxLevel(nodeData[1]),
+        maxLevel: userMaxLevel,  // ✅ Используем уже полученное значение
         rank: 'Участник',
         depth,
         position,
