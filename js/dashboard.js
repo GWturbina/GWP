@@ -206,30 +206,33 @@ const dashboardModule = {
       const { address } = this.userData;
       console.log('💰 Loading balances...');
 
-      // ✅ ИСПОЛЬЗУЕМ GlobalWayStats.getUserBalances() - возвращает ВСЕ балансы!
+      // ✅ ИСПОЛЬЗУЕМ GlobalWayStats.getUserBalances()
       try {
         const balances = await this.contracts.stats.getUserBalances(address);
-        // balances возвращает: (partnerFromSponsor, partnerFromUpline, matrixEarnings, 
-        //                       matrixFrozen, pensionBalance, leaderBalance, totalBalance)
-        
-        const partnerTotal = balances[0].add(balances[1]); // sponsor + upline
-        this.userData.balances.partner = ethers.utils.formatEther(partnerTotal);
+        // balances: (partnerFromSponsor, partnerFromUpline, matrixEarnings, 
+        //            matrixFrozen, pensionBalance, leaderBalance, totalBalance)
+      
+        // ❌ УБРАНО: partner - платежи идут сразу на кошелёк
+        // const partnerTotal = balances[0].add(balances[1]);
+        // this.userData.balances.partner = ethers.utils.formatEther(partnerTotal);
+      
+        // ✅ Только балансы из контрактов
         this.userData.balances.leader = ethers.utils.formatEther(balances[5]); // leaderBalance
-        this.userData.balances.investment = ethers.utils.formatEther(balances[4]); // pensionBalance
-        
+        this.userData.balances.investment = ethers.utils.formatEther(balances[4]); // pensionBalance (на самом деле investment)
+      
+        // ✅ Пенсия отдельно из QuarterlyPayments
+        try {
+          const pension = await this.contracts.quarterly.getPensionBalance(address);
+          this.userData.balances.pension = ethers.utils.formatEther(pension);
+        } catch (e) {
+          this.userData.balances.pension = '0';
+        }
+      
         console.log('✅ Balances loaded from GlobalWayStats:', this.userData.balances);
       } catch (e) {
-        console.warn('⚠️ Could not get balances from Stats, trying individual contracts:', e);
-        
-        // Фолбек: пробуем получить балансы из отдельных контрактов
-        try {
-          const [fromSponsor, fromUpline, totalPartner] = 
-            await this.contracts.partnerProgram.getUserEarnings(address);
-          this.userData.balances.partner = ethers.utils.formatEther(totalPartner);
-        } catch (e2) {
-          this.userData.balances.partner = '0';
-        }
-        
+        console.warn('⚠️ Could not get balances from Stats:', e.message);
+      
+        // Фолбек: получаем из отдельных контрактов
         try {
           const pendingReward = await this.contracts.leaderPool.pendingRewards(address);
           this.userData.balances.leader = ethers.utils.formatEther(pendingReward);
@@ -237,21 +240,28 @@ const dashboardModule = {
           this.userData.balances.leader = '0';
         }
         
-        this.userData.balances.investment = '0'; // Investment через Stats
-      }
-
-      console.log('✅ Balances loaded:', this.userData.balances);
-      this.updateBalancesUI();
+        this.userData.balances.investment = '0';
       
-    } catch (error) {
-      console.error('❌ Error loading balances:', error);
-      this.userData.balances = {
-        partner: '0',
-        leader: '0',
-        investment: '0'
-      };
-      this.updateBalancesUI();
-    }
+        try {
+          const pension = await this.contracts.quarterly.getPensionBalance(address);
+         this.userData.balances.pension = ethers.utils.formatEther(pension);
+       } catch (e2) {
+         this.userData.balances.pension = '0';
+       }
+     }
+
+     console.log('✅ Balances loaded:', this.userData.balances);
+     this.updateBalancesUI();
+    
+   } catch (error) {
+     console.error('❌ Error loading balances:', error);
+     this.userData.balances = {
+       leader: '0',
+       investment: '0',
+       pension: '0'
+     };
+     this.updateBalancesUI();
+   }
   },
 
   // ═══════════════════════════════════════════════════════════════
