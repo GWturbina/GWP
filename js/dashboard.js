@@ -26,9 +26,10 @@ const dashboardModule = {
     maxLevel: 0,
     quarterlyInfo: null,
     balances: {
-      partner: '0',
-      leader: '0',
-      investment: '0'
+      // ❌ УБРАНО: partner - платежи идут сразу на кошельки
+      leader: '0',      // ✅ Пул лидеров (6%) - накапливается в контракте
+      investment: '0',  // ✅ Инвестиционный пул (5%) - накапливается в контракте
+      pension: '0'      // ✅ Пенсионный баланс - накапливается в QuarterlyPayments
     },
     tokenBalance: '0',
     totalEarnings: '0'
