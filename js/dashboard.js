@@ -151,46 +151,70 @@ const dashboardModule = {
     try {
       const { address } = this.userData;
       console.log('📅 Loading quarterly info...');
-
-      // ✅ ИСПРАВЛЕНО: используем прямой маппинг quarterlyInfo
+    
       const info = await this.contracts.quarterlyPayments.quarterlyInfo(address);
       const lastPayment = Number(info[0] || 0);
-      const quarterCount = Number(info[1] || 0);
-      
-      // Вычисляем следующий платёж на клиенте
-      const QUARTERLY_INTERVAL = 7776000; // 90 дней
+      const quartersPaid = Number(info[1] || 0);
+  
+     const QUARTERLY_INTERVAL = 7776000;
+      const WARNING_PERIOD = 604800;
       const now = Math.floor(Date.now() / 1000);
-      const nextPaymentTime = lastPayment > 0 ? lastPayment + QUARTERLY_INTERVAL : 0;
-      const canPayNow = lastPayment === 0 || now >= nextPaymentTime;
-
-      this.userData.quarterlyInfo = {
-        canPay: canPayNow,
-        quarter: quarterCount,
-        lastPayment: lastPayment,
-        nextPayment: nextPaymentTime,
-        daysRemaining: nextPaymentTime > 0 ? Math.max(0, Math.floor((nextPaymentTime - now) / 86400)) : 0,
-        cost: CONFIG.QUARTERLY_COST || '0.075',
-        pensionBalance: '0'
-      };
-      
-      // Пробуем получить пенсионный баланс
+  
+      let canPay, nextPayment, daysRemaining, status;
+  
+      if (lastPayment === 0) {
+        canPay = this.userData.maxLevel >= 1;
+        nextPayment = 0;
+        daysRemaining = 0;
+        status = this.userData.maxLevel >= 1 ? 'Еще не активирован' : 'Активируйте уровень 1';
+      } else {
+        nextPayment = lastPayment + QUARTERLY_INTERVAL;
+        const timeUntilNext = nextPayment - now;
+        daysRemaining = Math.max(0, Math.ceil(timeUntilNext / 86400));
+        
+        if (timeUntilNext <= 0) {
+          canPay = true;
+          status = '⚠️ Квартал истёк! Оплатите';
+        } else if (timeUntilNext <= WARNING_PERIOD) {
+          canPay = true;
+          status = `Можно активировать`;
+        } else {
+          canPay = false;
+          status = `Доступно через ${daysRemaining} дней`;
+        }
+      }
+  
+      let pensionBalance = '0';
       try {
         const pension = await this.contracts.quarterlyPayments.getPensionBalance(address);
-        this.userData.quarterlyInfo.pensionBalance = ethers.utils.formatEther(pension);
-      } catch(e) {}
-
+        pensionBalance = ethers.utils.formatEther(pension);
+      } catch(e) {
+        console.warn('⚠️ Could not get pension:', e.message);
+      }
+  
+      this.userData.quarterlyInfo = {
+        canPay,
+        quarter: lastPayment === 0 ? 1 : quartersPaid + 1,
+        lastPayment,
+        nextPayment,
+        daysRemaining,
+        status,
+        cost: CONFIG.QUARTERLY_COST || '0.075',
+        pensionBalance
+      };
+  
       console.log('✅ Quarterly info loaded:', this.userData.quarterlyInfo);
-
       this.updateQuarterlyUI();
+  
     } catch (error) {
       console.error('❌ Error loading quarterly info:', error);
-      // Устанавливаем дефолтные значения
       this.userData.quarterlyInfo = {
         canPay: false,
         quarter: 0,
         lastPayment: 0,
         nextPayment: 0,
         daysRemaining: 0,
+        status: 'Ошибка загрузки',
         cost: CONFIG.QUARTERLY_COST || '0.075',
         pensionBalance: '0'
       };
@@ -404,27 +428,108 @@ const dashboardModule = {
   async getTransactionEvents() {
     const { address } = this.userData;
     const events = [];
-
+    
     try {
-      // События покупки уровней
-      const levelFilter = this.contracts.globalWay.filters.LevelActivated(address);
-      const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, -10000);
-
-      for (const event of levelEvents) {
-        const block = await event.getBlock();
-        events.push({
-          level: Number(event.args.level),
-          amount: ethers.utils.formatEther(event.args.amount) + ' BNB',
-          date: new Date(block.timestamp * 1000).toLocaleDateString(),
-          txHash: event.transactionHash.slice(0, 10) + '...',
-          type: 'level',
-          typeLabel: 'Покупка уровня'
-        });
+      const BLOCKS_BACK = 50000;
+      
+      try {
+        const levelFilter = this.contracts.globalWay.filters.LevelActivated(address);
+        const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, -BLOCKS_BACK);
+      
+        for (const event of levelEvents) {
+          events.push({
+            blockNumber: event.blockNumber,
+            level: Number(event.args.level),
+            amount: ethers.utils.formatEther(event.args.amount) + ' BNB',
+            timestamp: 0,
+            txHash: event.transactionHash,
+            type: 'level',
+            typeLabel: 'Уровень покупки'
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Could not load level events:', e.message);
       }
-
-      events.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      return events.slice(0, 50);
+    
+      try {
+        const partnerFilter = this.contracts.partnerProgram.filters.PartnerPayment(null, address);
+        const partnerEvents = await this.contracts.partnerProgram.queryFilter(partnerFilter, -BLOCKS_BACK);
+        
+        for (const event of partnerEvents) {
+          events.push({
+            blockNumber: event.blockNumber,
+            level: Number(event.args.level || 0),
+            amount: ethers.utils.formatEther(event.args.amount) + ' BNB',
+            timestamp: 0,
+            txHash: event.transactionHash,
+            type: 'partner',
+            typeLabel: 'Партнерский бонус'
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Could not load partner events:', e.message);
+      }
+    
+      try {
+        const matrixFilter = this.contracts.matrixPayments.filters.MatrixPayment(null, address);
+        const matrixEvents = await this.contracts.matrixPayments.queryFilter(matrixFilter, -BLOCKS_BACK);
+      
+        for (const event of matrixEvents) {
+          events.push({
+            blockNumber: event.blockNumber,
+            level: Number(event.args.level || 0),
+            amount: ethers.utils.formatEther(event.args.amount) + ' BNB',
+            timestamp: 0,
+            txHash: event.transactionHash,
+            type: 'matrix',
+            typeLabel: 'Матричный бонус'
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Could not load matrix events:', e.message);
+      }
+    
+      try {
+        const quarterlyFilter = this.contracts.quarterlyPayments.filters.QuarterlyPaid(address);
+        const quarterlyEvents = await this.contracts.quarterlyPayments.queryFilter(quarterlyFilter, -BLOCKS_BACK);
+        
+        for (const event of quarterlyEvents) {
+          events.push({
+            blockNumber: event.blockNumber,
+            level: '-',
+            amount: ethers.utils.formatEther(event.args.amount || '0') + ' BNB',
+            timestamp: 0,
+            txHash: event.transactionHash,
+            type: 'quarterly',
+            typeLabel: 'Ежеквартальная активность'
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Could not load quarterly events:', e.message);
+      }
+    
+      events.sort((a, b) => b.blockNumber - a.blockNumber);
+    
+      const limitedEvents = events.slice(0, 50);
+    
+      for (const event of limitedEvents) {
+        try {
+          const block = await this.contracts.globalWay.provider.getBlock(event.blockNumber);
+          event.timestamp = block.timestamp;
+          event.date = new Date(block.timestamp * 1000).toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch (e) {
+          event.date = '-';
+        }
+      }
+    
+      return limitedEvents;
+    
     } catch (error) {
       console.error('❌ Error getting events:', error);
       return [];
