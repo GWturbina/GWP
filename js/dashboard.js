@@ -16,6 +16,8 @@ const dashboardModule = {
     tokenPriceTime: 0,
     cacheDuration: CONFIG.CACHE.tokenPriceDuration
   },
+
+    allEvents: [],
   
   userData: {
     address: null,
@@ -396,33 +398,51 @@ const dashboardModule = {
     try {
       const tableBody = document.getElementById('historyTable');
       if (!tableBody) return;
-
       console.log('📜 Loading transaction history...');
-
       tableBody.innerHTML = '<tr><td colspan="6" class="no-data">Загрузка...</td></tr>';
-
-      const events = await this.getTransactionEvents();
-
-      if (events.length === 0) {
+    
+      this.allEvents = await this.getTransactionEvents();
+    
+      if (this.allEvents.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="6" class="no-data">Нет транзакций</td></tr>';
         return;
       }
-
-      tableBody.innerHTML = events.map((event, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${event.level || '-'}</td>
-          <td>${event.amount}</td>
-          <td>${event.date}</td>
-          <td>${event.txHash}</td>
-          <td><span class="badge badge-${event.type}">${event.typeLabel}</span></td>
-        </tr>
-      `).join('');
+    
+      this.applyHistoryFilter();
 
       console.log('✅ Transaction history loaded');
     } catch (error) {
       console.error('❌ Error loading history:', error);
     }
+  },
+
+  applyHistoryFilter() {
+    const tableBody = document.getElementById('historyTable');
+    const filterSelect = document.getElementById('historyFilter');
+    
+    if (!tableBody || !filterSelect) return;
+  
+    const filterType = filterSelect.value;
+  
+    const filteredEvents = filterType === 'all' 
+      ? this.allEvents 
+      : this.allEvents.filter(e => e.type === filterType);
+  
+    if (filteredEvents.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="6" class="no-data">Нет транзакций выбранного типа</td></tr>';
+      return;
+    }
+    
+    tableBody.innerHTML = filteredEvents.map((event, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${event.level || '-'}</td>
+        <td>${event.amount}</td>
+        <td>${event.date}</td>
+        <td><a href="${CONFIG.NETWORK.blockExplorer}/tx/${event.txHash}" target="_blank" rel="noopener">${event.txHash.slice(0, 10)}...</a></td>
+        <td><span class="badge badge-${event.type}">${event.typeLabel}</span></td>
+      </tr>
+    `).join('');
   },
 
   async getTransactionEvents() {
@@ -902,7 +922,7 @@ const dashboardModule = {
   initUI() {
     const copyBtn = document.getElementById('copyRefLink');
     const refLinkInput = document.getElementById('refLink');
-    
+  
     if (copyBtn) {
       copyBtn.onclick = async () => {
         if (!refLinkInput || !refLinkInput.value) {
@@ -924,22 +944,27 @@ const dashboardModule = {
         }
       };
     }
-
+  
     const payBtn = document.getElementById('payActivityBtn');
     if (payBtn) {
       payBtn.onclick = () => this.payQuarterly();
     }
-
+  
     const historyFilter = document.getElementById('historyFilter');
     if (historyFilter) {
-      historyFilter.onchange = () => this.filterHistory();
+      historyFilter.addEventListener('change', () => {
+        this.applyHistoryFilter();
+      });
     }
-
-    const refreshBtn = document.getElementById('refreshHistory');
-    if (refreshBtn) {
-      refreshBtn.onclick = () => this.loadTransactionHistory();
+  
+    const refreshHistory = document.getElementById('refreshHistory');
+    if (refreshHistory) {
+      refreshHistory.onclick = async () => {
+        await this.loadTransactionHistory();
+        app.showNotification('История обновлена', 'success');
+      };
     }
-
+  
     console.log('✅ Dashboard UI initialized');
   },
 
