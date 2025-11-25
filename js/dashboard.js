@@ -448,14 +448,14 @@ const dashboardModule = {
   async getTransactionEvents() {
     const { address } = this.userData;
     const events = [];
-    
+  
     try {
       const BLOCKS_BACK = 10000;
       
       try {
         const levelFilter = this.contracts.globalWay.filters.LevelActivated(address);
         const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, -BLOCKS_BACK);
-      
+        
         for (const event of levelEvents) {
           events.push({
             blockNumber: event.blockNumber,
@@ -470,12 +470,12 @@ const dashboardModule = {
       } catch (e) {
         console.warn('⚠️ Could not load level events:', e.message);
       }
-    
+      
       try {
-        const partnerFilter = this.contracts.partnerProgram.filters.PartnerPayment(null, address);
-        const partnerEvents = await this.contracts.partnerProgram.queryFilter(partnerFilter, -BLOCKS_BACK);
+        const sponsorFilter = this.contracts.partnerProgram.filters.SponsorPaid(null, address);
+        const sponsorEvents = await this.contracts.partnerProgram.queryFilter(sponsorFilter, -BLOCKS_BACK);
         
-        for (const event of partnerEvents) {
+        for (const event of sponsorEvents) {
           events.push({
             blockNumber: event.blockNumber,
             level: Number(event.args.level || 0),
@@ -483,7 +483,22 @@ const dashboardModule = {
             timestamp: 0,
             txHash: event.transactionHash,
             type: 'partner',
-            typeLabel: 'Партнерский бонус'
+            typeLabel: 'Партнерский бонус (спонсор)'
+          });
+        }
+        
+        const uplineFilter = this.contracts.partnerProgram.filters.UplinePaid(null, address);
+        const uplineEvents = await this.contracts.partnerProgram.queryFilter(uplineFilter, -BLOCKS_BACK);
+      
+        for (const event of uplineEvents) {
+          events.push({
+            blockNumber: event.blockNumber,
+            level: Number(event.args.fromLevel || 0),
+            amount: ethers.utils.formatEther(event.args.amount) + ' BNB',
+            timestamp: 0,
+            txHash: event.transactionHash,
+            type: 'partner',
+            typeLabel: 'Партнерский бонус (апліния)'
           });
         }
       } catch (e) {
@@ -491,9 +506,9 @@ const dashboardModule = {
       }
     
       try {
-        const matrixFilter = this.contracts.matrixPayments.filters.MatrixPayment(null, address);
+        const matrixFilter = this.contracts.matrixPayments.filters.MatrixPaymentSent(null, address);
         const matrixEvents = await this.contracts.matrixPayments.queryFilter(matrixFilter, -BLOCKS_BACK);
-      
+        
         for (const event of matrixEvents) {
           events.push({
             blockNumber: event.blockNumber,
@@ -512,7 +527,7 @@ const dashboardModule = {
       try {
         const quarterlyFilter = this.contracts.quarterlyPayments.filters.QuarterlyPaid(address);
         const quarterlyEvents = await this.contracts.quarterlyPayments.queryFilter(quarterlyFilter, -BLOCKS_BACK);
-        
+      
         for (const event of quarterlyEvents) {
           events.push({
             blockNumber: event.blockNumber,
@@ -531,7 +546,7 @@ const dashboardModule = {
       events.sort((a, b) => b.blockNumber - a.blockNumber);
     
       const limitedEvents = events.slice(0, 50);
-    
+      
       for (const event of limitedEvents) {
         try {
           const block = await this.contracts.globalWay.provider.getBlock(event.blockNumber);
