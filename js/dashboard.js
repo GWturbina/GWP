@@ -450,7 +450,7 @@ const dashboardModule = {
     const events = [];
     
     try {
-      const BLOCKS_BACK = 50000;
+      const BLOCKS_BACK = 10000;
       
       try {
         const levelFilter = this.contracts.globalWay.filters.LevelActivated(address);
