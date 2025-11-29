@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Configuration
 // opBNB Mainnet (Chain ID: 204)
-// Deployed: November 24, 2025
+// Deployed: November 25, 2025
 // ═══════════════════════════════════════════════════════════════════
 
 const CONFIG = {
@@ -25,23 +25,23 @@ const CONFIG = {
   // SMART CONTRACTS ADDRESSES - ФИНАЛЬНЫЙ ДЕПЛОЙ 25.11.2025
   // ═══════════════════════════════════════════════════════════════
   CONTRACTS: {
-    GWTToken: '0x542Ca6F390ad8ab73C9BA10d9e3CE4FDFfda2261',
-    MatrixRegistry: '0x36ffc948b4c81aB941b23ba5Ce1feEbF1673fFE0',
-    GlobalWay: '0xad1519AD4351dd22b6e97637b06053eBED65d475',
-    PartnerProgram: '0xc005b178C6D5c695085D7C9BD38cDEC91CEcF1B3',
-    MatrixPayments: '0x25437453c67938a0D340Ab62c70Cfb5e1Ceb72e2',
-    QuarterlyPayments: '0xD3E69A69c31A3f4Acf24C5eE78D946A9B64F844d',
-    GlobalWayInvestment: '0xaF43e7A232dCb3DAF1c923d081ea8567aA9DB25a',
-    GlobalWayLeaderPool: '0x070CD1F46c1d8a8fCa52baf1a5Ab58e1437a4B76',
-    GlobalWayGovernance: '0xBf6b247933CD5Cd7F144A218b879A986fB008029',
-    GlobalWayBridge: '0x398C03828cA494e2125B2aFE284af9A255e0f56a',
-    GlobalWayStats: '0x27815548acf27d5B53462615151eFc3Ab7F4FD7e'
+    GWTToken: '0x47DB57C849Fce197c812713253042533E9DE88db',
+    MatrixRegistry: '0xC12b57B8B4BcE9134788FBb2290Cf4d496c4eE4a',
+    GlobalWay: '0xc6E769A790cE87f9Dd952Dca6Ac1A9526Bc0FBe7',
+    PartnerProgram: '0x3C6E1Ab1966847EF7473fA2dD1C476A1b882Dcf8',
+    MatrixPayments: '0x6309136AE07e5691CB71678Df0701A351aF93241',
+    QuarterlyPayments: '0x62B8ce8Cf1D7d6a47214DCdeE6882a3c4ccF9b9C',
+    GlobalWayInvestment: '0x27037b88500e02C1E9f28B7b23De381c983B4092',
+    GlobalWayLeaderPool: '0xF82AD2b0A486925726d16b9c9d7ef73A2871BC1B',
+    GlobalWayGovernance: '0x432cc35E3ddc19347c9Bc1Da812D22E68C36b98F',
+    GlobalWayBridge: '0x75231309172544886f27449446A9A2a43D5Ac801',
+    GlobalWayStats: '0xa2B6e2d4B1456eabc41042c30f134847bbbf7770'
   },
 
   // ═══════════════════════════════════════════════════════════════
   // ROOT ID - ДЛЯ ПЕРВЫХ РЕГИСТРАЦИЙ
   // ═══════════════════════════════════════════════════════════════
-  ROOT_ID: '7622603',
+  ROOT_ID: '9729645',
 
   // ═══════════════════════════════════════════════════════════════
   // ABI FILES - Относительные пути от js/config.js
@@ -126,6 +126,7 @@ const CONFIG = {
     ],
     
     directors: [
+      '0x7bCD1753868895971E12448412cB3216d47884c8',
       '0x48635e0ad72cf5e8e8ad722fd7d823ec7cb197d1',
       '0xde4fb5fb406c6356247bea6b4822b9b2e2c7fccf',
       '0x5e2572d9a414667babcd5c7b59ca643b09e48e46',
@@ -163,9 +164,9 @@ const CONFIG = {
   // GAS SETTINGS
   // ═══════════════════════════════════════════════════════════════
   GAS: {
-    register: 1500000,
-    buyLevel: 1500000,      // Было 800000 → теперь 1500000
-    payQuarterly: 1500000,  // Тоже увеличь на всякий случай
+    register: 1000000,
+    buyLevel: 1000000,      // Было 800000 → теперь 1000000
+    payQuarterly: 1000000,  // Тоже увеличь на всякий случай
     withdraw: 300000,
     defaultGasPrice: "0.001",
     maxGasPrice: "0.01"
