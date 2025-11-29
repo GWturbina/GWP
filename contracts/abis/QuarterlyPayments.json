@@ -1,6 +1,6 @@
 {
   "contractName": "QuarterlyPayments",
-  "address": "0xD3E69A69c31A3f4Acf24C5eE78D946A9B64F844d",
+  "address": "0x62B8ce8Cf1D7d6a47214DCdeE6882a3c4ccF9b9C",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -378,6 +378,31 @@
         {
           "indexed": false,
           "internalType": "uint256",
+          "name": "quarterNumber",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "TechQuarterlyPaidByMatrixPayments",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "techId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
           "name": "amount",
           "type": "uint256"
         },
@@ -548,6 +573,25 @@
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "authorizedBridges",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -766,6 +810,19 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "getQuarterlyPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "uint256",
@@ -879,6 +936,19 @@
     },
     {
       "inputs": [],
+      "name": "matrixPayments",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "matrixRegistry",
       "outputs": [
         {
@@ -919,6 +989,32 @@
     {
       "inputs": [],
       "name": "payQuarterly",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "payQuarterlyFor",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "techId",
+          "type": "uint256"
+        }
+      ],
+      "name": "payQuarterlyForTechAccount",
       "outputs": [],
       "stateMutability": "payable",
       "type": "function"
@@ -990,6 +1086,24 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "bridge",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "authorized",
+          "type": "bool"
+        }
+      ],
+      "name": "setAuthorizedBridge",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "_globalWay",
           "type": "address"
         }
@@ -1008,6 +1122,19 @@
         }
       ],
       "name": "setGovernance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_matrixPayments",
+          "type": "address"
+        }
+      ],
+      "name": "setMatrixPayments",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
