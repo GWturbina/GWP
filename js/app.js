@@ -195,7 +195,7 @@ const app = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
   // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   
@@ -218,9 +218,9 @@ const app = {
     try {
       console.log('🔍 Checking registration status for:', this.state.userAddress);
       
-      const matrixRegistry = await this.getContract('MatrixRegistry');  // ← СНАЧАЛА загрузить
+      const matrixRegistry = await this.getContract('MatrixRegistry');
       const globalWay = await this.getContract('GlobalWay');
-      const isRegistered = await matrixRegistry.isRegistered(this.state.userAddress);  // ← ПОТОМ вызвать
+      const isRegistered = await matrixRegistry.isRegistered(this.state.userAddress);
       
       console.log('📋 Registration status:', isRegistered);
       
@@ -228,7 +228,7 @@ const app = {
         console.log('✅ User is already registered');
         this.state.isRegistered = true;
         
-        const userId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);  // ← matrixRegistry уже есть
+        const userId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
         this.state.userId = userId.toString();
         console.log('🆔 User ID:', this.state.userId);
         
@@ -307,7 +307,6 @@ const app = {
       
       this.state.isRegistered = true;
       
-      const matrixRegistry = await this.getContract("MatrixRegistry");
       const newUserId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
       this.state.userId = newUserId.toString();
 
