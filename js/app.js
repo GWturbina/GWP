@@ -220,7 +220,7 @@ const app = {
       console.log('🔍 Checking registration status for:', this.state.userAddress);
       
       const globalWay = await this.getContract('GlobalWay');
-      const isRegistered = await globalWay.isUserRegistered(this.state.userAddress);
+      const isRegistered = await matrixRegistry.isRegistered(this.state.userAddress);
       
       console.log('📋 Registration status:', isRegistered);
       
