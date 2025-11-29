@@ -159,43 +159,38 @@ const app = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
-  // ═══════════════════════════════════════════════════════════════
-  async loadUserData() {
-    try {
-      const { userAddress } = this.state;
-      if (!userAddress) return;
-
-      console.log('📊 Loading user data...');
-
-      // Получаем контракты
-      const matrixRegistry = await this.getContract('MatrixRegistry');
-      const globalWay = await this.getContract('GlobalWay');
-
-      // Проверяем регистрацию
-      this.state.isRegistered = await globalWay.isUserRegistered(userAddress);
-
-      if (this.state.isRegistered) {
-        // Получаем ID пользователя
-        const userId = await matrixRegistry.getUserIdByAddress(userAddress);
-        this.state.userId = userId.toString();
-        
-        // Получаем максимальный уровень
-        const maxLevel = await globalWay.getUserMaxLevel(userAddress);
-        this.state.maxLevel = Number(maxLevel);
-
-        console.log('✅ User data loaded:', {
-          address: userAddress,
-          userId: this.state.userId,
-          maxLevel: this.state.maxLevel
-        });
+    // ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
+    // ═══════════════════════════════════════════════════════════════
+    async loadUserData() {
+      try {
+        const { userAddress } = this.state;
+        if (!userAddress) return;
+        console.log('📊 Loading user data...');
+        // Получаем контракты
+        const matrixRegistry = await this.getContract('MatrixRegistry');
+        const globalWay = await this.getContract('GlobalWay');
+        // Проверяем регистрацию
+        this.state.isRegistered = await matrixRegistry.isRegistered(userAddress);
+        if (this.state.isRegistered) {
+          // Получаем ID пользователя
+          const userId = await matrixRegistry.getUserIdByAddress(userAddress);
+          this.state.userId = userId.toString();
+          
+          // Получаем максимальный уровень
+          const maxLevel = await globalWay.getUserMaxLevel(userAddress);
+          this.state.maxLevel = Number(maxLevel);
+          console.log('✅ User data loaded:', {
+            address: userAddress,
+            userId: this.state.userId,
+            maxLevel: this.state.maxLevel
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error loading user data:', error);
       }
-    } catch (error) {
-      console.error('❌ Error loading user data:', error);
-    }
-  },
+    },
 
-// ═══════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
   // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   
