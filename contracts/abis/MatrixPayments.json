@@ -1,6 +1,6 @@
 {
   "contractName": "MatrixPayments",
-  "address": "0x25437453c67938a0D340Ab62c70Cfb5e1Ceb72e2",
+  "address": "0x6309136AE07e5691CB71678Df0701A351aF93241",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -84,7 +84,7 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "user",
+          "name": "from",
           "type": "address"
         },
         {
@@ -254,6 +254,99 @@
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "techId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "fromLevel",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "toLevel",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "TechAutoUpgradeExecuted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "techId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "toAutoUpgrade",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "toQuarterly",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "toCompany",
+          "type": "uint256"
+        }
+      ],
+      "name": "TechPaymentReceived",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "techId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "quarterNumber",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "TechQuarterlyPaid",
+      "type": "event"
+    },
+    {
       "inputs": [],
       "name": "AUTO_UPGRADE_START_LEVEL",
       "outputs": [
@@ -295,6 +388,19 @@
     {
       "inputs": [],
       "name": "MAX_LEVEL",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "MAX_QUARTERLY_PAYMENTS",
       "outputs": [
         {
           "internalType": "uint8",
@@ -521,6 +627,98 @@
     {
       "inputs": [
         {
+          "internalType": "uint256",
+          "name": "techId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTechAccountInfo",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "currentMaxLevel",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bool",
+          "name": "autoUpgradeComplete",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "frozenAutoUpgrade",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "quartersPaid",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bool",
+          "name": "quarterlyComplete",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "frozenQuarterly",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nextQuarterlyDue",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalReceived",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalToCompany",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getTechStats",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "techReceived",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "techAutoUpgraded",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "techQuarterlyPaid",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "techToCompany",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "address",
           "name": "user",
           "type": "address"
@@ -625,6 +823,19 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "quarterlyPayments",
+      "outputs": [
+        {
+          "internalType": "contract IQuarterlyPayments",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -690,6 +901,88 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "_quarterlyPayments",
+          "type": "address"
+        }
+      ],
+      "name": "setQuarterlyPayments",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "techAccounts",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "odixId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "frozenAutoUpgrade",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "currentMaxLevel",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bool",
+          "name": "autoUpgradeComplete",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "frozenQuarterly",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "quartersPaid",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bool",
+          "name": "quarterlyComplete",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "nextQuarterlyDue",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalReceived",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalToCompany",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "",
           "type": "address"
         }
@@ -740,6 +1033,58 @@
     {
       "inputs": [],
       "name": "totalFrozen",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalTechAutoUpgraded",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalTechQuarterlyPaid",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalTechReceived",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalTechToCompany",
       "outputs": [
         {
           "internalType": "uint256",
