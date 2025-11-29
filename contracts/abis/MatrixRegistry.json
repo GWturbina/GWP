@@ -1,6 +1,6 @@
 {
   "contractName": "MatrixRegistry",
-  "address": "0x36ffc948b4c81aB941b23ba5Ce1feEbF1673fFE0",
+  "address": "0xC12b57B8B4BcE9134788FBb2290Cf4d496c4eE4a",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -306,6 +306,25 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "createMatrixNodeOnActivation",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "owner",
           "type": "address"
         }
@@ -582,7 +601,7 @@
       "outputs": [
         {
           "internalType": "bool",
-          "name": "",
+          "name": "isRegistered_",
           "type": "bool"
         },
         {
@@ -604,6 +623,30 @@
           "internalType": "address[]",
           "name": "directReferrals",
           "type": "address[]"
+        },
+        {
+          "internalType": "bool",
+          "name": "hasMatrixNode_",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "hasMatrixNode",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -742,11 +785,16 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "rootAddress",
+          "name": "user",
           "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
         }
       ],
-      "name": "registerRoot",
+      "name": "registerFor",
       "outputs": [
         {
           "internalType": "uint256",
@@ -761,16 +809,11 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "user",
+          "name": "rootAddress",
           "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "sponsorId",
-          "type": "uint256"
         }
       ],
-      "name": "registerUser",
+      "name": "registerRoot",
       "outputs": [
         {
           "internalType": "uint256",
