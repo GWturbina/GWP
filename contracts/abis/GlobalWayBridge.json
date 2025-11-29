@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWayBridge",
-  "address": "0x398C03828cA494e2125B2aFE284af9A255e0f56a",
+  "address": "0x75231309172544886f27449446A9A2a43D5Ac801",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -9,6 +9,16 @@
         {
           "internalType": "address",
           "name": "_globalWay",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_matrixRegistry",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_quarterlyPayments",
           "type": "address"
         }
       ],
@@ -47,31 +57,6 @@
       "inputs": [
         {
           "indexed": true,
-          "internalType": "string",
-          "name": "projectID",
-          "type": "string"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "enum GlobalWayBridge.UserStatus",
-          "name": "status",
-          "type": "uint8"
-        }
-      ],
-      "name": "AccessChecked",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
           "internalType": "address",
           "name": "director",
           "type": "address"
@@ -91,6 +76,74 @@
         }
       ],
       "name": "DirectorRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "level",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        }
+      ],
+      "name": "LevelActivatedFromProject",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "fromLevel",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "toLevel",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "totalPrice",
+          "type": "uint256"
+        }
+      ],
+      "name": "MultipleLevelsActivatedFromProject",
       "type": "event"
     },
     {
@@ -132,12 +185,6 @@
           "internalType": "address",
           "name": "wallet",
           "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "tokenAddress",
-          "type": "address"
         }
       ],
       "name": "ProjectRegistered",
@@ -157,16 +204,138 @@
       "type": "event"
     },
     {
+      "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "indexed": false,
           "internalType": "address",
-          "name": "newDirector",
+          "name": "newWallet",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newToken",
           "type": "address"
         }
       ],
-      "name": "addDirector",
+      "name": "ProjectUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "QuarterlyPaidFromProject",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "odixId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
+        }
+      ],
+      "name": "UserRegisteredFromProject",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "odixId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "enum GlobalWayBridge.AccessRank",
+          "name": "rank",
+          "type": "uint8"
+        }
+      ],
+      "name": "UserStatusRequested",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "level",
+          "type": "uint8"
+        }
+      ],
+      "name": "activateLevel",
       "outputs": [],
-      "stateMutability": "nonpayable",
+      "stateMutability": "payable",
       "type": "function"
     },
     {
@@ -180,43 +349,33 @@
           "internalType": "address",
           "name": "user",
           "type": "address"
-        }
-      ],
-      "name": "checkUserAccess",
-      "outputs": [
+        },
         {
-          "components": [
-            {
-              "internalType": "bool",
-              "name": "isRegistered",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint8",
-              "name": "maxLevel",
-              "type": "uint8"
-            },
-            {
-              "internalType": "enum GlobalWayBridge.UserStatus",
-              "name": "userStatus",
-              "type": "uint8"
-            },
-            {
-              "internalType": "bool",
-              "name": "quarterlyActive",
-              "type": "bool"
-            },
-            {
-              "internalType": "address",
-              "name": "sponsor",
-              "type": "address"
-            }
-          ],
-          "internalType": "struct GlobalWayBridge.UserAccessStatus",
-          "name": "",
-          "type": "tuple"
+          "internalType": "uint8",
+          "name": "fromLevel",
+          "type": "uint8"
+        },
+        {
+          "internalType": "uint8",
+          "name": "toLevel",
+          "type": "uint8"
         }
       ],
+      "name": "activateMultipleLevels",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newDirector",
+          "type": "address"
+        }
+      ],
+      "name": "addDirector",
+      "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -252,8 +411,27 @@
       "outputs": [
         {
           "internalType": "uint256",
-          "name": "",
+          "name": "count",
           "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "odixId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getAddressByOdixId",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -274,12 +452,88 @@
     },
     {
       "inputs": [],
+      "name": "getAllProjectsStats",
+      "outputs": [
+        {
+          "internalType": "string[]",
+          "name": "ids",
+          "type": "string[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "registrations",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "activations",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "volumes",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "getDirectors",
       "outputs": [
         {
           "internalType": "address[]",
           "name": "",
           "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint8",
+          "name": "level",
+          "type": "uint8"
+        }
+      ],
+      "name": "getLevelPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "fromLevel",
+          "type": "uint8"
+        },
+        {
+          "internalType": "uint8",
+          "name": "toLevel",
+          "type": "uint8"
+        }
+      ],
+      "name": "getMultipleLevelsPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalPrice",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -319,6 +573,91 @@
           "internalType": "uint256",
           "name": "registeredAt",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalRegistrations",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalActivations",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalVolume",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getQuarterlyPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint8",
+          "name": "package",
+          "type": "uint8"
+        }
+      ],
+      "name": "getRankForPackage",
+      "outputs": [
+        {
+          "internalType": "enum GlobalWayBridge.AccessRank",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "enum GlobalWayBridge.AccessRank",
+          "name": "rank",
+          "type": "uint8"
+        }
+      ],
+      "name": "getRankName",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserOdixId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -332,39 +671,31 @@
           "type": "address"
         }
       ],
-      "name": "getUserAccessStatus",
+      "name": "getUserOrigin",
       "outputs": [
         {
-          "components": [
-            {
-              "internalType": "bool",
-              "name": "isRegistered",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint8",
-              "name": "maxLevel",
-              "type": "uint8"
-            },
-            {
-              "internalType": "enum GlobalWayBridge.UserStatus",
-              "name": "userStatus",
-              "type": "uint8"
-            },
-            {
-              "internalType": "bool",
-              "name": "quarterlyActive",
-              "type": "bool"
-            },
-            {
-              "internalType": "address",
-              "name": "sponsor",
-              "type": "address"
-            }
-          ],
-          "internalType": "struct GlobalWayBridge.UserAccessStatus",
+          "internalType": "string",
           "name": "",
-          "type": "tuple"
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserRank",
+      "outputs": [
+        {
+          "internalType": "enum GlobalWayBridge.AccessRank",
+          "name": "",
+          "type": "uint8"
         }
       ],
       "stateMutability": "view",
@@ -381,29 +712,46 @@
       "name": "getUserStatus",
       "outputs": [
         {
-          "internalType": "bool",
-          "name": "isRegistered",
-          "type": "bool"
-        },
-        {
-          "internalType": "uint8",
-          "name": "maxLevel",
-          "type": "uint8"
-        },
-        {
-          "internalType": "enum GlobalWayBridge.UserStatus",
-          "name": "userStatus",
-          "type": "uint8"
-        },
-        {
-          "internalType": "bool",
-          "name": "quarterlyActive",
-          "type": "bool"
-        },
-        {
-          "internalType": "address",
-          "name": "sponsor",
-          "type": "address"
+          "components": [
+            {
+              "internalType": "bool",
+              "name": "isRegistered",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "odixId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint8",
+              "name": "maxPackage",
+              "type": "uint8"
+            },
+            {
+              "internalType": "enum GlobalWayBridge.AccessRank",
+              "name": "rank",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bool",
+              "name": "quarterlyActive",
+              "type": "bool"
+            },
+            {
+              "internalType": "address",
+              "name": "sponsor",
+              "type": "address"
+            },
+            {
+              "internalType": "bool[12]",
+              "name": "activeLevels",
+              "type": "bool[12]"
+            }
+          ],
+          "internalType": "struct GlobalWayBridge.UserStatus",
+          "name": "status",
+          "type": "tuple"
         }
       ],
       "stateMutability": "view",
@@ -412,20 +760,62 @@
     {
       "inputs": [
         {
-          "internalType": "enum GlobalWayBridge.UserStatus",
-          "name": "status",
-          "type": "uint8"
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
         }
       ],
-      "name": "getUserStatusName",
+      "name": "getUserStatusForProject",
       "outputs": [
         {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
+          "components": [
+            {
+              "internalType": "bool",
+              "name": "isRegistered",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "odixId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint8",
+              "name": "maxPackage",
+              "type": "uint8"
+            },
+            {
+              "internalType": "enum GlobalWayBridge.AccessRank",
+              "name": "rank",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bool",
+              "name": "quarterlyActive",
+              "type": "bool"
+            },
+            {
+              "internalType": "address",
+              "name": "sponsor",
+              "type": "address"
+            },
+            {
+              "internalType": "bool[12]",
+              "name": "activeLevels",
+              "type": "bool[12]"
+            }
+          ],
+          "internalType": "struct GlobalWayBridge.UserStatus",
+          "name": "status",
+          "type": "tuple"
         }
       ],
-      "stateMutability": "pure",
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -466,6 +856,49 @@
           "internalType": "address",
           "name": "user",
           "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "level",
+          "type": "uint8"
+        }
+      ],
+      "name": "isLevelActive",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "isQuarterlyActive",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
         }
       ],
       "name": "isUserRegistered",
@@ -474,6 +907,19 @@
           "internalType": "bool",
           "name": "",
           "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "matrixRegistry",
+      "outputs": [
+        {
+          "internalType": "contract IMatrixRegistry",
+          "name": "",
+          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -490,6 +936,24 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "payQuarterly",
+      "outputs": [],
+      "stateMutability": "payable",
       "type": "function"
     },
     {
@@ -550,6 +1014,34 @@
           "internalType": "uint256",
           "name": "registeredAt",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalRegistrations",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalActivations",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalVolume",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "quarterlyPayments",
+      "outputs": [
+        {
+          "internalType": "contract IQuarterlyPayments",
+          "name": "",
+          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -580,6 +1072,64 @@
       ],
       "name": "registerProject",
       "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
+        }
+      ],
+      "name": "registerUser",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "odixId",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "projectID",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "sponsorAddress",
+          "type": "address"
+        }
+      ],
+      "name": "registerUserBySponsorAddress",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "odixId",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -633,6 +1183,32 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "_matrixRegistry",
+          "type": "address"
+        }
+      ],
+      "name": "setMatrixRegistry",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_quarterlyPayments",
+          "type": "address"
+        }
+      ],
+      "name": "setQuarterlyPayments",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "newOwner",
           "type": "address"
         }
@@ -651,7 +1227,7 @@
         },
         {
           "internalType": "address",
-          "name": "newTokenAddress",
+          "name": "newToken",
           "type": "address"
         }
       ],
@@ -676,6 +1252,25 @@
       "name": "updateProjectWallet",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "userOriginProject",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
