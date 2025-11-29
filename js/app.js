@@ -1,13 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Main Application Controller
-// ПОЛНОСТЬЮ ПЕРЕПИСАН под новые контракты
-// Date: 2025-01-19
+// ИСПРАВЛЕНО: Регистрация через GlobalWay + правильный ROOT_ID
+// Date: 2025-11-30
 // ═══════════════════════════════════════════════════════════════════
 
 const app = {
-  // ═══════════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════════
   state: {
     currentPage: null,
     userAddress: null,
@@ -21,30 +18,16 @@ const app = {
     activationModalShown: false
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ИНИЦИАЛИЗАЦИЯ
-  // ═══════════════════════════════════════════════════════════════
   async init() {
     console.log('🚀 Initializing GlobalWay DApp...');
-    
     try {
-      // Ждем загрузки Web3
       await this.waitForWeb3();
-      
-      // Инициализируем кнопку подключения
       this.initConnectButton();
-      
-      // Проверяем подключение кошелька
       await this.checkWalletConnection();
-
-      // Проверяем landing или dapp
       if (!window.location.hash && !this.state.isLandingSkipped) {
-        console.log('🔄 Showing landing page...');
         this.showLanding();
         return;
       }
-      
-      // Если есть hash - показываем dapp
       const hash = window.location.hash.substring(1);
       if (hash) {
         this.state.isLandingSkipped = true;
@@ -55,7 +38,6 @@ const app = {
       } else {
         this.showLanding();
       }
-      
       console.log('✅ App initialized successfully');
     } catch (error) {
       console.error('❌ App initialization failed:', error);
@@ -78,9 +60,6 @@ const app = {
     if (dapp) dapp.classList.add('active');
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ПОДКЛЮЧЕНИЕ КОШЕЛЬКА
-  // ═══════════════════════════════════════════════════════════════
   initConnectButton() {
     const connectBtn = document.getElementById('connectBtn');
     if (connectBtn) {
@@ -96,20 +75,15 @@ const app = {
         this.showNotification('Web3 Manager не загружен', 'error');
         return;
       }
-
       this.showNotification('Подключение кошелька...', 'info');
-      
       await window.web3Manager.connect();
-      
       if (window.web3Manager.isConnected) {
         this.state.userAddress = window.web3Manager.currentAccount;
-        
         this.updateWalletUI();
         await this.loadUserData();
         await this.checkAndAutoRegister();
         this.checkAndShowActivationModal();
         await this.loadCurrentPage();
-        
         this.showNotification('Кошелек подключен!', 'success');
       }
     } catch (error) {
@@ -121,11 +95,8 @@ const app = {
   updateWalletUI() {
     const walletAddress = document.getElementById('walletAddress');
     const connectBtn = document.getElementById('connectBtn');
-    
     if (this.state.userAddress) {
-      if (walletAddress) {
-        walletAddress.textContent = this.formatAddress(this.state.userAddress);
-      }
+      if (walletAddress) walletAddress.textContent = this.formatAddress(this.state.userAddress);
       if (connectBtn) {
         connectBtn.textContent = 'Connected';
         connectBtn.style.background = '#00ff00';
@@ -158,53 +129,35 @@ const app = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-    // ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
-    // ═══════════════════════════════════════════════════════════════
-    async loadUserData() {
-      try {
-        const { userAddress } = this.state;
-        if (!userAddress) return;
-        console.log('📊 Loading user data...');
-        // Получаем контракты
-        const matrixRegistry = await this.getContract('MatrixRegistry');
-        const globalWay = await this.getContract('GlobalWay');
-        // Проверяем регистрацию
-        this.state.isRegistered = await matrixRegistry.isRegistered(userAddress);
-        if (this.state.isRegistered) {
-          // Получаем ID пользователя
-          const userId = await matrixRegistry.getUserIdByAddress(userAddress);
-          this.state.userId = userId.toString();
-          
-          // Получаем максимальный уровень
-          const maxLevel = await globalWay.getUserMaxLevel(userAddress);
-          this.state.maxLevel = Number(maxLevel);
-          console.log('✅ User data loaded:', {
-            address: userAddress,
-            userId: this.state.userId,
-            maxLevel: this.state.maxLevel
-          });
-        }
-      } catch (error) {
-        console.error('❌ Error loading user data:', error);
+  async loadUserData() {
+    try {
+      const { userAddress } = this.state;
+      if (!userAddress) return;
+      console.log('📊 Loading user data...');
+      const matrixRegistry = await this.getContract('MatrixRegistry');
+      const globalWay = await this.getContract('GlobalWay');
+      this.state.isRegistered = await matrixRegistry.isRegistered(userAddress);
+      if (this.state.isRegistered) {
+        const userId = await matrixRegistry.getUserIdByAddress(userAddress);
+        this.state.userId = userId.toString();
+        const maxLevel = await globalWay.getUserMaxLevel(userAddress);
+        this.state.maxLevel = Number(maxLevel);
+        console.log('✅ User data loaded:', { address: userAddress, userId: this.state.userId, maxLevel: this.state.maxLevel });
       }
-    },
+    } catch (error) {
+      console.error('❌ Error loading user data:', error);
+    }
+  },
 
-  // ═══════════════════════════════════════════════════════════════
-  // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ
-  // ═══════════════════════════════════════════════════════════════
-  
   getReferralFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
-    
     const refFromURL = urlParams.get('ref') || urlParams.get('sponsor');
     const refFromHash = hashParams.get('ref') || hashParams.get('sponsor');
-    
     return refFromURL || refFromHash || null;
   },
 
-
+  // ✅ ИСПРАВЛЕНО: Регистрация через GlobalWay.register()
   async checkAndAutoRegister() {
     if (!this.state.userAddress) {
       console.log('⚠️ No user address, skipping registration check');
@@ -212,21 +165,17 @@ const app = {
     }
     try {
       console.log('🔍 Checking registration status for:', this.state.userAddress);
-      
       const matrixRegistry = await this.getContract('MatrixRegistry');
       const globalWay = await this.getContract('GlobalWay');
       const isRegistered = await matrixRegistry.isRegistered(this.state.userAddress);
-      
       console.log('📋 Registration status:', isRegistered);
       
       if (isRegistered) {
         console.log('✅ User is already registered');
         this.state.isRegistered = true;
-        
         const userId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
         this.state.userId = userId.toString();
         console.log('🆔 User ID:', this.state.userId);
-        
         try {
           const maxLevel = await globalWay.getUserMaxLevel(this.state.userAddress);
           this.state.maxLevel = Number(maxLevel);
@@ -234,140 +183,95 @@ const app = {
         } catch (error) {
           console.warn('⚠️ Could not load maxLevel:', error);
         }
-        
-        setTimeout(() => {
-          this.checkAndShowActivationModal();
-        }, 1000);
-        
+        setTimeout(() => { this.checkAndShowActivationModal(); }, 1000);
         return;
       }
       
       console.log('🆕 User not registered');
-      
+      const sponsorId = await this.getSponsorId();
+      console.log('🎯 Resolved sponsor ID:', sponsorId);
       const referralCode = this.getReferralFromURL();
-      let sponsorId = null;
-      
-      if (referralCode) {
-        console.log('🔗 Found referral code:', referralCode);
-        sponsorId = await this.getSponsorId();
-        console.log('🎯 Resolved sponsor ID:', sponsorId);
-      }
       
       const message = referralCode 
-        ? `Добро пожаловать в GlobalWay!\n\nВас пригласил партнёр с ID: ${sponsorId}\n\nРегистрация БЕСПЛАТНАЯ и займет несколько секунд.\n\nЗарегистрироваться сейчас?`
-        : `Добро пожаловать в GlobalWay!\n\nДля начала работы необходимо зарегистрироваться.\nРегистрация БЕСПЛАТНАЯ и займет несколько секунд.\n\nЗарегистрироваться сейчас?`;
+        ? `Добро пожаловать в GlobalWay!\n\nВас пригласил партнёр с ID: ${sponsorId}\n\nРегистрация БЕСПЛАТНАЯ.\n\nЗарегистрироваться?`
+        : `Добро пожаловать в GlobalWay!\n\nВы будете зарегистрированы под ROOT (ID: ${CONFIG.ROOT_ID})\n\nРегистрация БЕСПЛАТНАЯ.\n\nЗарегистрироваться?`;
       
       const wantsToRegister = confirm(message);
-      
       if (!wantsToRegister) {
         this.showNotification('Регистрация отменена', 'info');
         return;
       }
       
-      console.log('🚀 Starting registration...');
-      
-      if (!sponsorId) {
-        sponsorId = await this.getSponsorId();
-      }
-      
-      console.log('🎯 Using sponsor ID:', sponsorId);
-      
+      console.log('🚀 Starting registration with sponsor ID:', sponsorId);
       if (!sponsorId || sponsorId === '0') {
         throw new Error('Invalid sponsor ID: ' + sponsorId);
       }
       
-      console.log('📝 Calling MatrixRegistry.register(' + sponsorId + ')...');
-
-      const matrixRegistrySigned = await this.getSignedContract('MatrixRegistry');
-      if (!matrixRegistrySigned) {
-        throw new Error('Failed to get signed MatrixRegistry contract');
+      // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Вызываем GlobalWay.register()
+      console.log('📝 Calling GlobalWay.register(' + sponsorId + ')...');
+      const globalWaySigned = await this.getSignedContract('GlobalWay');
+      if (!globalWaySigned) {
+        throw new Error('Failed to get signed GlobalWay contract');
       }
-
+      
       console.log('✅ Signed contract ready, requesting transaction...');
       this.showNotification('Подтвердите транзакцию в кошельке...', 'info');
-      const registerTx = await matrixRegistrySigned.register(sponsorId, { 
-        gasLimit: CONFIG.GAS.register 
-      });
-
+      
+      const registerTx = await globalWaySigned.register(sponsorId, { gasLimit: CONFIG.GAS.register });
       console.log('⏳ Transaction sent:', registerTx.hash);
-      console.log('⏳ Waiting for confirmation...');
-
       this.showNotification('Регистрация... Ожидайте подтверждения.', 'info');
-
+      
       const receipt = await registerTx.wait();
       console.log('✅ Transaction confirmed:', receipt.transactionHash);
-
-      this.state.isRegistered = true;
       
+      this.state.isRegistered = true;
       const newUserId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
       this.state.userId = newUserId.toString();
-
-      console.log('✅ Registration completed!');
-      console.log('   Transaction hash:', receipt.transactionHash);
-      console.log('   Your new ID:', this.state.userId);
-
-      this.showNotification(
-        `✅ Регистрация завершена!\n\nВаш ID: GW${this.state.userId}\n\nТеперь активируйте первый уровень!`, 
-        'success'
-      );
-
+      
+      console.log('✅ Registration completed! ID:', this.state.userId);
+      this.showNotification(`✅ Регистрация завершена!\nВаш ID: GW${this.state.userId}`, 'success');
+      
       await this.loadUserData();
       await this.loadCurrentPage();
-
-      setTimeout(() => {
-        this.showActivationModal();
-      }, 1500);
-
+      setTimeout(() => { this.showActivationModal(); }, 1500);
+      
     } catch (error) {
       console.error('❌ Registration error:', error);
-      console.error('   Error code:', error.code);
-      console.error('   Error message:', error.message);
-      
       if (error.code === 4001) {
         this.showNotification('Действие отменено пользователем', 'info');
-      } else if (error.code === -32603) {
-        this.showNotification('Ошибка выполнения транзакции. Проверьте баланс BNB.', 'error');
       } else if (error.message && error.message.includes('Already registered')) {
-        console.log('⚠️ User already registered (from error)');
         this.state.isRegistered = true;
         await this.loadUserData();
         this.showNotification('Вы уже зарегистрированы!', 'info');
-      } else if (error.message && error.message.includes('Sponsor not registered')) {
-        this.showNotification('Ошибка: спонсор не зарегистрирован', 'error');
-      } else if (error.message && error.message.includes('Invalid sponsor')) {
-        this.showNotification('Ошибка: неверный ID спонсора', 'error');
+      } else if (error.message && error.message.includes('Sponsor not found')) {
+        this.showNotification('Ошибка: спонсор не найден в системе', 'error');
       } else {
         this.showNotification('Ошибка: ' + (error.message || 'Неизвестная ошибка'), 'error');
       }
     }
   },
 
-
+  // ✅ ИСПРАВЛЕНО: Fallback на CONFIG.ROOT_ID
   async getSponsorId() {
     const refCode = this.getReferralFromURL();
     console.log('🔍 Getting sponsor ID for ref code:', refCode);
     
     if (!refCode) {
-      console.log('ℹ️ No referral code, using default sponsor ID: 1');
-      return '1';
+      console.log('ℹ️ No referral code, using ROOT_ID:', CONFIG.ROOT_ID);
+      return CONFIG.ROOT_ID;
     }
-
+    
     try {
       const matrixRegistry = await this.getContract('MatrixRegistry');
       
       if (refCode.startsWith('GW') || /^\d+$/.test(refCode)) {
         const id = refCode.replace(/^GW/i, '');
         console.log('🔢 Checking numeric ID:', id);
-        
         try {
           const address = await matrixRegistry.getAddressById(id);
-          console.log('📍 Address for ID', id, ':', address);
-          
           if (address && address !== ethers.constants.AddressZero) {
             console.log('✅ Valid sponsor ID:', id);
             return id;
-          } else {
-            console.warn('⚠️ Invalid sponsor ID (zero address):', id);
           }
         } catch (error) {
           console.error('❌ Error checking ID:', id, error);
@@ -376,16 +280,11 @@ const app = {
       
       if (refCode.startsWith('0x')) {
         console.log('🔍 Checking address:', refCode);
-        
         try {
           const userId = await matrixRegistry.getUserIdByAddress(refCode);
-          console.log('🆔 User ID for address:', userId.toString());
-          
           if (userId && userId.toString() !== '0') {
             console.log('✅ Valid sponsor from address:', userId.toString());
             return userId.toString();
-          } else {
-            console.warn('⚠️ Address not registered:', refCode);
           }
         } catch (error) {
           console.error('❌ Error checking address:', refCode, error);
@@ -394,312 +293,153 @@ const app = {
     } catch (error) {
       console.error('❌ Error getting sponsor ID:', error);
     }
-
-    console.log('ℹ️ Falling back to default sponsor ID: 1');
-    return '1';
+    
+    console.log('ℹ️ Falling back to ROOT_ID:', CONFIG.ROOT_ID);
+    return CONFIG.ROOT_ID;
   },
 
-
-  // ═══════════════════════════════════════════════════════════════
-  // МОДАЛЬНОЕ ОКНО АКТИВАЦИИ
-  // ═══════════════════════════════════════════════════════════════
-
   checkAndShowActivationModal() {
-    console.log('🔍 Checking activation modal conditions:');
-    console.log('   isRegistered:', this.state.isRegistered);
-    console.log('   maxLevel:', this.state.maxLevel);
-    console.log('   activationModalShown:', this.state.activationModalShown);
-    
-    if (this.state.isRegistered && 
-        this.state.maxLevel === 0 && 
-        !this.state.activationModalShown) {
-      
+    console.log('🔍 Checking activation modal conditions:', { isRegistered: this.state.isRegistered, maxLevel: this.state.maxLevel, shown: this.state.activationModalShown });
+    if (this.state.isRegistered && this.state.maxLevel === 0 && !this.state.activationModalShown) {
       console.log('✅ Conditions met for activation modal');
-      
-      setTimeout(() => {
-        this.showActivationModal();
-      }, 2000);
-    } else {
-      console.log('❌ Conditions NOT met for activation modal');
+      setTimeout(() => { this.showActivationModal(); }, 2000);
     }
   },
 
   showActivationModal() {
-    if (this.state.activationModalShown) {
-      console.log('⚠️ Activation modal already shown');
-      return;
-    }
-
+    if (this.state.activationModalShown) return;
     console.log('🎯 Showing activation modal...');
-    
     if (!document.getElementById('activationModal')) {
       this.createActivationModal();
     }
-    
     this.showModal('activationModal');
     this.state.activationModalShown = true;
   },
 
   createActivationModal() {
-    console.log('🔧 Creating activation modal...');
-    
     const modalHTML = `
     <div id="activationModal" class="modal cosmic-modal">
-        <div class="modal-content cosmic-card">
-            <div class="modal-header cosmic-header">
-                <div class="header-icon">🚀</div>
-                <h2>Добро пожаловать в GlobalWay!</h2>
-                <p>Ваш ID: <span class="user-id">GW${this.state.userId}</span></p>
-            </div>
-            
-            <div class="modal-body">
-                <div class="feature-section">
-                    <h3>🎯 Начните зарабатывать!</h3>
-                    <p>Активируйте первый уровень чтобы открыть все возможности платформы</p>
-                    
-                    <div class="features-grid">
-                        <div class="feature-item">
-                            <span class="feature-icon">📊</span>
-                            <span>Реферальная система</span>
-                        </div>
-                        <div class="feature-item">
-                            <span class="feature-icon">🌐</span>
-                            <span>Матричная структура</span>
-                        </div>
-                        <div class="feature-item">
-                            <span class="feature-icon">💰</span>
-                            <span>Выплаты и бонусы</span>
-                        </div>
-                        <div class="feature-item">
-                            <span class="feature-icon">🏆</span>
-                            <span>Ранговая система</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="pricing-section">
-                    <div class="price-card">
-                        <div class="price-header">
-                            <span class="level-badge">Уровень 1</span>
-                            <span class="price-amount">${CONFIG.LEVEL_PRICES[0]} BNB</span>
-                        </div>
-                        <div class="price-details">
-                            <span class="token-reward">+${CONFIG.TOKEN_REWARDS[0]} GWT токенов</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="action-buttons">
-                    <button id="activateLevel1Btn" class="btn-gold">
-                        🚀 АКТИВИРОВАТЬ УРОВЕНЬ 1
-                    </button>
-                    
-                    <button id="viewPackagesBtn" class="btn-outline">
-                        📦 Посмотреть пакеты
-                    </button>
-                </div>
-                
-                <div class="modal-footer">
-                    <p>После активации откроется полный доступ ко всем функциям платформы</p>
-                </div>
-            </div>
-            
-            <span class="close-modal">&times;</span>
+      <div class="modal-content cosmic-card">
+        <div class="modal-header cosmic-header">
+          <div class="header-icon">🚀</div>
+          <h2>Добро пожаловать в GlobalWay!</h2>
+          <p>Ваш ID: <span class="user-id">GW${this.state.userId}</span></p>
         </div>
-    </div>
-    `;
-    
+        <div class="modal-body">
+          <div class="pricing-section">
+            <div class="price-card">
+              <span class="level-badge">Уровень 1</span>
+              <span class="price-amount">${CONFIG.LEVEL_PRICES[0]} BNB</span>
+              <span class="token-reward">+${CONFIG.TOKEN_REWARDS[0]} GWT</span>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button id="activateLevel1Btn" class="btn-gold">🚀 АКТИВИРОВАТЬ УРОВЕНЬ 1</button>
+            <button id="viewPackagesBtn" class="btn-outline">📦 Посмотреть пакеты</button>
+          </div>
+        </div>
+        <span class="close-modal">&times;</span>
+      </div>
+    </div>`;
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     
-    // Обработчики событий
     const activateBtn = document.getElementById('activateLevel1Btn');
     const packagesBtn = document.getElementById('viewPackagesBtn');
     const closeBtn = document.querySelector('#activationModal .close-modal');
     
-    if (activateBtn) {
-        activateBtn.onclick = async () => {
-            await this.activateUserLevel(1, CONFIG.LEVEL_PRICES[0], activateBtn);
-        };
-    }
+    if (activateBtn) activateBtn.onclick = async () => { await this.activateUserLevel(1, CONFIG.LEVEL_PRICES[0], activateBtn); };
+    if (packagesBtn) packagesBtn.onclick = () => { this.closeModal('activationModal'); this.showPage('dashboard'); };
+    if (closeBtn) closeBtn.onclick = () => this.closeModal('activationModal');
     
-    if (packagesBtn) {
-        packagesBtn.onclick = () => {
-            this.closeModal('activationModal');
-            this.showPage('dashboard');
-        };
-    }
-    
-    if (closeBtn) {
-        closeBtn.onclick = () => this.closeModal('activationModal');
-    }
-    
-    // Закрытие по клику вне модалки
     const modal = document.getElementById('activationModal');
-    if (modal) {
-        modal.onclick = (event) => {
-            if (event.target === modal) {
-                this.closeModal('activationModal');
-            }
-        };
-    }
-    
-    console.log('✅ Activation modal created');
+    if (modal) modal.onclick = (e) => { if (e.target === modal) this.closeModal('activationModal'); };
   },
 
   async activateUserLevel(level, price, button) {
     try {
       console.log(`🔄 Activating level ${level} for ${price} BNB...`);
-      
       if (!this.state.isRegistered) {
         this.showNotification('Сначала зарегистрируйтесь', 'error');
         return;
       }
-      
       button.disabled = true;
       button.textContent = '⏳ Обработка...';
       
       const globalWaySigned = await this.getSignedContract('GlobalWay');
       const priceInWei = ethers.utils.parseEther(price);
-      
-      const tx = await globalWaySigned.activateLevel(level, {
-        value: priceInWei,
-        gasLimit: CONFIG.GAS.buyLevel
-      });
+      const tx = await globalWaySigned.activateLevel(level, { value: priceInWei, gasLimit: CONFIG.GAS.buyLevel });
       
       this.showNotification(`Активация уровня ${level}...`, 'info');
       await tx.wait();
       
       this.closeModal('activationModal');
-      this.showNotification(
-        `✅ Уровень ${level} активирован!\n🎁 Получено ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
-        'success'
-      );
-      
+      this.showNotification(`✅ Уровень ${level} активирован!`, 'success');
       await this.loadUserData();
       
       if (this.state.currentPage && this.state.pageModules[this.state.currentPage]) {
         const module = this.state.pageModules[this.state.currentPage];
-        if (typeof module.refresh === 'function') {
-          await module.refresh();
-        }
+        if (typeof module.refresh === 'function') await module.refresh();
       }
-      
     } catch (error) {
       console.error('❌ Activation error:', error);
       button.disabled = false;
-      button.textContent = `АКТИВИРОВАТЬ УРОВЕНЬ ${level}`;
-      
+      button.textContent = `🚀 АКТИВИРОВАТЬ УРОВЕНЬ ${level}`;
       if (error.code === 4001) {
         this.showNotification('❌ Транзакция отменена', 'error');
-      } else if (error.message && error.message.includes('Level already active')) {
-        this.showNotification('❌ Уровень уже активирован', 'error');
-      } else if (error.message && error.message.includes('Previous level not active')) {
-        this.showNotification('❌ Сначала активируйте предыдущий уровень', 'error');
+      } else if (error.message && error.message.includes('Not registered')) {
+        this.showNotification('❌ Пользователь не зарегистрирован в GlobalWay', 'error');
       } else {
         this.showNotification('❌ Ошибка активации: ' + error.message, 'error');
       }
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // НАВИГАЦИЯ
-  // ═══════════════════════════════════════════════════════════════
   initNavigation() {
-    if (this.state.navigationInitialized) {
-      console.log('✅ Navigation already initialized');
-      return;
-    }
-
-    console.log('🔧 Initializing navigation...');
-
+    if (this.state.navigationInitialized) return;
     const navLinks = document.querySelectorAll('[data-page]');
-    console.log(`📍 Found ${navLinks.length} navigation links`);
-    
     navLinks.forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const page = link.getAttribute('data-page');
-        console.log(`🔘 Navigation clicked: ${page}`);
         this.showPage(page);
       });
     });
-
-    const hash = window.location.hash.substring(1);
-    this.state.currentPage = hash || 'dashboard';
-
     this.state.navigationInitialized = true;
     console.log('✅ Navigation initialized');
   },
 
   async showPage(pageName) {
-    console.log(`📄 Loading page: ${pageName}`);
-    
     try {
       this.showDApp();
-
-      if (!this.state.navigationInitialized) {
-        this.initNavigation();
-      }
-
-      document.querySelectorAll('.page-content').forEach(page => {
-        page.classList.remove('active');
-      });
-
+      if (!this.state.navigationInitialized) this.initNavigation();
+      document.querySelectorAll('.page-content').forEach(page => page.classList.remove('active'));
       const pageElement = document.getElementById(pageName);
-      if (pageElement) {
-        pageElement.classList.add('active');
-      } else {
-        console.error(`❌ Page element #${pageName} not found!`);
-      }
-
+      if (pageElement) pageElement.classList.add('active');
       document.querySelectorAll('.nav-btn').forEach(link => {
         link.classList.remove('active');
-        if (link.getAttribute('data-page') === pageName) {
-          link.classList.add('active');
-        }
+        if (link.getAttribute('data-page') === pageName) link.classList.add('active');
       });
-
       window.location.hash = pageName;
       this.state.currentPage = pageName;
-
       await this.loadPageModule(pageName);
-
     } catch (error) {
       console.error(`❌ Error showing page ${pageName}:`, error);
-      this.showNotification('Ошибка загрузки страницы', 'error');
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ЗАГРУЗКА МОДУЛЕЙ СТРАНИЦ
-  // ═══════════════════════════════════════════════════════════════
   async loadPageModule(pageName) {
-    console.log(`🔧 Loading module for page: ${pageName}`);
-    
     if (this.state.pageModules[pageName]) {
-      console.log(`✅ Module ${pageName} already loaded, re-initializing...`);
       if (typeof this.state.pageModules[pageName].init === 'function') {
         await this.state.pageModules[pageName].init();
       }
       return;
     }
-
     try {
       const moduleName = `${pageName}Module`;
-      console.log(`🔍 Looking for window.${moduleName}...`);
-      
       const module = window[moduleName];
-      
       if (module) {
-        console.log(`✅ Found module: ${moduleName}`);
         this.state.pageModules[pageName] = module;
-        
-        if (typeof module.init === 'function') {
-          console.log(`🚀 Calling ${moduleName}.init()...`);
-          await module.init();
-        }
-      } else {
-        console.warn(`❌ Module ${moduleName} not found`);
+        if (typeof module.init === 'function') await module.init();
       }
     } catch (error) {
       console.error(`❌ Error loading module ${pageName}:`, error);
@@ -712,48 +452,16 @@ const app = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // РАБОТА С КОНТРАКТАМИ
-  // ═══════════════════════════════════════════════════════════════
   async getContract(contractName) {
-    if (this.state.contracts[contractName]) {
-      return this.state.contracts[contractName];
-    }
-
+    if (this.state.contracts[contractName]) return this.state.contracts[contractName];
     try {
       const address = CONFIG.CONTRACTS[contractName];
-      if (!address) {
-        throw new Error(`Contract ${contractName} not found in CONFIG`);
-      }
-
       const abiPath = CONFIG.ABI_PATHS[contractName];
-      if (!abiPath) {
-        throw new Error(`ABI path for ${contractName} not found in CONFIG`);
-      }
-
-      console.log(`📥 Loading contract ${contractName} from ${abiPath}...`);
-
       const response = await fetch(abiPath);
-      if (!response.ok) {
-        throw new Error(`Failed to load ABI: ${response.status}`);
-      }
-
       const contractData = await response.json();
-      
       const providerOrSigner = window.web3Manager?.signer || window.web3Manager?.provider;
-      
-      if (!providerOrSigner) {
-        throw new Error('Web3 not initialized');
-      }
-      
-      const contract = new ethers.Contract(
-        address,
-        contractData.abi,
-        providerOrSigner
-      );
-
+      const contract = new ethers.Contract(address, contractData.abi, providerOrSigner);
       this.state.contracts[contractName] = contract;
-      
       console.log(`✅ Contract ${contractName} loaded at ${address}`);
       return contract;
     } catch (error) {
@@ -764,66 +472,36 @@ const app = {
 
   async getSignedContract(contractName) {
     const contract = await this.getContract(contractName);
-    const signer = window.web3Manager.signer;
-    return contract.connect(signer);
+    return contract.connect(window.web3Manager.signer);
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // УВЕДОМЛЕНИЯ
-  // ═══════════════════════════════════════════════════════════════
   showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
-
     document.body.appendChild(notification);
-
     setTimeout(() => notification.classList.add('show'), 10);
-
     setTimeout(() => {
       notification.classList.remove('show');
       setTimeout(() => notification.remove(), 300);
     }, CONFIG.UI.notificationDuration);
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // МОДАЛЬНЫЕ ОКНА
-  // ═══════════════════════════════════════════════════════════════
   showModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.style.display = 'block';
-      
-      const closeBtn = modal.querySelector('.close, .close-modal');
-      if (closeBtn) {
-        closeBtn.onclick = () => this.closeModal(modalId);
-      }
-
-      modal.onclick = (event) => {
-        if (event.target === modal) {
-          this.closeModal(modalId);
-        }
-      };
-    }
+    if (modal) modal.style.display = 'block';
   },
 
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.style.display = 'none';
-    }
+    if (modal) modal.style.display = 'none';
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-  // ═══════════════════════════════════════════════════════════════
-  
   async copyToClipboard(text) {
     try {
       await navigator.clipboard.writeText(text);
       this.showNotification('Скопировано! ✓', 'success');
     } catch (error) {
-      console.error('Copy failed:', error);
       this.showNotification('Ошибка копирования', 'error');
     }
   },
@@ -835,10 +513,7 @@ const app = {
 
   formatNumber(number, decimals = 4) {
     if (!number) return '0';
-    return Number(number).toLocaleString('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: decimals
-    });
+    return Number(number).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: decimals });
   },
 
   formatBNB(wei) {
@@ -852,11 +527,8 @@ const app = {
 
   async checkNetwork() {
     if (!window.web3Manager) return false;
-    
     const network = await window.web3Manager.provider.getNetwork();
-    const chainId = network.chainId;
-    
-    if (chainId !== CONFIG.NETWORK.chainId) {
+    if (network.chainId !== CONFIG.NETWORK.chainId) {
       this.showNotification('Неправильная сеть! Переключитесь на opBNB', 'error');
       return false;
     }
@@ -865,30 +537,20 @@ const app = {
 
   async refreshUserData() {
     await this.loadUserData();
-    
     if (this.state.pageModules[this.state.currentPage]) {
       const module = this.state.pageModules[this.state.currentPage];
-      if (typeof module.refresh === 'function') {
-        await module.refresh();
-      }
+      if (typeof module.refresh === 'function') await module.refresh();
     }
   }
 };
 
-// ═══════════════════════════════════════════════════════════════════
-// ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
-// ═══════════════════════════════════════════════════════════════════
-
 window.addEventListener('accountsChanged', async (accounts) => {
-  console.log('👤 Account changed');
   app.state.userAddress = accounts[0] || null;
   await app.refreshUserData();
 });
 
 window.addEventListener('chainChanged', async () => {
-  console.log('🔗 Chain changed');
   window.location.reload();
 });
 
-// Экспорт в window
 window.app = app;
