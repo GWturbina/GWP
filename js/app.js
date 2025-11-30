@@ -764,6 +764,14 @@ const app = {
 
   async getSignedContract(contractName) {
     const contract = await this.getContract(contractName);
+  
+    // Проверка что signer доступен
+    if (!window.web3Manager || !window.web3Manager.signer) {
+      console.error('❌ Signer not available!');
+      this.showNotification('Кошелёк не подключен. Переподключите.', 'error');
+      throw new Error('Signer not available');
+    }
+  
     const signer = window.web3Manager.signer;
     return contract.connect(signer);
   },
