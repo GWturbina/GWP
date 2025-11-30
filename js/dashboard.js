@@ -269,7 +269,7 @@ const dashboardModule = {
         this.userData.balances.investment = '0';
       
         try {
-          const pension = await this.contracts.quarterly.getPensionBalance(address);
+          const pension = await this.contracts.quarterlyPayments.getPensionBalance(address);
          this.userData.balances.pension = ethers.utils.formatEther(pension);
        } catch (e2) {
          this.userData.balances.pension = '0';
