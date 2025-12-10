@@ -317,26 +317,17 @@ const partnersModule = {
     try {
       const address = app.state.userAddress;
       const tableBody = document.getElementById('partnersTable');
-      
+    
       if (!tableBody) return;
 
       console.log(`📋 Loading partners for depth ${depth}...`);
       tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Загрузка...</td></tr>';
 
-      // ✅ Для depth=1 используем getDirectReferrals
-      let referrals = [];
-      if (depth === 1) {
-        referrals = await this.getDirectReferrals(address);
-      } else {
-        // Для depth > 1 получаем рефералов от прямых рефералов
-        const directRefs = await this.getDirectReferrals(address);
-        for (let ref of directRefs) {
-          const subRefs = await this.getDirectReferrals(ref);
-          referrals.push(...subRefs);
-        }
-        // Ограничиваем для производительности
-        referrals = referrals.slice(0, 50);
-      }
+      // Получаем партнёров на нужной глубине
+      let referrals = await this.getPartnersAtDepth(address, depth);
+    
+      // Ограничиваем для производительности
+      referrals = referrals.slice(0, 50);
 
       if (referrals.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Партнеры не найдены</td></tr>';
@@ -347,7 +338,7 @@ const partnersModule = {
       const partnersData = await Promise.all(
         referrals.map(refAddress => this.getPartnerDetails(refAddress))
       );
-
+  
       // Обновляем таблицу
       tableBody.innerHTML = partnersData.map((partner, index) => `
         <tr>
@@ -371,6 +362,32 @@ const partnersModule = {
       if (tableBody) {
         tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Ошибка загрузки</td></tr>';
       }
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПОЛУЧИТЬ ПАРТНЁРОВ НА ОПРЕДЕЛЁННОЙ ГЛУБИНЕ
+  // ═══════════════════════════════════════════════════════════════
+  async getPartnersAtDepth(address, targetDepth, currentDepth = 1) {
+    try {
+      const directRefs = await this.getDirectReferrals(address);
+      
+      if (currentDepth === targetDepth) {
+        // Достигли нужной глубины — возвращаем рефералов
+        return directRefs;
+      }
+    
+      // Ещё не достигли — идём глубже
+      let result = [];
+      for (let ref of directRefs) {
+        const subRefs = await this.getPartnersAtDepth(ref, targetDepth, currentDepth + 1);
+        result.push(...subRefs);
+      }
+    
+      return result;
+    } catch (error) {
+      console.error('❌ Error getting partners at depth:', error);
+      return [];
     }
   },
 
