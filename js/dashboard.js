@@ -253,34 +253,24 @@ async loadQuarterlyInfo() {
   }
 },
 
-// Новая функция для получения времени активации уровня 1
-async getLevel1ActivationTime(address) {
-  try {
-    // Пробуем получить из контракта GlobalWay
-    const userInfo = await this.contracts.globalWay.getUserInfo(address);
-    // Если есть поле activationTime — используем его
-    if (userInfo.activationTime) {
-      return Number(userInfo.activationTime);
+  // Новая функция для получения времени активации уровня 1
+  async getLevel1ActivationTime(address) {
+    try {
+      // Получаем registrationTime из MatrixRegistry
+      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
+      const node = await this.contracts.matrixRegistry.matrixNodes(userId);
+      const registrationTime = Number(node[6]);
+    
+      if (registrationTime > 0) {
+        return registrationTime;
+      }
+    
+      return 0;
+    } catch(e) {
+      console.warn('⚠️ getLevel1ActivationTime error:', e.message);
+      return 0;
     }
-    
-    // Альтернатива: ищем событие LevelActivated
-    const currentBlock = await window.web3Manager.provider.getBlockNumber();
-    const fromBlock = Math.max(0, currentBlock - 49000);
-    
-    const filter = this.contracts.globalWay.filters.LevelActivated(address, 1);
-    const events = await this.contracts.globalWay.queryFilter(filter, fromBlock, currentBlock);
-    
-    if (events.length > 0) {
-      const block = await events[0].getBlock();
-      return block.timestamp;
-    }
-    
-    return 0;
-  } catch(e) {
-    console.warn('⚠️ getLevel1ActivationTime error:', e.message);
-    return 0;
-  }
-},
+  },
 
   // ═══════════════════════════════════════════════════════════════
   // БАЛАНСЫ КОНТРАКТОВ
