@@ -886,17 +886,57 @@ const app = {
 // ═══════════════════════════════════════════════════════════════════
 // ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
 // ═══════════════════════════════════════════════════════════════════
-
 window.addEventListener('accountsChanged', async (accounts) => {
   console.log('👤 Account changed');
   app.state.userAddress = accounts[0] || null;
   await app.refreshUserData();
 });
-
 window.addEventListener('chainChanged', async () => {
   console.log('🔗 Chain changed');
   window.location.reload();
 });
+
+// Тестовая функция для мобильного SafePal
+window.debugMobileActivation = async function() {
+  const log = (msg) => {
+    alert(msg);
+    console.log(msg);
+  };
+  
+  log('1. Начало теста');
+  
+  if (!window.web3Manager) {
+    log('ОШИБКА: web3Manager не найден');
+    return;
+  }
+  log('2. web3Manager OK');
+  
+  if (!window.web3Manager.signer) {
+    log('ОШИБКА: signer не найден');
+    return;
+  }
+  log('3. signer OK');
+  
+  try {
+    const gw = await app.getSignedContract('GlobalWay');
+    log('4. GlobalWay контракт OK');
+  } catch(e) {
+    log('ОШИБКА контракта: ' + e.message);
+    return;
+  }
+  
+  try {
+    log('5. Вызываю activateLevel...');
+    const gw = await app.getSignedContract('GlobalWay');
+    const tx = await gw.activateLevel(1, {
+      value: ethers.utils.parseEther('0.0015'),
+      gasLimit: 2000000
+    });
+    log('6. TX отправлена: ' + tx.hash);
+  } catch(e) {
+    log('ОШИБКА TX: ' + e.message);
+  }
+};
 
 // Экспорт в window
 window.app = app;
