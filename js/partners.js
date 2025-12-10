@@ -401,8 +401,56 @@ const partnersModule = {
   async getDirectReferrals(address) {
     try {
       console.log(`  🔗 getDirectReferrals для ${address.slice(0,10)}...`);
-      const referrals = await this.contracts.globalWay.getDirectReferrals(address);
-      console.log(`  🔗 Результат: ${referrals.length} рефералов`, referrals);
+      
+      // Получаем userId текущего пользователя
+      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
+      const userIdStr = userId.toString();
+      
+      if (userIdStr === '0') {
+        console.log(`  🔗 Пользователь не найден`);
+        return [];
+      }
+      
+      // Ищем всех пользователей у кого sponsorId = наш userId
+      // Используем totalUsers и проверяем каждого (или используем события)
+      const referrals = [];
+      
+      // Способ 1: Через события UserRegistered
+      try {
+        const currentBlock = await window.web3Manager.provider.getBlockNumber();
+        const fromBlock = Math.max(0, currentBlock - 49000);
+        
+        const filter = this.contracts.matrixRegistry.filters.UserRegistered();
+        const events = await this.contracts.matrixRegistry.queryFilter(filter, fromBlock, currentBlock);
+        
+        for (let event of events) {
+          const eventSponsorId = event.args.sponsorId?.toString();
+          if (eventSponsorId === userIdStr) {
+            referrals.push(event.args.user);
+          }
+        }
+        
+        console.log(`  🔗 Найдено через события: ${referrals.length} рефералов`);
+        
+        if (referrals.length > 0) {
+          return referrals;
+        }
+      } catch(e) {
+        console.warn('  ⚠️ События не найдены, пробуем другой способ');
+      }
+      
+      // Способ 2: Через GlobalWay но фильтруем адрес контракта
+      try {
+        const gwRefs = await this.contracts.globalWay.getDirectReferrals(address);
+        const contractAddr = this.contracts.globalWay.address.toLowerCase();
+        
+        const filtered = gwRefs.filter(ref => ref.toLowerCase() !== contractAddr);
+        console.log(`  🔗 После фильтрации: ${filtered.length} рефералов`, filtered);
+        return filtered;
+      } catch(e) {
+        console.error('  ❌ Ошибка GlobalWay:', e.message);
+      }
+      
       return referrals;
     } catch (error) {
       console.error('❌ Error getting direct referrals:', error);
