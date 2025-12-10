@@ -168,7 +168,7 @@ const projectsModule = {
         width: 100px;
         height: 100px;
         object-fit: contain;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
       }
       
       /* Название проекта */
@@ -179,15 +179,17 @@ const projectsModule = {
         margin: 10px 0;
       }
       
-      /* Описание */
+      /* Описание в рамке */
       .project-description {
-        color: #aaa;
-        font-size: 0.9rem;
+        color: #ffd700;
+        font-size: 1rem;
         line-height: 1.4;
         margin-bottom: 15px;
-        flex-grow: 1;
-        display: flex;
-        align-items: center;
+        padding: 10px 15px;
+        border: 2px solid #ffd700;
+        border-radius: 8px;
+        background: rgba(255, 215, 0, 0.05);
+        flex-grow: 0;
       }
       
       /* Контейнер кнопок */
@@ -198,7 +200,7 @@ const projectsModule = {
         width: 100%;
       }
       
-      /* Кнопка открытия */
+      /* Кнопка открытия - жёлтая */
       .project-btn-open {
         background: linear-gradient(135deg, #ffd700, #ffaa00);
         color: #000;
@@ -212,18 +214,19 @@ const projectsModule = {
         width: 100%;
       }
       
-      .project-btn-open:hover {
+      .project-btn-open:hover:not(:disabled) {
         background: linear-gradient(135deg, #ffaa00, #ff8800);
         transform: scale(1.02);
       }
       
+      /* Неактивная кнопка - серая */
       .project-btn-open:disabled {
         background: #444;
         color: #888;
         cursor: not-allowed;
       }
       
-      /* Кнопка статуса */
+      /* Кнопка статуса - жёлтая рамка */
       .project-btn-status {
         background: transparent;
         color: #ffd700;
@@ -236,51 +239,35 @@ const projectsModule = {
         width: 100%;
       }
       
-      .project-btn-status.development {
-        border-color: #00bfff;
-        color: #00bfff;
-      }
-      
-      .project-btn-status.coming {
-        border-color: #ff9500;
-        color: #ff9500;
-      }
-      
-      .project-btn-status.planned {
-        border-color: #888;
-        color: #888;
-      }
-      
-      .project-btn-status.active {
-        border-color: #00ff00;
-        color: #00ff00;
-      }
-      
-      /* Карточка "Твой проект" */
+      /* Карточка "Твой проект" - такая же как остальные */
       .project-card.your-project {
-        background: linear-gradient(145deg, #1a2a1e 0%, #162e1e 100%);
-        border-color: #2a4a3a;
+        background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        border-color: #2a2a4a;
       }
       
       .project-card.your-project:hover {
-        border-color: #00ff88;
-        box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+        border-color: #ffd700;
+        box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
       }
       
       .your-project-title {
-        color: #00ff88;
+        color: #ffd700;
         font-size: 1.2rem;
         font-weight: bold;
-        margin: 15px 0;
+        margin: 10px 0;
+        padding: 10px 15px;
+        border: 2px solid #ffd700;
+        border-radius: 8px;
+        background: rgba(255, 215, 0, 0.05);
       }
       
       .your-project-btn {
-        background: linear-gradient(135deg, #00ff88, #00cc66);
+        background: linear-gradient(135deg, #ffd700, #ffaa00);
         color: #000;
       }
       
       .your-project-btn:hover {
-        background: linear-gradient(135deg, #00cc66, #00aa55);
+        background: linear-gradient(135deg, #ffaa00, #ff8800);
       }
       
       /* Мобильная адаптация */
@@ -467,8 +454,7 @@ const projectsModule = {
         alt="Твой проект" 
         class="project-icon"
       >
-      <h3 class="your-project-title">Здесь может появиться твой проект</h3>
-      <p class="project-description">Предложи свою идею и стань частью экосистемы GlobalWay</p>
+      <h3 class="your-project-title">Здесь может появиться<br>твой проект</h3>
       <div class="project-buttons">
         <button 
           class="project-btn-open your-project-btn" 
