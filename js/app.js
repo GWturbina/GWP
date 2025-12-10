@@ -289,8 +289,7 @@ const app = {
       this.showTransactionProgress('Регистрация', 'Подтвердите транзакцию в кошельке...');
       
       const registerTx = await matrixRegistrySigned.register(sponsorId, { 
-        gasLimit: 500000,  // Увеличенный лимит
-        gasPrice: ethers.utils.parseUnits('1.5', 'gwei')  // Немного выше для скорости
+        gasLimit: CONFIG.GAS.register || 500000
       });
 
       console.log('⏳ Transaction sent:', registerTx.hash);
@@ -582,8 +581,7 @@ const app = {
       
       const tx = await globalWaySigned.activateLevel(level, {
         value: priceInWei,
-        gasLimit: 500000,  // Увеличенный лимит
-        gasPrice: ethers.utils.parseUnits('1.5', 'gwei')  // Немного выше для скорости
+        gasLimit: CONFIG.GAS.buyLevel || 500000
       });
       
       // Обновляем статус с хешем транзакции
