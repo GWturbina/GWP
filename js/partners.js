@@ -415,11 +415,39 @@ const partnersModule = {
       
       // Получаем количество использованных ID
       const usedCount = await this.contracts.matrixRegistry.usedIdsCount();
-      console.log(`  🔗 Использовано ID: ${usedCount}, ищем sponsorId = ${userIdStr}`);
+      const totalUsers = await this.contracts.matrixRegistry.totalUsers();
+      console.log(`  🔗 Всего пользователей: ${totalUsers}, использовано ID: ${usedCount}, ищем sponsorId = ${userIdStr}`);
       
-      // Проверяем известные ID пользователей
-      // Список известных ID из системы
-      const knownIds = ['9729645', '7346221', '1514866', '7649513', '3236084', '5332949'];
+      // Способ 1: Ищем через события UserRegistered (самый надёжный)
+      try {
+        const currentBlock = await window.web3Manager.provider.getBlockNumber();
+        const fromBlock = Math.max(0, currentBlock - 49000);
+        
+        const filter = this.contracts.matrixRegistry.filters.UserRegistered();
+        const events = await this.contracts.matrixRegistry.queryFilter(filter, fromBlock, currentBlock);
+        
+        for (let event of events) {
+          const eventSponsorId = event.args?.sponsorId?.toString();
+          if (eventSponsorId === userIdStr) {
+            const refAddr = event.args.user;
+            if (!referrals.includes(refAddr)) {
+              referrals.push(refAddr);
+              const refId = event.args?.userId?.toString() || '?';
+              console.log(`  🔗 Найден реферал (событие): ID=${refId}, addr=${refAddr.slice(0,10)}...`);
+            }
+          }
+        }
+        
+        if (referrals.length > 0) {
+          console.log(`  🔗 Найдено через события: ${referrals.length} рефералов`);
+          return referrals;
+        }
+      } catch(e) {
+        console.warn('  ⚠️ Ошибка событий:', e.message);
+      }
+      
+      // Способ 2: Проверяем известные ID пользователей (fallback)
+      const knownIds = ['9729645', '7346221', '1514866', '7649513', '3236084', '5332949', '5588635'];
       
       for (let testId of knownIds) {
         try {
@@ -431,35 +459,10 @@ const partnersModule = {
             const refAddr = node[1]; // адрес пользователя
             if (!referrals.includes(refAddr)) {
               referrals.push(refAddr);
-              console.log(`  🔗 Найден реферал: ID=${testId}, addr=${refAddr.slice(0,10)}...`);
+              console.log(`  🔗 Найден реферал (knownIds): ID=${testId}, addr=${refAddr.slice(0,10)}...`);
             }
           }
         } catch(e) {}
-      }
-      
-      // Дополнительно ищем через события если ничего не нашли
-      if (referrals.length === 0) {
-        try {
-          const currentBlock = await window.web3Manager.provider.getBlockNumber();
-          const fromBlock = Math.max(0, currentBlock - 49000);
-          
-          const filter = this.contracts.matrixRegistry.filters.UserRegistered();
-          const events = await this.contracts.matrixRegistry.queryFilter(filter, fromBlock, currentBlock);
-          
-          for (let event of events) {
-            const eventSponsorId = event.args?.sponsorId?.toString();
-            if (eventSponsorId === userIdStr) {
-              const refAddr = event.args.user;
-              if (!referrals.includes(refAddr)) {
-                referrals.push(refAddr);
-              }
-            }
-          }
-          
-          console.log(`  🔗 Найдено через события: ${referrals.length} рефералов`);
-        } catch(e) {
-          console.warn('  ⚠️ События не найдены');
-        }
       }
       
       console.log(`  🔗 Итого: ${referrals.length} рефералов`, referrals);
