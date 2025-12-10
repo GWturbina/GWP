@@ -156,61 +156,55 @@ const matrixModule = {
     };
   },
 
-  async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side) {
-    if (depth >= 12 || childId.toString() === '0') return;
-
-    try {
-      const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
-      
-      if (!nodeData[7]) return;
-
-      // ✅ КРИТИЧНО: Проверяем что уровень активирован!
-      const userMaxLevel = await this.getUserMaxLevel(nodeData[1]);
-      if (userMaxLevel < level) {
-        console.log(`⚠️ User ${childId} skipped - level ${level} not activated (maxLevel: ${userMaxLevel})`);
-        return;
-      }
-
-      const node = {
-        address: nodeData[1],
-        userId: nodeData[0].toString(),
-        maxLevel: userMaxLevel,  // ✅ Используем уже полученное значение
-        rank: 'Участник',
-        depth,
-        position,
-        side,
-        type: await this.getPositionType(nodeData[1], structure.root.address, nodeData[2]),
-        isTechAccount: nodeData[8]
-      };
-      
-      structure.positions.push(node);
-      
-      if (nodeData[3].toString() !== '0') {
-        await this.buildMatrixTreeFromNodes(
-          structure, 
-          nodeData[3], 
-          level, 
-          depth + 1, 
-          position * 2, 
-          'left'
-        );
-      }
-      
-      if (nodeData[4].toString() !== '0') {
-        await this.buildMatrixTreeFromNodes(
-          structure, 
-          nodeData[4], 
-          level, 
-          depth + 1, 
-          position * 2 + 1, 
-          'right'
-        );
-      }
-      
-    } catch (error) {
-      console.error('❌ Error building tree:', error);
+async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side) {
+  if (depth >= 12 || childId.toString() === '0') return;
+  
+  try {
+    const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
+    if (!nodeData[7]) return;
+    
+    // Получаем maxLevel для отображения (БЕЗ пропуска пользователя)
+    const userMaxLevel = await this.getUserMaxLevel(nodeData[1]);
+    
+    const node = {
+      address: nodeData[1],
+      userId: nodeData[0].toString(),
+      maxLevel: userMaxLevel,
+      rank: 'Участник',
+      depth,
+      position,
+      side,
+      type: await this.getPositionType(nodeData[1], structure.root.address, nodeData[2]),
+      isTechAccount: nodeData[8]
+    };
+    
+    structure.positions.push(node);
+    
+    if (nodeData[3].toString() !== '0') {
+      await this.buildMatrixTreeFromNodes(
+        structure,
+        nodeData[3],
+        level,
+        depth + 1,
+        position * 2,
+        'left'
+      );
     }
-  },
+    
+    if (nodeData[4].toString() !== '0') {
+      await this.buildMatrixTreeFromNodes(
+        structure,
+        nodeData[4],
+        level,
+        depth + 1,
+        position * 2 + 1,
+        'right'
+      );
+    }
+  } catch (error) {
+    console.error('❌ Error building tree:', error);
+  }
+}
 
   async getPositionType(address, rootAddress, nodeSponsorId) {
     try {
