@@ -546,27 +546,37 @@ const partnersModule = {
   // ═══════════════════════════════════════════════════════════════
   async getActivationDate(address) {
     try {
-      // Используем событие LevelActivated (или LevelPurchased)
-      const filter = this.contracts.globalWay.filters.LevelActivated(address, 1);
-      const events = await this.contracts.globalWay.queryFilter(filter, -100000);
+      // Способ 1: Напрямую из MatrixRegistry.matrixNodes[6] (registrationTime)
+      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
       
-      if (events.length > 0) {
-        const block = await events[0].getBlock();
-        return new Date(block.timestamp * 1000).toLocaleDateString('ru-RU');
+      if (userId.toString() !== '0') {
+        const node = await this.contracts.matrixRegistry.matrixNodes(userId);
+        const registrationTime = Number(node[6]);
+        
+        if (registrationTime > 0) {
+          return new Date(registrationTime * 1000).toLocaleDateString('ru-RU');
+        }
       }
       
-      // Альтернативно - из MatrixRegistry
-      const regFilter = this.contracts.matrixRegistry.filters.UserRegistered(address);
-      const regEvents = await this.contracts.matrixRegistry.queryFilter(regFilter, -100000);
-      
-      if (regEvents.length > 0) {
-        const block = await regEvents[0].getBlock();
-        return new Date(block.timestamp * 1000).toLocaleDateString('ru-RU');
+      // Способ 2: Через события (с ограничением блоков)
+      try {
+        const currentBlock = await window.web3Manager.provider.getBlockNumber();
+        const fromBlock = Math.max(0, currentBlock - 49000);
+        
+        const filter = this.contracts.globalWay.filters.LevelActivated(address, 1);
+        const events = await this.contracts.globalWay.queryFilter(filter, fromBlock, currentBlock);
+        
+        if (events.length > 0) {
+          const block = await events[0].getBlock();
+          return new Date(block.timestamp * 1000).toLocaleDateString('ru-RU');
+        }
+      } catch(e) {
+        // Игнорируем ошибки событий
       }
       
       return '-';
     } catch (error) {
-      console.warn('⚠️ Could not get activation date:', error);
+      console.warn('⚠️ Could not get activation date:', error.message);
       return '-';
     }
   },
