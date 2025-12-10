@@ -460,12 +460,12 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
             <p><strong>Ранг:</strong> ${rank}</p>
             <p><strong>Тип:</strong> ${this.getTypeLabel(node.type, node.isTechAccount)}</p>
           </div>
-          <div style="display:flex; gap:15px; margin-top:25px;">
-            <button id="viewMatrixBtn" style="flex:1; padding:14px 20px; background:linear-gradient(135deg, #ffd700, #ffaa00); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px;">
-              🌐 Посмотреть матрицу
+          <div style="display:flex; gap:10px; margin-top:25px;">
+            <button id="viewMatrixBtn" style="flex:1; padding:14px 15px; background:linear-gradient(135deg, #ffd700, #ffaa00); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+              🌐 Матрица
             </button>
-            <button id="closeModalBtn" style="flex:1; padding:14px 20px; background:transparent; color:#ffd700; border:2px solid #ffd700; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px;">
-              Закрыть
+            <button id="closeModalBtn" style="flex:1; padding:14px 15px; background:transparent; color:#ffd700; border:2px solid #ffd700; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+              ✕ Закрыть
             </button>
           </div>
         </div>
