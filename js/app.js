@@ -284,18 +284,30 @@ const app = {
       }
 
       console.log('✅ Signed contract ready, requesting transaction...');
-      this.showNotification('Подтвердите транзакцию в кошельке...', 'info');
+      
+      // Показываем модальное окно с прогрессом
+      this.showTransactionProgress('Регистрация', 'Подтвердите транзакцию в кошельке...');
+      
       const registerTx = await matrixRegistrySigned.register(sponsorId, { 
-        gasLimit: CONFIG.GAS.register 
+        gasLimit: 500000,  // Увеличенный лимит
+        gasPrice: ethers.utils.parseUnits('1.5', 'gwei')  // Немного выше для скорости
       });
 
       console.log('⏳ Transaction sent:', registerTx.hash);
       console.log('⏳ Waiting for confirmation...');
 
-      this.showNotification('Регистрация... Ожидайте подтверждения.', 'info');
+      // Обновляем статус с хешем транзакции
+      this.updateTransactionProgress(
+        'Ожидание подтверждения...', 
+        `Транзакция отправлена!`,
+        registerTx.hash
+      );
 
       const receipt = await registerTx.wait();
       console.log('✅ Transaction confirmed:', receipt.transactionHash);
+
+      // Закрываем прогресс
+      this.hideTransactionProgress();
 
       this.state.isRegistered = true;
       
@@ -322,6 +334,9 @@ const app = {
       console.error('❌ Registration error:', error);
       console.error('   Error code:', error.code);
       console.error('   Error message:', error.message);
+      
+      // Закрываем прогресс при ошибке
+      this.hideTransactionProgress();
       
       if (error.code === 4001) {
         this.showNotification('Действие отменено пользователем', 'info');
@@ -555,19 +570,34 @@ const app = {
         return;
       }
       
+      const originalText = button.textContent;
       button.disabled = true;
-      button.textContent = '⏳ Обработка...';
+      button.textContent = '⏳ Подтвердите в кошельке...';
+      
+      // Показываем модальное окно с прогрессом
+      this.showTransactionProgress(`Активация уровня ${level}`, 'Подтвердите транзакцию в кошельке...');
       
       const globalWaySigned = await this.getSignedContract('GlobalWay');
       const priceInWei = ethers.utils.parseEther(price);
       
       const tx = await globalWaySigned.activateLevel(level, {
         value: priceInWei,
-        gasLimit: CONFIG.GAS.buyLevel
+        gasLimit: 500000,  // Увеличенный лимит
+        gasPrice: ethers.utils.parseUnits('1.5', 'gwei')  // Немного выше для скорости
       });
       
-      this.showNotification(`Активация уровня ${level}...`, 'info');
+      // Обновляем статус с хешем транзакции
+      button.textContent = '⏳ Ожидание...';
+      this.updateTransactionProgress(
+        'Ожидание подтверждения...', 
+        `Транзакция отправлена!`,
+        tx.hash
+      );
+      
       await tx.wait();
+      
+      // Закрываем прогресс
+      this.hideTransactionProgress();
       
       this.closeModal('activationModal');
       this.showNotification(
@@ -586,8 +616,12 @@ const app = {
       
     } catch (error) {
       console.error('❌ Activation error:', error);
+      
+      // Закрываем прогресс при ошибке
+      this.hideTransactionProgress();
+      
       button.disabled = false;
-      button.textContent = `АКТИВИРОВАТЬ УРОВЕНЬ ${level}`;
+      button.textContent = `🚀 АКТИВИРОВАТЬ УРОВЕНЬ ${level}`;
       
       if (error.code === 4001) {
         this.showNotification('❌ Транзакция отменена', 'error');
@@ -764,14 +798,6 @@ const app = {
 
   async getSignedContract(contractName) {
     const contract = await this.getContract(contractName);
-  
-    // Проверка что signer доступен
-    if (!window.web3Manager || !window.web3Manager.signer) {
-      console.error('❌ Signer not available!');
-      this.showNotification('Кошелёк не подключен. Переподключите.', 'error');
-      throw new Error('Signer not available');
-    }
-  
     const signer = window.web3Manager.signer;
     return contract.connect(signer);
   },
@@ -792,6 +818,132 @@ const app = {
       notification.classList.remove('show');
       setTimeout(() => notification.remove(), 300);
     }, CONFIG.UI.notificationDuration);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПРОГРЕСС ТРАНЗАКЦИИ
+  // ═══════════════════════════════════════════════════════════════
+  showTransactionProgress(title, message) {
+    // Удаляем старый если есть
+    this.hideTransactionProgress();
+    
+    const modalHTML = `
+    <div id="txProgressModal" class="modal tx-progress-modal" style="display: block;">
+      <div class="modal-content tx-progress-content">
+        <div class="tx-progress-header">
+          <div class="tx-spinner"></div>
+          <h3 id="txProgressTitle">${title}</h3>
+        </div>
+        <p id="txProgressMessage">${message}</p>
+        <div id="txProgressLink" style="display: none;">
+          <a id="txExplorerLink" href="#" target="_blank" class="tx-explorer-link">
+            🔗 Посмотреть в эксплорере
+          </a>
+        </div>
+        <p class="tx-warning">⚠️ Не закрывайте страницу!</p>
+      </div>
+    </div>
+    <style>
+      .tx-progress-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+      }
+      .tx-progress-content {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border: 2px solid #ffd700;
+        border-radius: 20px;
+        padding: 30px 40px;
+        text-align: center;
+        max-width: 400px;
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+      }
+      .tx-progress-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      .tx-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #333;
+        border-top: 4px solid #ffd700;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .tx-progress-content h3 {
+        color: #ffd700;
+        margin: 0;
+        font-size: 1.3em;
+      }
+      .tx-progress-content p {
+        color: #fff;
+        margin: 10px 0;
+      }
+      .tx-warning {
+        color: #ff9800 !important;
+        font-size: 0.9em;
+        margin-top: 20px !important;
+      }
+      .tx-explorer-link {
+        display: inline-block;
+        color: #00d4ff;
+        text-decoration: none;
+        padding: 10px 20px;
+        border: 1px solid #00d4ff;
+        border-radius: 10px;
+        margin-top: 10px;
+        transition: all 0.3s;
+      }
+      .tx-explorer-link:hover {
+        background: rgba(0, 212, 255, 0.2);
+      }
+    </style>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  },
+
+  updateTransactionProgress(title, message, txHash) {
+    const titleEl = document.getElementById('txProgressTitle');
+    const messageEl = document.getElementById('txProgressMessage');
+    const linkContainer = document.getElementById('txProgressLink');
+    const linkEl = document.getElementById('txExplorerLink');
+    
+    if (titleEl) titleEl.textContent = title;
+    if (messageEl) messageEl.textContent = message;
+    
+    if (txHash && linkContainer && linkEl) {
+      linkContainer.style.display = 'block';
+      linkEl.href = `https://opbnbscan.com/tx/${txHash}`;
+    }
+  },
+
+  hideTransactionProgress() {
+    const modal = document.getElementById('txProgressModal');
+    if (modal) {
+      modal.remove();
+    }
+    // Удаляем стили если остались
+    const styles = document.querySelectorAll('style');
+    styles.forEach(style => {
+      if (style.textContent.includes('tx-progress-modal')) {
+        style.remove();
+      }
+    });
   },
 
   // ═══════════════════════════════════════════════════════════════
