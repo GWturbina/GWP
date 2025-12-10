@@ -370,10 +370,13 @@ const partnersModule = {
   // ═══════════════════════════════════════════════════════════════
   async getPartnersAtDepth(address, targetDepth, currentDepth = 1) {
     try {
+      console.log(`🔍 getPartnersAtDepth: addr=${address.slice(0,10)}..., target=${targetDepth}, current=${currentDepth}`);
+      
       const directRefs = await this.getDirectReferrals(address);
+      console.log(`  📦 Найдено рефералов: ${directRefs.length}`);
       
       if (currentDepth === targetDepth) {
-        // Достигли нужной глубины — возвращаем рефералов
+        console.log(`  ✅ Достигли глубины ${targetDepth}, возвращаем ${directRefs.length} рефералов`);
         return directRefs;
       }
     
@@ -384,6 +387,7 @@ const partnersModule = {
         result.push(...subRefs);
       }
     
+      console.log(`  📊 Итого на глубине ${targetDepth}: ${result.length}`);
       return result;
     } catch (error) {
       console.error('❌ Error getting partners at depth:', error);
@@ -396,7 +400,9 @@ const partnersModule = {
   // ═══════════════════════════════════════════════════════════════
   async getDirectReferrals(address) {
     try {
+      console.log(`  🔗 getDirectReferrals для ${address.slice(0,10)}...`);
       const referrals = await this.contracts.globalWay.getDirectReferrals(address);
+      console.log(`  🔗 Результат: ${referrals.length} рефералов`, referrals);
       return referrals;
     } catch (error) {
       console.error('❌ Error getting direct referrals:', error);
@@ -475,20 +481,14 @@ const partnersModule = {
     }
   },
 
-// ═══════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
   // ПОЛУЧИТЬ ДАТУ АКТИВАЦИИ
   // ═══════════════════════════════════════════════════════════════
   async getActivationDate(address) {
     try {
-      // Получаем текущий блок
-      const currentBlock = await window.web3Manager.provider.getBlockNumber();
-      
-      // Ограничиваем диапазон до 49000 блоков (лимит opBNB = 50000)
-      const fromBlock = Math.max(0, currentBlock - 49000);
-      
-      // Используем событие LevelActivated
+      // Используем событие LevelActivated (или LevelPurchased)
       const filter = this.contracts.globalWay.filters.LevelActivated(address, 1);
-      const events = await this.contracts.globalWay.queryFilter(filter, fromBlock, currentBlock);
+      const events = await this.contracts.globalWay.queryFilter(filter, -100000);
       
       if (events.length > 0) {
         const block = await events[0].getBlock();
@@ -497,7 +497,7 @@ const partnersModule = {
       
       // Альтернативно - из MatrixRegistry
       const regFilter = this.contracts.matrixRegistry.filters.UserRegistered(address);
-      const regEvents = await this.contracts.matrixRegistry.queryFilter(regFilter, fromBlock, currentBlock);
+      const regEvents = await this.contracts.matrixRegistry.queryFilter(regFilter, -100000);
       
       if (regEvents.length > 0) {
         const block = await regEvents[0].getBlock();
@@ -506,7 +506,7 @@ const partnersModule = {
       
       return '-';
     } catch (error) {
-      console.warn('⚠️ Could not get activation date:', error.message);
+      console.warn('⚠️ Could not get activation date:', error);
       return '-';
     }
   },
