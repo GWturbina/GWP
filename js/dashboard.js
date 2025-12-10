@@ -146,83 +146,141 @@ const dashboardModule = {
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // QUARTERLY ИНФОРМАЦИЯ
-  // ═══════════════════════════════════════════════════════════════
-  async loadQuarterlyInfo() {
-    try {
-      const { address } = this.userData;
-      console.log('📅 Loading quarterly info...');
+async loadQuarterlyInfo() {
+  try {
+    const { address } = this.userData;
+    console.log('📅 Loading quarterly info...');
     
-      const info = await this.contracts.quarterlyPayments.quarterlyInfo(address);
-      const lastPayment = Number(info[0] || 0);
-      const quartersPaid = Number(info[1] || 0);
-  
-     const QUARTERLY_INTERVAL = 7776000;
-      const WARNING_PERIOD = 604800;
-      const now = Math.floor(Date.now() / 1000);
-  
-      let canPay, nextPayment, daysRemaining, status;
-  
-      if (lastPayment === 0) {
-        canPay = this.userData.maxLevel >= 1;
+    const info = await this.contracts.quarterlyPayments.quarterlyInfo(address);
+    const lastPayment = Number(info[0] || 0);
+    const quartersPaid = Number(info[1] || 0);
+    
+    const QUARTERLY_INTERVAL = 7776000; // 90 дней
+    const WARNING_PERIOD = 86400; // 1 день до окончания
+    const now = Math.floor(Date.now() / 1000);
+    
+    let canPay, nextPayment, daysRemaining, status;
+    
+    if (lastPayment === 0) {
+      // Ещё не было квартальных платежей
+      // Нужно получить дату активации уровня 1
+      try {
+        const activationTime = await this.getLevel1ActivationTime(address);
+        
+        if (activationTime === 0) {
+          // Уровень 1 не активирован
+          canPay = false;
+          nextPayment = 0;
+          daysRemaining = 0;
+          status = 'Сначала активируйте уровень 1';
+        } else {
+          // Уровень 1 активирован — считаем от даты активации
+          nextPayment = activationTime + QUARTERLY_INTERVAL;
+          const timeUntilNext = nextPayment - now;
+          daysRemaining = Math.max(0, Math.ceil(timeUntilNext / 86400));
+          
+          if (timeUntilNext <= 0) {
+            canPay = true;
+            status = '⚠️ Оплатите квартал!';
+          } else if (timeUntilNext <= WARNING_PERIOD) {
+            canPay = true;
+            status = 'Можно активировать';
+          } else {
+            canPay = false;
+            status = `Доступно через ${daysRemaining} дней`;
+          }
+        }
+      } catch(e) {
+        console.warn('⚠️ Could not get activation time:', e.message);
+        canPay = false;
         nextPayment = 0;
         daysRemaining = 0;
-        status = this.userData.maxLevel >= 1 ? 'Еще не активирован' : 'Активируйте уровень 1';
+        status = 'Еще не активирован';
+      }
+    } else {
+      // Уже были квартальные платежи — считаем от последнего
+      nextPayment = lastPayment + QUARTERLY_INTERVAL;
+      const timeUntilNext = nextPayment - now;
+      daysRemaining = Math.max(0, Math.ceil(timeUntilNext / 86400));
+      
+      if (timeUntilNext <= 0) {
+        canPay = true;
+        status = '⚠️ Квартал истёк! Оплатите';
+      } else if (timeUntilNext <= WARNING_PERIOD) {
+        canPay = true;
+        status = 'Можно активировать';
       } else {
-        nextPayment = lastPayment + QUARTERLY_INTERVAL;
-        const timeUntilNext = nextPayment - now;
-        daysRemaining = Math.max(0, Math.ceil(timeUntilNext / 86400));
-        
-        if (timeUntilNext <= 0) {
-          canPay = true;
-          status = '⚠️ Квартал истёк! Оплатите';
-        } else if (timeUntilNext <= WARNING_PERIOD) {
-          canPay = true;
-          status = `Можно активировать`;
-        } else {
-          canPay = false;
-          status = `Доступно через ${daysRemaining} дней`;
-        }
+        canPay = false;
+        status = `Доступно через ${daysRemaining} дней`;
       }
-  
-      let pensionBalance = '0';
-      try {
-        const pension = await this.contracts.quarterlyPayments.getPensionBalance(address);
-        pensionBalance = ethers.utils.formatEther(pension);
-      } catch(e) {
-        console.warn('⚠️ Could not get pension:', e.message);
-      }
-  
-      this.userData.quarterlyInfo = {
-        canPay,
-        quarter: lastPayment === 0 ? 1 : quartersPaid + 1,
-        lastPayment,
-        nextPayment,
-        daysRemaining,
-        status,
-        cost: CONFIG.QUARTERLY_COST || '0.075',
-        pensionBalance
-      };
-  
-      console.log('✅ Quarterly info loaded:', this.userData.quarterlyInfo);
-      this.updateQuarterlyUI();
-  
-    } catch (error) {
-      console.error('❌ Error loading quarterly info:', error);
-      this.userData.quarterlyInfo = {
-        canPay: false,
-        quarter: 0,
-        lastPayment: 0,
-        nextPayment: 0,
-        daysRemaining: 0,
-        status: 'Ошибка загрузки',
-        cost: CONFIG.QUARTERLY_COST || '0.075',
-        pensionBalance: '0'
-      };
-      this.updateQuarterlyUI();
     }
-  },
+    
+    let pensionBalance = '0';
+    try {
+      const pension = await this.contracts.quarterlyPayments.getPensionBalance(address);
+      pensionBalance = ethers.utils.formatEther(pension);
+    } catch(e) {
+      console.warn('⚠️ Could not get pension:', e.message);
+    }
+    
+    this.userData.quarterlyInfo = {
+      canPay,
+      quarter: lastPayment === 0 ? 1 : quartersPaid + 1,
+      lastPayment,
+      nextPayment,
+      daysRemaining,
+      status,
+      cost: CONFIG.QUARTERLY_COST || '0.075',
+      pensionBalance
+    };
+    
+    console.log('✅ Quarterly info loaded:', this.userData.quarterlyInfo);
+    this.updateQuarterlyUI();
+    
+  } catch (error) {
+    console.error('❌ Error loading quarterly info:', error);
+    this.userData.quarterlyInfo = {
+      canPay: false,
+      quarter: 0,
+      lastPayment: 0,
+      nextPayment: 0,
+      daysRemaining: 0,
+      status: 'Ошибка загрузки',
+      cost: CONFIG.QUARTERLY_COST || '0.075',
+      pensionBalance: '0'
+    };
+    this.updateQuarterlyUI();
+  }
+},
+
+// Новая функция для получения времени активации уровня 1
+async getLevel1ActivationTime(address) {
+  try {
+    // Пробуем получить из контракта GlobalWay
+    const userInfo = await this.contracts.globalWay.getUserInfo(address);
+    // Если есть поле activationTime — используем его
+    if (userInfo.activationTime) {
+      return Number(userInfo.activationTime);
+    }
+    
+    // Альтернатива: ищем событие LevelActivated
+    const currentBlock = await window.web3Manager.provider.getBlockNumber();
+    const fromBlock = Math.max(0, currentBlock - 49000);
+    
+    const filter = this.contracts.globalWay.filters.LevelActivated(address, 1);
+    const events = await this.contracts.globalWay.queryFilter(filter, fromBlock, currentBlock);
+    
+    if (events.length > 0) {
+      const block = await events[0].getBlock();
+      return block.timestamp;
+    }
+    
+    return 0;
+  } catch(e) {
+    console.warn('⚠️ getLevel1ActivationTime error:', e.message);
+    return 0;
+  }
+},
 
   // ═══════════════════════════════════════════════════════════════
   // БАЛАНСЫ КОНТРАКТОВ
