@@ -476,7 +476,6 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
 
     // Получаем элементы
     const modal = document.getElementById('nodeModal');
-    const modalContent = modal.querySelector('div'); // внутренний контейнер
     const closeX = document.getElementById('nodeModalCloseX');
     const closeBtn = document.getElementById('closeModalBtn');
     const viewBtn = document.getElementById('viewMatrixBtn');
@@ -488,46 +487,30 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
       if (m) m.remove();
     };
 
-    // Останавливаем propagation на контенте модального окна
-    modalContent.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-
     // Крестик закрытия
-    closeX.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    closeX.onclick = function() {
       closeModal();
-    });
+    };
 
     // Кнопка "Закрыть"
-    closeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    closeBtn.onclick = function() {
       closeModal();
-    });
+    };
 
     // Кнопка "Посмотреть матрицу"
     if (nodeUserId && nodeUserId !== 'N/A' && nodeUserId !== '0') {
-      viewBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+      viewBtn.onclick = function() {
         console.log(`🌐 Loading matrix for user ${nodeUserId}...`);
         closeModal();
         self.loadMatrixData(nodeUserId, currentLevel);
-      });
+      };
     } else {
       viewBtn.disabled = true;
       viewBtn.style.opacity = '0.5';
       viewBtn.style.cursor = 'not-allowed';
     }
 
-    // Клик по фону закрывает окно (только если клик был именно на фоне)
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeModal();
-      }
-    });
+    // НЕ закрываем по клику на фон - только по кнопкам
 
     console.log('✅ Modal opened for user:', nodeUserId);
   },
