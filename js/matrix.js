@@ -414,7 +414,12 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
       return;
     }
 
-    // ✅ ИСПРАВЛЕНО: Получаем спонсора
+    // Сохраняем данные для обработчиков
+    const nodeUserId = node.userId;
+    const currentLevel = this.state.currentLevel;
+    const self = this;
+
+    // Получаем спонсора
     let sponsorId = '-';
     try {
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(node.userId);
@@ -424,7 +429,7 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
       console.warn('⚠️ Could not get sponsor:', e);
     }
 
-    // ✅ ИСПРАВЛЕНО: Получаем ранг
+    // Получаем ранг
     let rank = 'Никто';
     try {
       const leaderPool = await app.getContract('GlobalWayLeaderPool');
@@ -435,70 +440,87 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
       rank = 'Участник';
     }
 
+    // Удаляем старое модальное окно
+    const oldModal = document.getElementById('nodeModal');
+    if (oldModal) oldModal.remove();
+
+    // HTML с инлайн стилями для гарантированного отображения
     const modalHTML = `
-      <div id="nodeModal" class="modal">
-        <div class="modal-content cosmic-card">
-          <span class="close-modal">&times;</span>
-          <div class="modal-header cosmic-header">
-            <h2>Информация о позиции</h2>
+      <div id="nodeModal" style="display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center;">
+        <div style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border:2px solid #ffd700; border-radius:15px; padding:25px; max-width:400px; width:90%; position:relative;">
+          <span id="nodeModalCloseX" style="position:absolute; top:10px; right:15px; font-size:28px; color:#ffd700; cursor:pointer;">&times;</span>
+          <div style="text-align:center; margin-bottom:20px;">
+            <h2 style="color:#ffd700; margin:0;">Информация о позиции</h2>
           </div>
-          <div class="modal-body">
-            <div class="node-info">
-              <p><strong>ID:</strong> ${node.userId !== 'N/A' && node.userId !== '0' ? 'GW' + node.userId : 'N/A'}</p>
-              <p><strong>Address:</strong> ${app.formatAddress(node.address)}</p>
-              <p><strong>Спонсор:</strong> ${sponsorId}</p>
-              <p><strong>Level:</strong> ${node.maxLevel}</p>
-              <p><strong>Ранг:</strong> ${rank}</p>
-              <p><strong>Type:</strong> ${this.getTypeLabel(node.type, node.isTechAccount)}</p>
-            </div>
-            <div class="modal-actions">
-              <button id="viewMatrixBtn" class="btn-gold">
-                🌐 Посмотреть матрицу
-              </button>
-              <button id="closeModalBtn" class="btn-outline">
-                Закрыть
-              </button>
-            </div>
+          <div style="color:#fff; line-height:2;">
+            <p><strong>ID:</strong> ${nodeUserId !== 'N/A' && nodeUserId !== '0' ? 'GW' + nodeUserId : 'N/A'}</p>
+            <p><strong>Адрес:</strong> ${app.formatAddress(node.address)}</p>
+            <p><strong>Спонсор:</strong> ${sponsorId}</p>
+            <p><strong>Уровень:</strong> ${node.maxLevel}</p>
+            <p><strong>Ранг:</strong> ${rank}</p>
+            <p><strong>Тип:</strong> ${this.getTypeLabel(node.type, node.isTechAccount)}</p>
+          </div>
+          <div style="display:flex; gap:15px; margin-top:25px;">
+            <button id="viewMatrixBtn" style="flex:1; padding:14px 20px; background:linear-gradient(135deg, #ffd700, #ffaa00); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px;">
+              🌐 Посмотреть матрицу
+            </button>
+            <button id="closeModalBtn" style="flex:1; padding:14px 20px; background:transparent; color:#ffd700; border:2px solid #ffd700; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px;">
+              Закрыть
+            </button>
           </div>
         </div>
       </div>
     `;
 
-    const oldModal = document.getElementById('nodeModal');
-    if (oldModal) oldModal.remove();
-
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+    // Получаем элементы
     const modal = document.getElementById('nodeModal');
-    const closeBtn = modal.querySelector('.close-modal');
-    const closeBtnBottom = document.getElementById('closeModalBtn');
-    const viewMatrixBtn = document.getElementById('viewMatrixBtn');
+    const closeX = document.getElementById('nodeModalCloseX');
+    const closeBtn = document.getElementById('closeModalBtn');
+    const viewBtn = document.getElementById('viewMatrixBtn');
 
-    // ✅ ИСПРАВЛЕНО: Кнопки закрытия
+    // Функция закрытия
     const closeModal = () => {
-      modal.style.display = 'none';
-      setTimeout(() => modal.remove(), 300);
+      console.log('🔴 Closing modal');
+      const m = document.getElementById('nodeModal');
+      if (m) m.remove();
     };
 
-    closeBtn.onclick = closeModal;
-    closeBtnBottom.onclick = closeModal;
-    
-    // ✅ ИСПРАВЛЕНО: Кнопка просмотра матрицы
-    if (viewMatrixBtn && node.userId && node.userId !== 'N/A' && node.userId !== '0') {
-      viewMatrixBtn.onclick = async () => {
+    // Привязываем обработчики через addEventListener
+    closeX.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeModal();
+    });
+
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeModal();
+    });
+
+    // Кнопка просмотра матрицы
+    if (nodeUserId && nodeUserId !== 'N/A' && nodeUserId !== '0') {
+      viewBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log(`🌐 Loading matrix for user ${nodeUserId}...`);
         closeModal();
-        await this.loadMatrixData(node.userId, this.state.currentLevel);
-      };
-    } else if (viewMatrixBtn) {
-      viewMatrixBtn.disabled = true;
-      viewMatrixBtn.style.opacity = '0.5';
+        // Загружаем матрицу выбранного пользователя
+        self.loadMatrixData(nodeUserId, currentLevel);
+      });
+    } else {
+      viewBtn.disabled = true;
+      viewBtn.style.opacity = '0.5';
+      viewBtn.style.cursor = 'not-allowed';
     }
 
-    modal.onclick = (e) => {
-      if (e.target === modal) closeModal();
-    };
+    // Клик по фону закрывает окно
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
 
-    modal.style.display = 'block';
+    console.log('✅ Modal opened for user:', nodeUserId);
   },
 
   getTypeLabel(type, isTechAccount) {
