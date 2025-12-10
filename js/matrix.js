@@ -476,6 +476,7 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
 
     // Получаем элементы
     const modal = document.getElementById('nodeModal');
+    const modalContent = modal.querySelector('div'); // внутренний контейнер
     const closeX = document.getElementById('nodeModalCloseX');
     const closeBtn = document.getElementById('closeModalBtn');
     const viewBtn = document.getElementById('viewMatrixBtn');
@@ -487,24 +488,32 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
       if (m) m.remove();
     };
 
-    // Привязываем обработчики через addEventListener
+    // Останавливаем propagation на контенте модального окна
+    modalContent.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    // Крестик закрытия
     closeX.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
       closeModal();
     });
 
+    // Кнопка "Закрыть"
     closeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
       closeModal();
     });
 
-    // Кнопка просмотра матрицы
+    // Кнопка "Посмотреть матрицу"
     if (nodeUserId && nodeUserId !== 'N/A' && nodeUserId !== '0') {
       viewBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         console.log(`🌐 Loading matrix for user ${nodeUserId}...`);
         closeModal();
-        // Загружаем матрицу выбранного пользователя
         self.loadMatrixData(nodeUserId, currentLevel);
       });
     } else {
@@ -513,7 +522,7 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
       viewBtn.style.cursor = 'not-allowed';
     }
 
-    // Клик по фону закрывает окно
+    // Клик по фону закрывает окно (только если клик был именно на фоне)
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
         closeModal();
