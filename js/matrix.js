@@ -204,7 +204,7 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
   } catch (error) {
     console.error('❌ Error building tree:', error);
   }
-}
+},
 
   async getPositionType(address, rootAddress, nodeSponsorId) {
     try {
