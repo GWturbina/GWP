@@ -100,27 +100,28 @@ const partnersModule = {
       const address = app.state.userAddress;
       console.log('📊 Loading team stats...');
       
-      // ✅ ИСПРАВЛЕНО: getUserStructureStats возвращает (directReferrals, activeLevels, levelStatus[12])
-      const result = await this.contracts.stats.getUserStructureStats(address);
+      // ПРЯМОЙ ВЫЗОВ getUserInfo из MatrixRegistry
+      const userInfo = await this.contracts.matrixRegistry.getUserInfo(address);
+      // userInfo: (isRegistered_, userId, sponsorId, personalInvites, directReferrals[], hasMatrixNode_)
       
-      // result[0] = directReferrals (uint256)
-      // result[1] = activeLevels (uint256)  
-      // result[2] = levelStatus (bool[12])
+      const personalInvites = Number(userInfo.personalInvites || userInfo[3]);
+      const directReferrals = userInfo.directReferrals || userInfo[4] || [];
       
-      const directReferrals = Number(result[0]);
-      const activeLevels = Number(result[1]);
+      console.log(`📊 personalInvites: ${personalInvites}, directReferrals: ${directReferrals.length}`);
+
+      // Считаем всю структуру рекурсивно
+      let totalInStructure = directReferrals.length;
       
-      // Подсчитываем общее количество в структуре через GlobalWay
-      let totalInStructure = directReferrals;
+      // Активные уровни из GlobalWay
+      let activeLevels = 0;
       try {
-        const allReferrals = await this.contracts.globalWay.getUserReferrals(address);
-        totalInStructure = allReferrals.length;
+        activeLevels = Number(await this.contracts.globalWay.getUserMaxLevel(address));
       } catch (e) {
-        console.warn('⚠️ Could not get total referrals:', e);
+        console.warn('⚠️ Could not get active levels:', e);
       }
 
       this.state.stats = {
-        personal: directReferrals,
+        personal: directReferrals.length,
         active: activeLevels,
         total: totalInStructure
       };
@@ -402,87 +403,12 @@ const partnersModule = {
     try {
       console.log(`  🔗 getDirectReferrals для ${address.slice(0,10)}...`);
       
-      // Получаем userId текущего пользователя
-      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
-      const userIdStr = userId.toString();
+      // ПРЯМОЙ ВЫЗОВ ФУНКЦИИ КОНТРАКТА - без хаков!
+      const referrals = await this.contracts.matrixRegistry.getDirectReferrals(address);
       
-      if (userIdStr === '0') {
-        console.log(`  🔗 Пользователь не найден`);
-        return [];
-      }
+      console.log(`  🔗 Контракт вернул: ${referrals.length} рефералов`, referrals);
+      return referrals;
       
-      const referrals = [];
-      const checkedIds = new Set();
-      
-      // Получаем количество пользователей
-      const totalUsers = Number(await this.contracts.matrixRegistry.totalUsers());
-      console.log(`  🔗 Всего пользователей: ${totalUsers}, ищем sponsorId = ${userIdStr}`);
-      
-      // Способ 1: Ищем через события UserRegistered (самый надёжный)
-      try {
-        const currentBlock = await window.web3Manager.provider.getBlockNumber();
-        const fromBlock = Math.max(0, currentBlock - 100000); // Увеличен диапазон
-        
-        const filter = this.contracts.matrixRegistry.filters.UserRegistered();
-        const events = await this.contracts.matrixRegistry.queryFilter(filter, fromBlock, currentBlock);
-        
-        console.log(`  🔗 Найдено событий регистрации: ${events.length}`);
-        
-        for (let event of events) {
-          const eventSponsorId = event.args?.sponsorId?.toString();
-          const eventUserId = event.args?.userId?.toString();
-          
-          if (eventSponsorId === userIdStr) {
-            const refAddr = event.args?.user;
-            if (refAddr && refAddr !== ethers.constants.AddressZero && !referrals.includes(refAddr)) {
-              referrals.push(refAddr);
-              checkedIds.add(eventUserId);
-              console.log(`  🔗 Найден реферал: ID=${eventUserId}, addr=${refAddr.slice(0,10)}...`);
-            }
-          }
-        }
-      } catch(e) {
-        console.warn('  ⚠️ Ошибка событий:', e.message);
-      }
-      
-      // Способ 2: Если события не дали результат, перебираем все ID из usedIds
-      if (referrals.length === 0) {
-        try {
-          const usedCount = Number(await this.contracts.matrixRegistry.usedIdsCount());
-          console.log(`  🔗 Перебираем ${usedCount} ID из usedIds...`);
-          
-          for (let i = 0; i < usedCount; i++) {
-            try {
-              const testId = await this.contracts.matrixRegistry.usedIds(i);
-              const testIdStr = testId.toString();
-              
-              if (checkedIds.has(testIdStr)) continue;
-              
-              const node = await this.contracts.matrixRegistry.matrixNodes(testIdStr);
-              if (!node[7]) continue; // не активен
-              
-              const sponsorId = node[2].toString();
-              if (sponsorId === userIdStr) {
-                const refAddr = node[1];
-                if (refAddr && refAddr !== ethers.constants.AddressZero && !referrals.includes(refAddr)) {
-                  referrals.push(refAddr);
-                  console.log(`  🔗 Найден реферал (usedIds): ID=${testIdStr}, addr=${refAddr.slice(0,10)}...`);
-                }
-              }
-            } catch(e) {
-              // Пропускаем ошибки отдельных ID
-            }
-          }
-        } catch(e) {
-          console.warn('  ⚠️ Ошибка перебора usedIds:', e.message);
-        }
-      }
-      
-      // Фильтруем undefined и невалидные адреса
-      const validReferrals = referrals.filter(addr => addr && addr !== ethers.constants.AddressZero);
-      
-      console.log(`  🔗 Итого: ${validReferrals.length} рефералов`, validReferrals);
-      return validReferrals;
     } catch (error) {
       console.error('❌ Error getting direct referrals:', error);
       return [];
