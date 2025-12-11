@@ -1728,10 +1728,24 @@ const adminModule = {
         app.showNotification('Активация уровней...', 'info');
         
         try {
-          // ownerActivateLevels(address user, uint8 maxLevel) — активирует уровни 1-maxLevel
-          console.log(`📤 Вызов ownerActivateLevels(${userAddress}, ${maxLevel})`);
-          const tx2 = await globalWayContract.ownerActivateLevels(userAddress, maxLevel);
-          await tx2.wait();
+          // Диагностика
+          const adminFuncs = Object.keys(globalWayContract.functions || {}).filter(f => f.toLowerCase().includes('admin'));
+          console.log('🔍 Admin функции:', adminFuncs);
+          
+          if (typeof globalWayContract.adminSetLevelsActive === 'function') {
+            console.log(`📤 Вызов adminSetLevelsActive(${userAddress}, 1, ${maxLevel})`);
+            const tx2 = await globalWayContract.adminSetLevelsActive(userAddress, 1, maxLevel);
+            await tx2.wait();
+          } else if (typeof globalWayContract.adminSetLevelActive === 'function') {
+            console.log(`📤 Используем adminSetLevelActive в цикле`);
+            for (let lvl = 1; lvl <= maxLevel; lvl++) {
+              console.log(`  ⚡ Уровень ${lvl}...`);
+              const tx2 = await globalWayContract.adminSetLevelActive(userAddress, lvl);
+              await tx2.wait();
+            }
+          } else {
+            throw new Error('Функции admin активации не найдены! ' + adminFuncs.join(', '));
+          }
           console.log('✅ Уровни активированы');
         } catch (actError) {
           console.error('Ошибка активации:', actError);
@@ -1801,28 +1815,35 @@ const adminModule = {
       
       const contract = await app.getSignedContract('GlobalWay');
       
-      console.log(`📤 Активация уровней ${Number(currentLevel) + 1} - ${maxLevel} для ${userAddress}`);
+      // Диагностика - какие функции доступны
+      const allFuncs = Object.keys(contract.functions || {});
+      const adminFuncs = allFuncs.filter(f => f.toLowerCase().includes('admin'));
+      console.log('🔍 Все функции контракта:', allFuncs.length);
+      console.log('🔍 Admin функции:', adminFuncs);
+      console.log('🔍 adminSetLevelsActive:', typeof contract.adminSetLevelsActive);
+      console.log('🔍 adminSetLevelActive:', typeof contract.adminSetLevelActive);
       
-      // Активируем по одному уровню начиная с текущего+1
-      const startLevel = Number(currentLevel) + 1;
+      // adminSetLevelsActive(address user, uint8 fromLevel, uint8 toLevel) - бесплатная активация
+      const fromLevel = Number(currentLevel) + 1;
       
-      for (let lvl = startLevel; lvl <= maxLevel; lvl++) {
-        try {
-          console.log(`  ⚡ Активация уровня ${lvl}...`);
-          app.showNotification(`Активация уровня ${lvl}/${maxLevel}...`, 'info');
-          
-          const tx = await contract.activateLevelFor(userAddress, lvl);
+      if (typeof contract.adminSetLevelsActive === 'function') {
+        console.log(`📤 Вызов adminSetLevelsActive(${userAddress}, ${fromLevel}, ${maxLevel})`);
+        const tx = await contract.adminSetLevelsActive(userAddress, fromLevel, maxLevel);
+        await tx.wait();
+        app.showNotification(`✅ Активировано до уровня ${maxLevel}!`, 'success');
+      } else if (typeof contract.adminSetLevelActive === 'function') {
+        // Fallback - активируем по одному уровню
+        console.log(`📤 Используем adminSetLevelActive в цикле`);
+        for (let lvl = fromLevel; lvl <= maxLevel; lvl++) {
+          console.log(`  ⚡ Уровень ${lvl}...`);
+          app.showNotification(`Активация ${lvl}/${maxLevel}...`, 'info');
+          const tx = await contract.adminSetLevelActive(userAddress, lvl);
           await tx.wait();
-          
-          console.log(`  ✅ Уровень ${lvl} активирован`);
-        } catch (levelError) {
-          console.error(`  ❌ Ошибка на уровне ${lvl}:`, levelError);
-          app.showNotification(`Ошибка на уровне ${lvl}: ${levelError.message}`, 'error');
-          return;
         }
+        app.showNotification(`✅ Активировано до уровня ${maxLevel}!`, 'success');
+      } else {
+        throw new Error('Функции adminSetLevelsActive и adminSetLevelActive не найдены! Доступные admin: ' + adminFuncs.join(', '));
       }
-      
-      app.showNotification(`✅ Активировано до уровня ${maxLevel}!`, 'success');
       
       await this.loadStats();
       document.getElementById('activateUserAddress').value = '';
