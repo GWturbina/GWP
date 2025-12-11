@@ -1233,20 +1233,47 @@ const adminModule = {
       // Получаем список пользователей и проверяем их ранги
       const maxCheck = Math.min(totalUsers, 100); // Проверяем максимум 100 пользователей
       
-      for (let i = 0; i < maxCheck; i++) {
-        try {
-          const address = await this.contracts.globalWay.allUsers(i);
-          if (address && address !== '0x0000000000000000000000000000000000000000') {
+      console.log(`📊 Проверяем ранги для ${maxCheck} пользователей...`);
+      
+      // Проверяем есть ли функция allUsers
+      if (!this.contracts.globalWay.allUsers) {
+        console.log('⚠️ Функция allUsers не найдена, пробуем альтернативный способ');
+        // Пробуем через известные адреса
+        const knownAddresses = [
+          app.state.userAddress,
+          ...CONFIG.ADMIN.guardians
+        ].filter(a => a);
+        
+        for (const address of knownAddresses) {
+          try {
             const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
             const rank = Number(rankInfo.rank || rankInfo[0] || 0);
+            console.log(`  ${address.slice(0,10)}... → ранг ${rank}`);
             
             if (rank === 1) ranks.bronze++;
             else if (rank === 2) ranks.silver++;
             else if (rank === 3) ranks.gold++;
             else if (rank === 4) ranks.platinum++;
+          } catch (e) {
+            console.log(`  ${address.slice(0,10)}... → ошибка`);
           }
-        } catch (e) {
-          // Пропускаем ошибки для отдельных пользователей
+        }
+      } else {
+        for (let i = 0; i < maxCheck; i++) {
+          try {
+            const address = await this.contracts.globalWay.allUsers(i);
+            if (address && address !== '0x0000000000000000000000000000000000000000') {
+              const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
+              const rank = Number(rankInfo.rank || rankInfo[0] || 0);
+              
+              if (rank === 1) ranks.bronze++;
+              else if (rank === 2) ranks.silver++;
+              else if (rank === 3) ranks.gold++;
+              else if (rank === 4) ranks.platinum++;
+            }
+          } catch (e) {
+            // Пропускаем ошибки для отдельных пользователей
+          }
         }
       }
       
@@ -1366,59 +1393,181 @@ const adminModule = {
   initEventHandlers() {
     console.log('🎯 Инициализация обработчиков...');
     
-    const bind = (id, handler) => {
-      const el = document.getElementById(id);
-      if (el) el.onclick = () => handler.call(this);
-    };
+    const self = this;
     
     // Статистика
-    bind('refreshStatsBtn', this.loadStats);
+    const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+    if (refreshStatsBtn) {
+      refreshStatsBtn.addEventListener('click', () => {
+        console.log('🔄 Обновление статистики...');
+        self.loadStats();
+      });
+    }
     
     // Поиск
-    bind('searchUserBtn', this.searchUser);
+    const searchUserBtn = document.getElementById('searchUserBtn');
+    if (searchUserBtn) {
+      searchUserBtn.addEventListener('click', () => {
+        console.log('🔍 Поиск пользователя...');
+        self.searchUser();
+      });
+    }
+    
     const searchInput = document.getElementById('searchUserInput');
     if (searchInput) {
-      searchInput.onkeypress = (e) => { if (e.key === 'Enter') this.searchUser(); };
+      searchInput.addEventListener('keypress', (e) => { 
+        if (e.key === 'Enter') self.searchUser(); 
+      });
     }
     
     // Регистрация + Активация
-    bind('registerAndActivateBtn', this.registerAndActivate);
+    const registerAndActivateBtn = document.getElementById('registerAndActivateBtn');
+    if (registerAndActivateBtn) {
+      registerAndActivateBtn.addEventListener('click', () => {
+        console.log('📝 Регистрация и активация...');
+        self.registerAndActivate();
+      });
+    }
     
     // Только активация
-    bind('activateLevelsBtn', this.activateLevels);
+    const activateLevelsBtn = document.getElementById('activateLevelsBtn');
+    if (activateLevelsBtn) {
+      activateLevelsBtn.addEventListener('click', () => {
+        console.log('⚡ Активация уровней...');
+        self.activateLevels();
+      });
+    }
     
     // Ранги
-    bind('setRankBtn', this.setUserRank);
+    const setRankBtn = document.getElementById('setRankBtn');
+    if (setRankBtn) {
+      setRankBtn.addEventListener('click', () => {
+        console.log('🏆 Присвоение ранга...');
+        self.setUserRank();
+      });
+    }
     
     // Авторизация
-    bind('setAuthBtn', this.setAuthorization);
+    const setAuthBtn = document.getElementById('setAuthBtn');
+    if (setAuthBtn) {
+      setAuthBtn.addEventListener('click', () => {
+        console.log('🔐 Управление авторизацией...');
+        self.setAuthorization();
+      });
+    }
     
     // Guardians
-    bind('addGuardianBtn', this.addGuardian);
-    bind('removeGuardianBtn', this.removeGuardian);
+    const addGuardianBtn = document.getElementById('addGuardianBtn');
+    if (addGuardianBtn) {
+      addGuardianBtn.addEventListener('click', () => {
+        console.log('➕ Добавление Guardian...');
+        self.addGuardian();
+      });
+    }
+    
+    const removeGuardianBtn = document.getElementById('removeGuardianBtn');
+    if (removeGuardianBtn) {
+      removeGuardianBtn.addEventListener('click', () => {
+        console.log('➖ Удаление Guardian...');
+        self.removeGuardian();
+      });
+    }
     
     // Контракты
-    bind('pauseContractBtn', this.pauseContract);
-    bind('unpauseContractBtn', this.unpauseContract);
-    bind('updateContractBtn', this.updateContractAddress);
+    const pauseContractBtn = document.getElementById('pauseContractBtn');
+    if (pauseContractBtn) {
+      pauseContractBtn.addEventListener('click', () => {
+        console.log('⏸️ Пауза контракта...');
+        self.pauseContract();
+      });
+    }
+    
+    const unpauseContractBtn = document.getElementById('unpauseContractBtn');
+    if (unpauseContractBtn) {
+      unpauseContractBtn.addEventListener('click', () => {
+        console.log('▶️ Возобновление контракта...');
+        self.unpauseContract();
+      });
+    }
+    
+    const updateContractBtn = document.getElementById('updateContractBtn');
+    if (updateContractBtn) {
+      updateContractBtn.addEventListener('click', () => {
+        console.log('🔄 Обновление адреса контракта...');
+        self.updateContractAddress();
+      });
+    }
     
     // Финансы
-    bind('withdrawBtn', this.withdrawFunds);
+    const withdrawBtn = document.getElementById('withdrawBtn');
+    if (withdrawBtn) {
+      withdrawBtn.addEventListener('click', () => {
+        console.log('💸 Вывод средств...');
+        self.withdrawFunds();
+      });
+    }
     
     // Делегирование
-    bind('delegateBtn', this.delegateRights);
+    const delegateBtn = document.getElementById('delegateBtn');
+    if (delegateBtn) {
+      delegateBtn.addEventListener('click', () => {
+        console.log('👥 Делегирование прав...');
+        self.delegateRights();
+      });
+    }
     
     // Новости
-    bind('publishNewsBtn', this.publishNews);
+    const publishNewsBtn = document.getElementById('publishNewsBtn');
+    if (publishNewsBtn) {
+      publishNewsBtn.addEventListener('click', () => {
+        console.log('📰 Публикация новости...');
+        self.publishNews();
+      });
+    }
     
     // Экспорт
-    bind('exportUsersBtn', this.exportUsers);
-    bind('exportRanksBtn', this.exportRanks);
-    bind('exportAllBtn', this.exportAll);
+    const exportUsersBtn = document.getElementById('exportUsersBtn');
+    if (exportUsersBtn) {
+      exportUsersBtn.addEventListener('click', () => {
+        console.log('📥 Экспорт пользователей...');
+        self.exportUsers();
+      });
+    }
+    
+    const exportRanksBtn = document.getElementById('exportRanksBtn');
+    if (exportRanksBtn) {
+      exportRanksBtn.addEventListener('click', () => {
+        console.log('📥 Экспорт рангов...');
+        self.exportRanks();
+      });
+    }
+    
+    const exportAllBtn = document.getElementById('exportAllBtn');
+    if (exportAllBtn) {
+      exportAllBtn.addEventListener('click', () => {
+        console.log('📥 Экспорт всей базы...');
+        self.exportAll();
+      });
+    }
     
     // Опасная зона
-    bind('emergencyWithdrawBtn', this.emergencyWithdraw);
-    bind('transferOwnershipBtn', this.transferOwnership);
+    const emergencyWithdrawBtn = document.getElementById('emergencyWithdrawBtn');
+    if (emergencyWithdrawBtn) {
+      emergencyWithdrawBtn.addEventListener('click', () => {
+        console.log('🚨 Экстренный вывод...');
+        self.emergencyWithdraw();
+      });
+    }
+    
+    const transferOwnershipBtn = document.getElementById('transferOwnershipBtn');
+    if (transferOwnershipBtn) {
+      transferOwnershipBtn.addEventListener('click', () => {
+        console.log('🔑 Передача владения...');
+        self.transferOwnership();
+      });
+    }
+    
+    console.log('✅ Все обработчики привязаны');
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -1579,7 +1728,9 @@ const adminModule = {
         app.showNotification('Активация уровней...', 'info');
         
         try {
-          const tx2 = await globalWayContract.ownerActivateLevels(userAddress, maxLevel);
+          // Используем activateMultipleLevelsFor(address, fromLevel, toLevel)
+          // Активируем с 1 до maxLevel
+          const tx2 = await globalWayContract.activateMultipleLevelsFor(userAddress, 1, maxLevel);
           await tx2.wait();
           console.log('✅ Уровни активированы');
         } catch (actError) {
@@ -1649,7 +1800,13 @@ const adminModule = {
       app.showNotification('Активация...', 'info');
       
       const contract = await app.getSignedContract('GlobalWay');
-      const tx = await contract.ownerActivateLevels(userAddress, maxLevel);
+      
+      // Используем activateMultipleLevelsFor(address, fromLevel, toLevel)
+      // fromLevel = currentLevel + 1, toLevel = maxLevel
+      const fromLevel = Number(currentLevel) + 1;
+      console.log(`📤 Вызов activateMultipleLevelsFor(${userAddress}, ${fromLevel}, ${maxLevel})`);
+      
+      const tx = await contract.activateMultipleLevelsFor(userAddress, fromLevel, maxLevel);
       await tx.wait();
       
       app.showNotification(`✅ Активировано до уровня ${maxLevel}!`, 'success');
