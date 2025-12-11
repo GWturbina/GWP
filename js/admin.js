@@ -42,9 +42,11 @@ const adminModule = {
     }
     
     try {
+      // Если кошелёк не подключен - просто ждём, не показываем ошибку
       if (!app.state.userAddress) {
-        console.log('❌ No wallet connected');
-        this.showAccessDenied();
+        console.log('⏳ Waiting for wallet connection...');
+        // НЕ показываем Access Denied - просто выходим
+        // Модуль будет переинициализирован после подключения кошелька
         return;
       }
 
