@@ -1801,11 +1801,31 @@ const adminModule = {
       
       const contract = await app.getSignedContract('GlobalWay');
       
-      // ownerActivateLevels(address user, uint8 maxLevel) — активирует уровни 1-maxLevel
-      // Если у пользователя уже есть уровни — они пропускаются внутри контракта
       console.log(`📤 Вызов ownerActivateLevels(${userAddress}, ${maxLevel})`);
+      console.log('🔍 Проверка функций контракта...');
+      console.log('  - ownerActivateLevels:', typeof contract.ownerActivateLevels);
+      console.log('  - functions.ownerActivateLevels:', typeof contract.functions?.ownerActivateLevels);
+      console.log('  - functions["ownerActivateLevels(address,uint8)"]:', typeof contract.functions?.['ownerActivateLevels(address,uint8)']);
       
-      const tx = await contract.ownerActivateLevels(userAddress, maxLevel);
+      let tx;
+      
+      // Пробуем разные варианты вызова
+      if (typeof contract.ownerActivateLevels === 'function') {
+        console.log('✅ Вызов через contract.ownerActivateLevels');
+        tx = await contract.ownerActivateLevels(userAddress, maxLevel);
+      } else if (typeof contract.functions?.['ownerActivateLevels(address,uint8)'] === 'function') {
+        console.log('✅ Вызов через contract.functions["ownerActivateLevels(address,uint8)"]');
+        tx = await contract.functions['ownerActivateLevels(address,uint8)'](userAddress, maxLevel);
+      } else if (typeof contract.functions?.ownerActivateLevels === 'function') {
+        console.log('✅ Вызов через contract.functions.ownerActivateLevels');
+        tx = await contract.functions.ownerActivateLevels(userAddress, maxLevel);
+      } else {
+        // Выводим все доступные функции для диагностики
+        const allFuncs = Object.keys(contract.functions || {}).filter(f => f.toLowerCase().includes('activate') || f.toLowerCase().includes('owner'));
+        console.log('❌ Функция не найдена! Доступные функции:', allFuncs);
+        throw new Error('Функция ownerActivateLevels не найдена в контракте. Доступные: ' + allFuncs.join(', '));
+      }
+      
       await tx.wait();
       
       app.showNotification(`✅ Активировано до уровня ${maxLevel}!`, 'success');
