@@ -1223,6 +1223,14 @@ const adminModule = {
     
     const ranks = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
     
+    // Пересоздаём контракт для получения свежих данных (обход кеша RPC)
+    try {
+      this.contracts.leaderPool = await app.getContract('GlobalWayLeaderPool');
+      this.contracts.globalWay = await app.getContract('GlobalWay');
+    } catch (e) {
+      console.log('⚠️ Не удалось обновить контракты:', e.message);
+    }
+    
     if (!this.contracts.leaderPool || !this.contracts.globalWay) {
       console.log('⚠️ Контракты для рангов недоступны');
       this.updateRanksUI(ranks);
@@ -1265,6 +1273,12 @@ const adminModule = {
             if (address && address !== '0x0000000000000000000000000000000000000000') {
               const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
               const rank = Number(rankInfo.rank || rankInfo[0] || 0);
+              
+              // Подробное логирование для диагностики
+              if (rank > 0) {
+                const rankNames = ['', 'Bronze', 'Silver', 'Gold', 'Platinum'];
+                console.log(`  👤 ${address.slice(0,10)}... → ${rankNames[rank]} (${rank})`);
+              }
               
               if (rank === 1) ranks.bronze++;
               else if (rank === 2) ranks.silver++;
@@ -1893,6 +1907,10 @@ const adminModule = {
       await tx.wait();
       
       app.showNotification(`✅ Ранг ${this.RANK_NAMES[rank]} присвоен!`, 'success');
+      
+      // Небольшая задержка для обновления данных в блокчейне
+      console.log('⏳ Ожидание обновления данных...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       await this.loadStats();
       document.getElementById('rankUserAddress').value = '';
