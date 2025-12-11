@@ -1801,32 +1801,26 @@ const adminModule = {
       
       const contract = await app.getSignedContract('GlobalWay');
       
-      console.log(`📤 Вызов ownerActivateLevels(${userAddress}, ${maxLevel})`);
-      console.log('🔍 Проверка функций контракта...');
-      console.log('  - ownerActivateLevels:', typeof contract.ownerActivateLevels);
-      console.log('  - functions.ownerActivateLevels:', typeof contract.functions?.ownerActivateLevels);
-      console.log('  - functions["ownerActivateLevels(address,uint8)"]:', typeof contract.functions?.['ownerActivateLevels(address,uint8)']);
+      console.log(`📤 Активация уровней ${Number(currentLevel) + 1} - ${maxLevel} для ${userAddress}`);
       
-      let tx;
+      // Активируем по одному уровню начиная с текущего+1
+      const startLevel = Number(currentLevel) + 1;
       
-      // Пробуем разные варианты вызова
-      if (typeof contract.ownerActivateLevels === 'function') {
-        console.log('✅ Вызов через contract.ownerActivateLevels');
-        tx = await contract.ownerActivateLevels(userAddress, maxLevel);
-      } else if (typeof contract.functions?.['ownerActivateLevels(address,uint8)'] === 'function') {
-        console.log('✅ Вызов через contract.functions["ownerActivateLevels(address,uint8)"]');
-        tx = await contract.functions['ownerActivateLevels(address,uint8)'](userAddress, maxLevel);
-      } else if (typeof contract.functions?.ownerActivateLevels === 'function') {
-        console.log('✅ Вызов через contract.functions.ownerActivateLevels');
-        tx = await contract.functions.ownerActivateLevels(userAddress, maxLevel);
-      } else {
-        // Выводим все доступные функции для диагностики
-        const allFuncs = Object.keys(contract.functions || {}).filter(f => f.toLowerCase().includes('activate') || f.toLowerCase().includes('owner'));
-        console.log('❌ Функция не найдена! Доступные функции:', allFuncs);
-        throw new Error('Функция ownerActivateLevels не найдена в контракте. Доступные: ' + allFuncs.join(', '));
+      for (let lvl = startLevel; lvl <= maxLevel; lvl++) {
+        try {
+          console.log(`  ⚡ Активация уровня ${lvl}...`);
+          app.showNotification(`Активация уровня ${lvl}/${maxLevel}...`, 'info');
+          
+          const tx = await contract.activateLevelFor(userAddress, lvl);
+          await tx.wait();
+          
+          console.log(`  ✅ Уровень ${lvl} активирован`);
+        } catch (levelError) {
+          console.error(`  ❌ Ошибка на уровне ${lvl}:`, levelError);
+          app.showNotification(`Ошибка на уровне ${lvl}: ${levelError.message}`, 'error');
+          return;
+        }
       }
-      
-      await tx.wait();
       
       app.showNotification(`✅ Активировано до уровня ${maxLevel}!`, 'success');
       
