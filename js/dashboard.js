@@ -367,15 +367,47 @@ async loadQuarterlyInfo() {
           levelBtn.setAttribute('data-price', price);
           
           const currentLevel = level;
+          const self = this;
           
-          levelBtn.addEventListener('click', (e) => {
+          // Флаг для предотвращения двойных вызовов
+          let isProcessing = false;
+          
+          const handleLevelClick = async (e) => {
+            if (e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+            
+            if (isProcessing) {
+              console.log(`⚠️ Level ${currentLevel} click already processing`);
+              return;
+            }
+            
+            isProcessing = true;
+            console.log(`🎯 Level ${currentLevel} triggered (${e ? e.type : 'direct'})`);
+            
+            try {
+              await self.buyLevel(currentLevel);
+            } finally {
+              isProcessing = false;
+            }
+          };
+          
+          // Click для десктопа
+          levelBtn.addEventListener('click', handleLevelClick);
+          
+          // Touchend для мобильных с задержкой для предотвращения ghost clicks
+          levelBtn.addEventListener('touchend', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log(`🎯 Level ${currentLevel} clicked`);
-            this.buyLevel(currentLevel);
-          });
+            // Небольшая задержка чтобы избежать проблем с touch
+            setTimeout(() => handleLevelClick(e), 50);
+          }, { passive: false });
           
+          // Стили для мобильных
           levelBtn.style.cursor = 'pointer';
+          levelBtn.style.touchAction = 'manipulation';
+          levelBtn.style.webkitTapHighlightColor = 'transparent';
         } else {
           levelBtn.disabled = true;
           levelBtn.style.cursor = 'default';
@@ -987,7 +1019,10 @@ async loadQuarterlyInfo() {
     const refLinkInput = document.getElementById('refLink');
   
     if (copyBtn) {
-      copyBtn.onclick = async () => {
+      const handleCopy = async (e) => {
+        if (e) e.preventDefault();
+        console.log('📋 Copy ref link triggered');
+        
         if (!refLinkInput || !refLinkInput.value) {
           app.showNotification('Ошибка: ссылка пуста', 'error');
           return;
@@ -1006,11 +1041,28 @@ async loadQuarterlyInfo() {
           }
         }
       };
+      
+      copyBtn.addEventListener('click', handleCopy);
+      copyBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        handleCopy(e);
+      }, { passive: false });
     }
   
     const payBtn = document.getElementById('payActivityBtn');
     if (payBtn) {
-      payBtn.onclick = () => this.payQuarterly();
+      const self = this;
+      const handlePay = (e) => {
+        if (e) e.preventDefault();
+        console.log('💳 Pay quarterly triggered');
+        self.payQuarterly();
+      };
+      
+      payBtn.addEventListener('click', handlePay);
+      payBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        handlePay(e);
+      }, { passive: false });
     }
   
     const historyFilter = document.getElementById('historyFilter');
@@ -1022,10 +1074,19 @@ async loadQuarterlyInfo() {
   
     const refreshHistory = document.getElementById('refreshHistory');
     if (refreshHistory) {
-      refreshHistory.onclick = async () => {
-        await this.loadTransactionHistory();
+      const self = this;
+      const handleRefresh = async (e) => {
+        if (e) e.preventDefault();
+        console.log('🔄 Refresh history triggered');
+        await self.loadTransactionHistory();
         app.showNotification('История обновлена', 'success');
       };
+      
+      refreshHistory.addEventListener('click', handleRefresh);
+      refreshHistory.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        handleRefresh(e);
+      }, { passive: false });
     }
   
     console.log('✅ Dashboard UI initialized');
