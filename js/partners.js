@@ -412,59 +412,69 @@ const partnersModule = {
       }
       
       const referrals = [];
+      const checkedIds = new Set();
       
-      // Получаем количество использованных ID
-      const usedCount = await this.contracts.matrixRegistry.usedIdsCount();
-      const totalUsers = await this.contracts.matrixRegistry.totalUsers();
-      console.log(`  🔗 Всего пользователей: ${totalUsers}, использовано ID: ${usedCount}, ищем sponsorId = ${userIdStr}`);
+      // Получаем количество пользователей
+      const totalUsers = Number(await this.contracts.matrixRegistry.totalUsers());
+      console.log(`  🔗 Всего пользователей: ${totalUsers}, ищем sponsorId = ${userIdStr}`);
       
-      // Способ 1: Проверяем известные ID пользователей (самый надёжный)
-      const knownIds = ['9729645', '7346221', '1514866', '7649513', '3236084', '5332949', '5588635'];
-      
-      for (let testId of knownIds) {
-        try {
-          const node = await this.contracts.matrixRegistry.matrixNodes(testId);
-          if (!node[7]) continue; // не активен
+      // Способ 1: Ищем через события UserRegistered (самый надёжный)
+      try {
+        const currentBlock = await window.web3Manager.provider.getBlockNumber();
+        const fromBlock = Math.max(0, currentBlock - 100000); // Увеличен диапазон
+        
+        const filter = this.contracts.matrixRegistry.filters.UserRegistered();
+        const events = await this.contracts.matrixRegistry.queryFilter(filter, fromBlock, currentBlock);
+        
+        console.log(`  🔗 Найдено событий регистрации: ${events.length}`);
+        
+        for (let event of events) {
+          const eventSponsorId = event.args?.sponsorId?.toString();
+          const eventUserId = event.args?.userId?.toString();
           
-          const sponsorId = node[2].toString();
-          if (sponsorId === userIdStr) {
-            const refAddr = node[1]; // адрес пользователя
-            // Проверяем что адрес валидный
+          if (eventSponsorId === userIdStr) {
+            const refAddr = event.args?.user;
             if (refAddr && refAddr !== ethers.constants.AddressZero && !referrals.includes(refAddr)) {
               referrals.push(refAddr);
-              console.log(`  🔗 Найден реферал: ID=${testId}, addr=${refAddr.slice(0,10)}...`);
+              checkedIds.add(eventUserId);
+              console.log(`  🔗 Найден реферал: ID=${eventUserId}, addr=${refAddr.slice(0,10)}...`);
             }
           }
-        } catch(e) {}
+        }
+      } catch(e) {
+        console.warn('  ⚠️ Ошибка событий:', e.message);
       }
       
-      // Способ 2: Ищем через события UserRegistered (дополнительно)
+      // Способ 2: Если события не дали результат, перебираем все ID из usedIds
       if (referrals.length === 0) {
         try {
-          const currentBlock = await window.web3Manager.provider.getBlockNumber();
-          const fromBlock = Math.max(0, currentBlock - 49000);
+          const usedCount = Number(await this.contracts.matrixRegistry.usedIdsCount());
+          console.log(`  🔗 Перебираем ${usedCount} ID из usedIds...`);
           
-          const filter = this.contracts.matrixRegistry.filters.UserRegistered();
-          const events = await this.contracts.matrixRegistry.queryFilter(filter, fromBlock, currentBlock);
-          
-          for (let event of events) {
-            const eventSponsorId = event.args?.sponsorId?.toString();
-            if (eventSponsorId === userIdStr) {
-              const refAddr = event.args?.user;
-              // Проверяем что адрес валидный
-              if (refAddr && refAddr !== ethers.constants.AddressZero && !referrals.includes(refAddr)) {
-                referrals.push(refAddr);
-                const refId = event.args?.userId?.toString() || '?';
-                console.log(`  🔗 Найден реферал (событие): ID=${refId}, addr=${refAddr.slice(0,10)}...`);
+          for (let i = 0; i < usedCount; i++) {
+            try {
+              const testId = await this.contracts.matrixRegistry.usedIds(i);
+              const testIdStr = testId.toString();
+              
+              if (checkedIds.has(testIdStr)) continue;
+              
+              const node = await this.contracts.matrixRegistry.matrixNodes(testIdStr);
+              if (!node[7]) continue; // не активен
+              
+              const sponsorId = node[2].toString();
+              if (sponsorId === userIdStr) {
+                const refAddr = node[1];
+                if (refAddr && refAddr !== ethers.constants.AddressZero && !referrals.includes(refAddr)) {
+                  referrals.push(refAddr);
+                  console.log(`  🔗 Найден реферал (usedIds): ID=${testIdStr}, addr=${refAddr.slice(0,10)}...`);
+                }
               }
+            } catch(e) {
+              // Пропускаем ошибки отдельных ID
             }
           }
-          
-          if (referrals.length > 0) {
-            console.log(`  🔗 Найдено через события: ${referrals.length} рефералов`);
-          }
         } catch(e) {
-          console.warn('  ⚠️ Ошибка событий:', e.message);
+          console.warn('  ⚠️ Ошибка перебора usedIds:', e.message);
         }
       }
       
