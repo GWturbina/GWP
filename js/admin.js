@@ -1728,9 +1728,9 @@ const adminModule = {
         app.showNotification('Активация уровней...', 'info');
         
         try {
-          // Используем activateMultipleLevelsFor(address, fromLevel, toLevel)
-          // Активируем с 1 до maxLevel
-          const tx2 = await globalWayContract.activateMultipleLevelsFor(userAddress, 1, maxLevel);
+          // ownerActivateLevels(address user, uint8 maxLevel) — активирует уровни 1-maxLevel
+          console.log(`📤 Вызов ownerActivateLevels(${userAddress}, ${maxLevel})`);
+          const tx2 = await globalWayContract.ownerActivateLevels(userAddress, maxLevel);
           await tx2.wait();
           console.log('✅ Уровни активированы');
         } catch (actError) {
@@ -1801,12 +1801,11 @@ const adminModule = {
       
       const contract = await app.getSignedContract('GlobalWay');
       
-      // Используем activateMultipleLevelsFor(address, fromLevel, toLevel)
-      // fromLevel = currentLevel + 1, toLevel = maxLevel
-      const fromLevel = Number(currentLevel) + 1;
-      console.log(`📤 Вызов activateMultipleLevelsFor(${userAddress}, ${fromLevel}, ${maxLevel})`);
+      // ownerActivateLevels(address user, uint8 maxLevel) — активирует уровни 1-maxLevel
+      // Если у пользователя уже есть уровни — они пропускаются внутри контракта
+      console.log(`📤 Вызов ownerActivateLevels(${userAddress}, ${maxLevel})`);
       
-      const tx = await contract.activateMultipleLevelsFor(userAddress, fromLevel, maxLevel);
+      const tx = await contract.ownerActivateLevels(userAddress, maxLevel);
       await tx.wait();
       
       app.showNotification(`✅ Активировано до уровня ${maxLevel}!`, 'success');
