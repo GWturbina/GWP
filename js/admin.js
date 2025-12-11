@@ -1218,12 +1218,12 @@ const adminModule = {
     }
   },
 
-  async loadRanksCount(totalUsers) {
+  async loadRanksCount(totalUsersFromMatrix) {
     console.log('🏆 Загрузка рангов...');
     
     const ranks = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
     
-    // Пересоздаём контракт для получения свежих данных (обход кеша RPC)
+    // Пересоздаём контракты для получения свежих данных
     try {
       this.contracts.leaderPool = await app.getContract('GlobalWayLeaderPool');
       this.contracts.globalWay = await app.getContract('GlobalWay');
@@ -1231,63 +1231,98 @@ const adminModule = {
       console.log('⚠️ Не удалось обновить контракты:', e.message);
     }
     
-    if (!this.contracts.leaderPool || !this.contracts.globalWay) {
-      console.log('⚠️ Контракты для рангов недоступны');
+    if (!this.contracts.leaderPool) {
+      console.log('⚠️ Контракт LeaderPool недоступен');
       this.updateRanksUI(ranks);
       return;
     }
     
     try {
-      // Получаем список пользователей и проверяем их ранги
-      const maxCheck = Math.min(totalUsers, 100); // Проверяем максимум 100 пользователей
+      // Получаем РЕАЛЬНОЕ количество пользователей из GlobalWay
+      let totalUsersGW = 0;
+      try {
+        totalUsersGW = Number(await this.contracts.globalWay.getTotalUsers());
+        console.log(`📊 GlobalWay.getTotalUsers() = ${totalUsersGW}`);
+      } catch (e) {
+        console.log('⚠️ getTotalUsers не работает:', e.message);
+      }
       
-      console.log(`📊 Проверяем ранги для ${maxCheck} пользователей...`);
+      // Также проверяем totalUsers mapping
+      try {
+        const totalUsersVar = Number(await this.contracts.globalWay.totalUsers());
+        console.log(`📊 GlobalWay.totalUsers = ${totalUsersVar}`);
+        if (totalUsersVar > totalUsersGW) totalUsersGW = totalUsersVar;
+      } catch (e) {
+        // Переменная может не существовать
+      }
       
-      // Проверяем есть ли функция allUsers
-      if (!this.contracts.globalWay.allUsers) {
-        console.log('⚠️ Функция allUsers не найдена, пробуем альтернативный способ');
-        // Пробуем через известные адреса
-        const knownAddresses = [
-          app.state.userAddress,
-          ...CONFIG.ADMIN.guardians
-        ].filter(a => a);
+      const maxCheck = Math.max(totalUsersGW, totalUsersFromMatrix, 20); // Минимум 20
+      console.log(`📊 Проверяем до ${maxCheck} пользователей...`);
+      
+      const checkedAddresses = new Set();
+      
+      // Собираем адреса из GlobalWay.allUsers()
+      if (this.contracts.globalWay && this.contracts.globalWay.allUsers) {
+        console.log('🔍 Сканирование GlobalWay.allUsers...');
         
-        for (const address of knownAddresses) {
-          try {
-            const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
-            const rank = Number(rankInfo.rank || rankInfo[0] || 0);
-            console.log(`  ${address.slice(0,10)}... → ранг ${rank}`);
-            
-            if (rank === 1) ranks.bronze++;
-            else if (rank === 2) ranks.silver++;
-            else if (rank === 3) ranks.gold++;
-            else if (rank === 4) ranks.platinum++;
-          } catch (e) {
-            console.log(`  ${address.slice(0,10)}... → ошибка`);
-          }
-        }
-      } else {
-        for (let i = 0; i < maxCheck; i++) {
+        for (let i = 0; i < maxCheck + 10; i++) {
           try {
             const address = await this.contracts.globalWay.allUsers(i);
             if (address && address !== '0x0000000000000000000000000000000000000000') {
-              const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
-              const rank = Number(rankInfo.rank || rankInfo[0] || 0);
-              
-              // Подробное логирование для диагностики
-              if (rank > 0) {
-                const rankNames = ['', 'Bronze', 'Silver', 'Gold', 'Platinum'];
-                console.log(`  👤 ${address.slice(0,10)}... → ${rankNames[rank]} (${rank})`);
-              }
-              
-              if (rank === 1) ranks.bronze++;
-              else if (rank === 2) ranks.silver++;
-              else if (rank === 3) ranks.gold++;
-              else if (rank === 4) ranks.platinum++;
+              checkedAddresses.add(address.toLowerCase());
             }
           } catch (e) {
-            // Пропускаем ошибки для отдельных пользователей
+            console.log(`  ✅ allUsers закончился на индексе ${i}`);
+            break;
           }
+        }
+      }
+      
+      console.log(`📋 Найдено ${checkedAddresses.size} адресов в GlobalWay.allUsers`);
+      
+      // Также добавляем известные адреса (Owner + Guardians)
+      const knownAddresses = [
+        app.state.userAddress,
+        ...CONFIG.ADMIN.guardians
+      ].filter(a => a);
+      
+      for (const addr of knownAddresses) {
+        checkedAddresses.add(addr.toLowerCase());
+      }
+      
+      // Добавляем адреса из localStorage (те кому присваивались ранги)
+      const savedRankedAddresses = this.getRankedAddresses();
+      console.log(`💾 Сохранённых адресов с рангами: ${savedRankedAddresses.length}`);
+      
+      for (const addr of savedRankedAddresses) {
+        checkedAddresses.add(addr.toLowerCase());
+      }
+      
+      console.log(`📋 Всего уникальных адресов: ${checkedAddresses.size}`);
+      
+      // Проверяем ранги для всех адресов
+      for (const addressLower of checkedAddresses) {
+        try {
+          const address = addressLower; // Используем lowercase
+          const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
+          const rank = Number(rankInfo.rank || rankInfo[0] || 0);
+          
+          if (rank > 0) {
+            const rankNames = ['', 'Bronze', 'Silver', 'Gold', 'Platinum'];
+            console.log(`  👤 ${address.slice(0,10)}... → ${rankNames[rank]} (${rank})`);
+          }
+          
+          if (rank === 1) ranks.bronze++;
+          else if (rank === 2) ranks.silver++;
+          else if (rank === 3) ranks.gold++;
+          else if (rank === 4) ranks.platinum++;
+          
+          // Автосохранение адресов с рангами
+          if (rank > 0) {
+            this.saveRankedAddress(addressLower, rank);
+          }
+        } catch (e) {
+          // Пропускаем ошибки
         }
       }
       
@@ -1660,6 +1695,11 @@ const adminModule = {
         <p><strong>Ранг:</strong> ${rankName}</p>
       `;
       
+      // Сохраняем адрес с рангом для подсчёта статистики
+      if (rank > 0) {
+        this.saveRankedAddress(address, rank);
+      }
+      
     } catch (error) {
       console.error('Ошибка поиска:', error);
       resultEl.classList.add('admin-error');
@@ -1907,6 +1947,9 @@ const adminModule = {
       await tx.wait();
       
       app.showNotification(`✅ Ранг ${this.RANK_NAMES[rank]} присвоен!`, 'success');
+      
+      // Сохраняем адрес в список для подсчёта рангов
+      this.saveRankedAddress(userAddress, rank);
       
       // Небольшая задержка для обновления данных в блокчейне
       console.log('⏳ Ожидание обновления данных...');
@@ -2351,6 +2394,30 @@ const adminModule = {
   // ═══════════════════════════════════════════════════════════════
   // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
   // ═══════════════════════════════════════════════════════════════
+  
+  // Сохранение адресов с рангами в localStorage
+  saveRankedAddress(address, rank) {
+    try {
+      const key = 'globalway_ranked_addresses';
+      let addresses = JSON.parse(localStorage.getItem(key) || '{}');
+      addresses[address.toLowerCase()] = { rank, timestamp: Date.now() };
+      localStorage.setItem(key, JSON.stringify(addresses));
+      console.log(`💾 Сохранён адрес с рангом: ${address.slice(0,10)}... → ${rank}`);
+    } catch (e) {
+      console.warn('⚠️ Не удалось сохранить адрес в localStorage:', e);
+    }
+  },
+  
+  getRankedAddresses() {
+    try {
+      const key = 'globalway_ranked_addresses';
+      const data = JSON.parse(localStorage.getItem(key) || '{}');
+      return Object.keys(data);
+    } catch (e) {
+      return [];
+    }
+  },
+  
   downloadJSON(data, filename) {
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
