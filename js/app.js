@@ -501,14 +501,16 @@ const app = {
     
     const modalHTML = `
     <div id="activationModal" class="modal cosmic-modal">
-        <div class="modal-content cosmic-card">
+        <div class="modal-content cosmic-card activation-modal-content">
+            <span class="close-modal">&times;</span>
+            
             <div class="modal-header cosmic-header">
                 <div class="header-icon">🚀</div>
                 <h2>Добро пожаловать в GlobalWay!</h2>
                 <p>Ваш ID: <span class="user-id">GW${this.state.userId}</span></p>
             </div>
             
-            <div class="modal-body">
+            <div class="modal-body modal-body-scroll">
                 <div class="feature-section">
                     <h3>🎯 Начните зарабатывать!</h3>
                     <p>Активируйте первый уровень чтобы открыть все возможности платформы</p>
@@ -544,49 +546,165 @@ const app = {
                         </div>
                     </div>
                 </div>
-                
-                <div class="action-buttons">
-                    <button id="activateLevel1Btn" class="btn-gold">
-                        🚀 АКТИВИРОВАТЬ УРОВЕНЬ 1
-                    </button>
-                    
-                    <button id="viewPackagesBtn" class="btn-outline">
-                        📦 Посмотреть пакеты
-                    </button>
-                </div>
-                
-                <div class="modal-footer">
-                    <p>После активации откроется полный доступ ко всем функциям платформы</p>
-                </div>
             </div>
             
-            <span class="close-modal">&times;</span>
+            <div class="action-buttons-fixed">
+                <button id="activateLevel1Btn" class="btn-gold btn-activate-mobile">
+                    🚀 АКТИВИРОВАТЬ
+                </button>
+                <button id="viewPackagesBtn" class="btn-outline btn-packages-mobile">
+                    📦 Пакеты
+                </button>
+            </div>
         </div>
     </div>
+    <style id="activationModalStyles">
+      .activation-modal-content {
+        max-height: 90vh !important;
+        max-height: 90dvh !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        position: relative !important;
+      }
+      .activation-modal-content .close-modal {
+        position: absolute !important;
+        top: 10px !important;
+        right: 15px !important;
+        z-index: 10 !important;
+        font-size: 28px !important;
+        cursor: pointer !important;
+        color: #fff !important;
+      }
+      .modal-body-scroll {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 15px 20px !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      .action-buttons-fixed {
+        padding: 15px 20px !important;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+        border-top: 1px solid rgba(255,215,0,0.3) !important;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px !important;
+        flex-shrink: 0 !important;
+      }
+      .btn-activate-mobile {
+        flex: 2 !important;
+        padding: 15px 20px !important;
+        font-size: 16px !important;
+        min-height: 50px !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+        cursor: pointer !important;
+      }
+      .btn-packages-mobile {
+        flex: 1 !important;
+        min-height: 50px !important;
+        touch-action: manipulation !important;
+        cursor: pointer !important;
+      }
+      @media (max-width: 480px) {
+        .activation-modal-content {
+          margin: 10px !important;
+          max-height: calc(100vh - 20px) !important;
+          max-height: calc(100dvh - 20px) !important;
+          border-radius: 15px !important;
+        }
+        .activation-modal-content .modal-header {
+          padding: 15px !important;
+        }
+        .activation-modal-content .modal-header h2 {
+          font-size: 1.2em !important;
+        }
+        .features-grid {
+          grid-template-columns: 1fr 1fr !important;
+          gap: 8px !important;
+        }
+        .feature-item {
+          padding: 8px !important;
+          font-size: 0.8em !important;
+        }
+        .action-buttons-fixed {
+          padding: 12px 15px !important;
+        }
+        .btn-activate-mobile {
+          font-size: 14px !important;
+          padding: 12px 15px !important;
+        }
+      }
+    </style>
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     
-    // Обработчики событий
+    // Обработчики событий с поддержкой мобильных устройств
     const activateBtn = document.getElementById('activateLevel1Btn');
     const packagesBtn = document.getElementById('viewPackagesBtn');
     const closeBtn = document.querySelector('#activationModal .close-modal');
+    const self = this;
+    
+    // Защита от двойного нажатия
+    let isActivating = false;
     
     if (activateBtn) {
-        activateBtn.onclick = async () => {
-            await this.activateUserLevel(1, CONFIG.LEVEL_PRICES[0], activateBtn);
+        const handleActivate = async (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            if (isActivating) {
+                console.log('⚠️ Activation already in progress');
+                return;
+            }
+            
+            isActivating = true;
+            console.log('🚀 Activate button triggered');
+            
+            try {
+                await self.activateUserLevel(1, CONFIG.LEVEL_PRICES[0], activateBtn);
+            } finally {
+                isActivating = false;
+            }
         };
+        
+        activateBtn.addEventListener('click', handleActivate);
+        activateBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            handleActivate(e);
+        }, { passive: false });
     }
     
     if (packagesBtn) {
-        packagesBtn.onclick = () => {
-            this.closeModal('activationModal');
-            this.showPage('dashboard');
+        const handlePackages = (e) => {
+            if (e) e.preventDefault();
+            console.log('📦 Packages button triggered');
+            self.closeModal('activationModal');
+            self.showPage('dashboard');
         };
+        
+        packagesBtn.addEventListener('click', handlePackages);
+        packagesBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            handlePackages(e);
+        }, { passive: false });
     }
     
     if (closeBtn) {
-        closeBtn.onclick = () => this.closeModal('activationModal');
+        const handleClose = (e) => {
+            if (e) e.preventDefault();
+            console.log('❌ Close button triggered');
+            self.closeModal('activationModal');
+        };
+        
+        closeBtn.addEventListener('click', handleClose);
+        closeBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            handleClose(e);
+        }, { passive: false });
     }
     
     // Закрытие по клику вне модалки
