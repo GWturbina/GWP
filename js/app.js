@@ -131,7 +131,48 @@ const app = {
         connectBtn.style.background = '#00ff00';
         connectBtn.disabled = true;
       }
+      
+      // ✅ Проверяем доступ к админке
+      this.updateAdminButton();
     }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПРОВЕРКА ДОСТУПА К АДМИНКЕ
+  // ═══════════════════════════════════════════════════════════════
+  updateAdminButton() {
+    const adminBtn = document.querySelector('.nav-btn.admin-only');
+    if (!adminBtn) {
+      console.log('⚠️ Admin button not found in navigation');
+      return;
+    }
+
+    const hasAccess = this.checkAdminAccess(this.state.userAddress);
+    
+    console.log('🔐 Admin access check:', hasAccess, 'for', this.state.userAddress);
+    
+    if (hasAccess) {
+      adminBtn.style.display = 'block';
+      console.log('✅ Admin button VISIBLE');
+    } else {
+      adminBtn.style.display = 'none';
+      console.log('🔒 Admin button HIDDEN');
+    }
+  },
+
+  checkAdminAccess(address) {
+    if (!address) return false;
+    
+    const addr = address.toLowerCase();
+    const owner = CONFIG.ADMIN.owner.toLowerCase();
+    const guardians = CONFIG.ADMIN.guardians.map(g => g.toLowerCase());
+    
+    const isOwner = addr === owner;
+    const isGuardian = guardians.includes(addr);
+    
+    console.log('   Owner:', isOwner, '| Guardian:', isGuardian);
+    
+    return isOwner || isGuardian;
   },
 
   async waitForWeb3() {
@@ -152,6 +193,7 @@ const app = {
   async checkWalletConnection() {
     if (window.web3Manager && window.web3Manager.isConnected) {
       this.state.userAddress = window.web3Manager.currentAccount;
+      this.updateWalletUI();  // ✅ Это вызовет updateAdminButton
       await this.loadUserData();
       await this.checkAndAutoRegister();
       this.checkAndShowActivationModal();
