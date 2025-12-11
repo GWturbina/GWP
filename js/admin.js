@@ -1,19 +1,19 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Admin Module v2.0
-// Полная админ панель с управлением пользователями, рангами, guardians
-// Date: 2025-12-11
+// GlobalWay DApp - Панель Администратора v3.0
+// Полный функционал с мобильной адаптацией
+// Дата: 2025-12-11
 // ═══════════════════════════════════════════════════════════════════
 
 const adminModule = {
   // ═══════════════════════════════════════════════════════════════
-  // STATE
+  // СОСТОЯНИЕ
   // ═══════════════════════════════════════════════════════════════
   contracts: {},
   
   access: {
     isOwner: false,
     isGuardian: false,
-    level: 'No Access'
+    level: 'Нет доступа'
   },
 
   state: {
@@ -35,9 +35,8 @@ const adminModule = {
   // ИНИЦИАЛИЗАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   async init() {
-    console.log('⚙️ Initializing Admin Panel v2.0...');
+    console.log('⚙️ Инициализация Панели Администратора v3.0...');
     
-    // Принудительно показываем страницу admin
     const adminPage = document.getElementById('admin');
     if (adminPage) {
       adminPage.classList.add('active');
@@ -45,13 +44,11 @@ const adminModule = {
     }
     
     try {
-      // Ждём подключения кошелька
       if (!app.state.userAddress) {
-        console.log('⏳ Waiting for wallet connection...');
+        console.log('⏳ Ожидание подключения кошелька...');
         return;
       }
 
-      // Проверка прав
       const hasAccess = this.checkRights();
       
       if (!hasAccess) {
@@ -59,22 +56,15 @@ const adminModule = {
         return;
       }
 
-      // Рендерим UI
       this.renderAdminUI();
-
-      // Загружаем контракты
       await this.loadContracts();
-
-      // Загружаем данные
       await this.loadAllData();
-
-      // Инициализируем обработчики
       this.initEventHandlers();
 
-      console.log('✅ Admin panel v2.0 loaded');
+      console.log('✅ Панель администратора загружена');
     } catch (error) {
-      console.error('❌ Admin init error:', error);
-      app.showNotification('Ошибка загрузки админ панели', 'error');
+      console.error('❌ Ошибка инициализации админки:', error);
+      app.showNotification('Ошибка загрузки панели администратора', 'error');
     }
   },
 
@@ -93,9 +83,9 @@ const adminModule = {
 
     this.access.isOwner = isOwner;
     this.access.isGuardian = isGuardian;
-    this.access.level = isOwner ? 'Owner 👑' : (isGuardian ? 'Guardian 🛡️' : 'No Access');
+    this.access.level = isOwner ? 'Владелец 👑' : (isGuardian ? 'Совет директоров 🛡️' : 'Нет доступа');
 
-    console.log('🔐 Access:', this.access.level, 'for', currentAddress);
+    console.log('🔐 Доступ:', this.access.level, 'для', currentAddress);
 
     return isOwner || isGuardian;
   },
@@ -105,189 +95,168 @@ const adminModule = {
     if (!adminPage) return;
 
     const guardiansList = CONFIG.ADMIN.guardians
-      .map((g, i) => `<li>🛡️ Guardian ${i + 1}: <code>${g}</code></li>`)
+      .map((g, i) => `<li>🛡️ Член совета ${i + 1}: <code>${g}</code></li>`)
       .join('');
 
     adminPage.innerHTML = `
-      <div class="access-denied">
+      <div class="admin-access-denied">
         <h2>🔒 Доступ Запрещён</h2>
-        <p class="warning">Админ панель доступна только Owner и Guardians</p>
+        <p class="admin-warning">Панель администратора доступна только владельцу и членам совета директоров</p>
         <p>Ваш адрес: <code>${app.state.userAddress || 'Не подключен'}</code></p>
         
-        <div class="allowed-addresses">
+        <div class="admin-allowed-list">
           <h4>Разрешённые адреса:</h4>
           <ul>
-            <li>👑 Owner: <code>${CONFIG.ADMIN.owner}</code></li>
+            <li>👑 Владелец: <code>${CONFIG.ADMIN.owner}</code></li>
             ${guardiansList}
           </ul>
         </div>
         
-        <button class="btn-primary" onclick="app.showPage('dashboard')">
+        <button class="admin-btn admin-btn-primary" onclick="app.showPage('dashboard')">
           ← Вернуться на главную
         </button>
       </div>
     `;
+    
+    this.injectStyles();
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // РЕНДЕР UI
+  // РЕНДЕР ИНТЕРФЕЙСА
   // ═══════════════════════════════════════════════════════════════
   renderAdminUI() {
     const adminPage = document.getElementById('admin');
     if (!adminPage) return;
 
-    // Показываем/скрываем Owner-only секции
-    const ownerOnlyClass = this.access.isOwner ? '' : 'hidden';
+    const ownerOnlyClass = this.access.isOwner ? '' : 'admin-hidden';
 
     adminPage.innerHTML = `
-      <div class="admin-page-v2">
-        <h2>🔧 Панель Администратора</h2>
+      <div class="admin-container">
+        <h2 class="admin-title">🔧 Панель Администратора</h2>
         
         <!-- Информация о доступе -->
-        <section class="admin-section access-info">
-          <div class="access-badge ${this.access.isOwner ? 'owner' : 'guardian'}">
+        <section class="admin-section admin-access-info">
+          <div class="admin-badge ${this.access.isOwner ? 'admin-badge-owner' : 'admin-badge-guardian'}">
             ${this.access.level}
           </div>
-          <span class="access-address">${app.formatAddress(app.state.userAddress)}</span>
+          <span class="admin-address">${app.formatAddress(app.state.userAddress)}</span>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
         <!-- СТАТИСТИКА -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section">
-          <h3>📊 Статистика платформы</h3>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-value" id="statTotalUsers">-</div>
-              <div class="stat-label">Всего пользователей</div>
+          <h3 class="admin-section-title">📊 Статистика платформы</h3>
+          <div class="admin-stats-grid">
+            <div class="admin-stat-card">
+              <div class="admin-stat-value" id="statTotalUsers">-</div>
+              <div class="admin-stat-label">Пользователей</div>
             </div>
-            <div class="stat-card">
-              <div class="stat-value" id="statTotalVolume">-</div>
-              <div class="stat-label">Общий объём (BNB)</div>
+            <div class="admin-stat-card">
+              <div class="admin-stat-value" id="statTotalVolume">-</div>
+              <div class="admin-stat-label">Объём (BNB)</div>
             </div>
-            <div class="stat-card">
-              <div class="stat-value" id="statContractBalance">-</div>
-              <div class="stat-label">Баланс контракта (BNB)</div>
+            <div class="admin-stat-card">
+              <div class="admin-stat-value" id="statContractBalance">-</div>
+              <div class="admin-stat-label">Баланс (BNB)</div>
             </div>
-            <div class="stat-card">
-              <div class="stat-value" id="statTotalTokens">-</div>
-              <div class="stat-label">Токенов GWT</div>
-            </div>
-          </div>
-          
-          <h4>🏆 Ранги пользователей</h4>
-          <div class="ranks-grid">
-            <div class="rank-card bronze">
-              <span class="rank-icon">🥉</span>
-              <span class="rank-count" id="rankBronze">0</span>
-              <span class="rank-name">Bronze</span>
-            </div>
-            <div class="rank-card silver">
-              <span class="rank-icon">🥈</span>
-              <span class="rank-count" id="rankSilver">0</span>
-              <span class="rank-name">Silver</span>
-            </div>
-            <div class="rank-card gold">
-              <span class="rank-icon">🥇</span>
-              <span class="rank-count" id="rankGold">0</span>
-              <span class="rank-name">Gold</span>
-            </div>
-            <div class="rank-card platinum">
-              <span class="rank-icon">💎</span>
-              <span class="rank-count" id="rankPlatinum">0</span>
-              <span class="rank-name">Platinum</span>
+            <div class="admin-stat-card">
+              <div class="admin-stat-value" id="statTotalTokens">-</div>
+              <div class="admin-stat-label">Токенов GWT</div>
             </div>
           </div>
           
-          <button class="btn-secondary" id="refreshStatsBtn">🔄 Обновить статистику</button>
+          <h4 class="admin-subtitle">🏆 Лидерские ранги</h4>
+          <div class="admin-ranks-grid">
+            <div class="admin-rank-card admin-rank-bronze">
+              <span class="admin-rank-icon">🥉</span>
+              <span class="admin-rank-count" id="rankBronze">0</span>
+              <span class="admin-rank-name">Bronze</span>
+            </div>
+            <div class="admin-rank-card admin-rank-silver">
+              <span class="admin-rank-icon">🥈</span>
+              <span class="admin-rank-count" id="rankSilver">0</span>
+              <span class="admin-rank-name">Silver</span>
+            </div>
+            <div class="admin-rank-card admin-rank-gold">
+              <span class="admin-rank-icon">🥇</span>
+              <span class="admin-rank-count" id="rankGold">0</span>
+              <span class="admin-rank-name">Gold</span>
+            </div>
+            <div class="admin-rank-card admin-rank-platinum">
+              <span class="admin-rank-icon">💎</span>
+              <span class="admin-rank-count" id="rankPlatinum">0</span>
+              <span class="admin-rank-name">Platinum</span>
+            </div>
+          </div>
+          
+          <button class="admin-btn admin-btn-secondary" id="refreshStatsBtn">🔄 Обновить</button>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
         <!-- ПОИСК ПОЛЬЗОВАТЕЛЯ -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section">
-          <h3>🔍 Поиск пользователя</h3>
-          <div class="search-form">
-            <input type="text" id="searchUserInput" placeholder="Адрес (0x...) или ID (GW1234567)">
-            <button class="btn-primary" id="searchUserBtn">🔍 Найти</button>
+          <h3 class="admin-section-title">🔍 Поиск пользователя</h3>
+          <div class="admin-search-form">
+            <input type="text" id="searchUserInput" class="admin-input" placeholder="Адрес (0x...) или ID (GW1234567)">
+            <button class="admin-btn admin-btn-primary" id="searchUserBtn">Найти</button>
           </div>
-          <div id="searchResult" class="search-result hidden"></div>
+          <div id="searchResult" class="admin-search-result admin-hidden"></div>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
         <!-- РЕГИСТРАЦИЯ + АКТИВАЦИЯ -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section ${ownerOnlyClass}">
-          <h3>📝 Регистрация и активация нового пользователя</h3>
-          <p class="section-desc">Регистрирует нового пользователя и активирует уровни бесплатно</p>
+          <h3 class="admin-section-title">📝 Регистрация нового пользователя</h3>
+          <p class="admin-desc">Регистрирует нового пользователя и активирует уровни бесплатно</p>
           
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Адрес пользователя *</label>
-              <input type="text" id="regUserAddress" placeholder="0x...">
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>Адрес пользователя</label>
+              <input type="text" id="regUserAddress" class="admin-input" placeholder="0x...">
             </div>
-            <div class="form-group">
-              <label>ID спонсора *</label>
-              <input type="text" id="regSponsorId" placeholder="GW9729645 или 9729645">
+            <div class="admin-form-group">
+              <label>ID спонсора</label>
+              <input type="text" id="regSponsorId" class="admin-input" placeholder="GW9729645">
             </div>
-            <div class="form-group">
+            <div class="admin-form-group">
               <label>Активировать до уровня</label>
-              <select id="regMaxLevel">
-                <option value="0">Только регистрация (без активации)</option>
-                <option value="1">Уровень 1</option>
-                <option value="2">Уровень 2</option>
-                <option value="3">Уровень 3</option>
-                <option value="4">Уровень 4</option>
-                <option value="5">Уровень 5</option>
-                <option value="6">Уровень 6</option>
-                <option value="7">Уровень 7</option>
-                <option value="8">Уровень 8</option>
-                <option value="9">Уровень 9</option>
-                <option value="10">Уровень 10</option>
-                <option value="11">Уровень 11</option>
-                <option value="12" selected>Уровень 12 (все)</option>
+              <select id="regMaxLevel" class="admin-select">
+                <option value="0">Только регистрация</option>
+                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(l => `<option value="${l}" ${l===12?'selected':''}>Уровень ${l}</option>`).join('')}
               </select>
             </div>
           </div>
           
-          <button class="btn-success" id="registerAndActivateBtn">
-            ✅ Зарегистрировать и активировать
+          <button class="admin-btn admin-btn-success" id="registerAndActivateBtn">
+            ✅ Зарегистрировать
           </button>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- ТОЛЬКО АКТИВАЦИЯ (для зарегистрированных) -->
+        <!-- ТОЛЬКО АКТИВАЦИЯ -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section ${ownerOnlyClass}">
-          <h3>⚡ Активация уровней (для зарегистрированных)</h3>
-          <p class="section-desc">Активирует уровни для уже зарегистрированного пользователя</p>
+          <h3 class="admin-section-title">⚡ Активация уровней</h3>
+          <p class="admin-desc">Для уже зарегистрированных пользователей</p>
           
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Адрес пользователя *</label>
-              <input type="text" id="activateUserAddress" placeholder="0x...">
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>Адрес пользователя</label>
+              <input type="text" id="activateUserAddress" class="admin-input" placeholder="0x...">
             </div>
-            <div class="form-group">
-              <label>Активировать до уровня *</label>
-              <select id="activateMaxLevel">
-                <option value="1">Уровень 1</option>
-                <option value="2">Уровень 2</option>
-                <option value="3">Уровень 3</option>
-                <option value="4">Уровень 4</option>
-                <option value="5">Уровень 5</option>
-                <option value="6">Уровень 6</option>
-                <option value="7">Уровень 7</option>
-                <option value="8">Уровень 8</option>
-                <option value="9">Уровень 9</option>
-                <option value="10">Уровень 10</option>
-                <option value="11">Уровень 11</option>
-                <option value="12" selected>Уровень 12 (все)</option>
+            <div class="admin-form-group">
+              <label>До уровня</label>
+              <select id="activateMaxLevel" class="admin-select">
+                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(l => `<option value="${l}" ${l===12?'selected':''}>Уровень ${l}</option>`).join('')}
               </select>
             </div>
           </div>
           
-          <button class="btn-success" id="activateLevelsBtn">
-            ⚡ Активировать уровни
+          <button class="admin-btn admin-btn-success" id="activateLevelsBtn">
+            ⚡ Активировать
           </button>
         </section>
 
@@ -295,17 +264,17 @@ const adminModule = {
         <!-- ПРИСВОЕНИЕ РАНГА -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section ${ownerOnlyClass}">
-          <h3>🏆 Присвоение ранга</h3>
-          <p class="section-desc">Присваивает лидерский ранг пользователю</p>
+          <h3 class="admin-section-title">🏆 Присвоение ранга</h3>
+          <p class="admin-desc">Присваивает лидерский ранг пользователю</p>
           
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Адрес пользователя *</label>
-              <input type="text" id="rankUserAddress" placeholder="0x...">
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>Адрес пользователя</label>
+              <input type="text" id="rankUserAddress" class="admin-input" placeholder="0x...">
             </div>
-            <div class="form-group">
-              <label>Ранг *</label>
-              <select id="rankSelect">
+            <div class="admin-form-group">
+              <label>Ранг</label>
+              <select id="rankSelect" class="admin-select">
                 <option value="0">Нет ранга</option>
                 <option value="1">🥉 Bronze</option>
                 <option value="2">🥈 Silver</option>
@@ -315,505 +284,810 @@ const adminModule = {
             </div>
           </div>
           
-          <button class="btn-success" id="setRankBtn">
+          <button class="admin-btn admin-btn-success" id="setRankBtn">
             🏆 Присвоить ранг
           </button>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- GUARDIANS -->
+        <!-- УПРАВЛЕНИЕ АВТОРИЗАЦИЕЙ -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <section class="admin-section ${ownerOnlyClass}">
+          <h3 class="admin-section-title">🔐 Управление авторизацией</h3>
+          <p class="admin-desc">Авторизация контрактов для взаимодействия</p>
+          
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>Адрес контракта</label>
+              <input type="text" id="authContractAddress" class="admin-input" placeholder="0x...">
+            </div>
+            <div class="admin-form-group">
+              <label>Действие</label>
+              <select id="authAction" class="admin-select">
+                <option value="authorize">Авторизовать</option>
+                <option value="revoke">Отозвать авторизацию</option>
+              </select>
+            </div>
+          </div>
+          
+          <button class="admin-btn admin-btn-warning" id="setAuthBtn">
+            🔐 Выполнить
+          </button>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- СОВЕТ ДИРЕКТОРОВ (GUARDIANS) -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section">
-          <h3>🛡️ Совет Guardians</h3>
-          <p class="section-desc">Guardians могут голосовать и выполнять экстренные действия</p>
+          <h3 class="admin-section-title">🛡️ Совет директоров</h3>
+          <p class="admin-desc">Управление членами совета директоров</p>
           
-          <div id="guardiansList" class="guardians-list">
-            <div class="loading">Загрузка...</div>
+          <div id="guardiansList" class="admin-guardians-list">
+            <div class="admin-loading">Загрузка...</div>
           </div>
           
           <div class="${ownerOnlyClass}">
-            <h4>Добавить Guardian</h4>
-            <div class="form-inline">
-              <input type="text" id="addGuardianAddress" placeholder="Адрес (0x...)">
-              <button class="btn-success" id="addGuardianBtn">➕ Добавить</button>
+            <h4 class="admin-subtitle">Добавить члена совета</h4>
+            <div class="admin-inline-form">
+              <input type="text" id="addGuardianAddress" class="admin-input" placeholder="Адрес (0x...)">
+              <button class="admin-btn admin-btn-success" id="addGuardianBtn">Добавить</button>
             </div>
             
-            <h4>Удалить Guardian</h4>
-            <div class="form-inline">
-              <input type="text" id="removeGuardianAddress" placeholder="Адрес (0x...)">
-              <button class="btn-danger" id="removeGuardianBtn">➖ Удалить</button>
+            <h4 class="admin-subtitle">Удалить члена совета</h4>
+            <div class="admin-inline-form">
+              <input type="text" id="removeGuardianAddress" class="admin-input" placeholder="Адрес (0x...)">
+              <button class="admin-btn admin-btn-danger" id="removeGuardianBtn">Удалить</button>
             </div>
           </div>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- УПРАВЛЕНИЕ КОНТРАКТОМ -->
+        <!-- УПРАВЛЕНИЕ КОНТРАКТАМИ -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section ${ownerOnlyClass}">
-          <h3>⚙️ Управление контрактом</h3>
+          <h3 class="admin-section-title">⚙️ Управление контрактами</h3>
           
-          <div class="control-buttons">
-            <button class="btn-warning" id="pauseContractBtn">⏸️ Пауза</button>
-            <button class="btn-success" id="unpauseContractBtn">▶️ Возобновить</button>
+          <h4 class="admin-subtitle">Статус контракта</h4>
+          <div class="admin-btn-group">
+            <button class="admin-btn admin-btn-warning" id="pauseContractBtn">⏸️ Приостановить</button>
+            <button class="admin-btn admin-btn-success" id="unpauseContractBtn">▶️ Возобновить</button>
           </div>
+          
+          <h4 class="admin-subtitle">Изменить адрес контракта</h4>
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>Тип контракта</label>
+              <select id="contractType" class="admin-select">
+                <option value="partnerProgram">PartnerProgram</option>
+                <option value="matrixPayments">MatrixPayments</option>
+                <option value="quarterlyPayments">QuarterlyPayments</option>
+                <option value="investmentPool">InvestmentPool</option>
+                <option value="leaderPool">LeaderPool</option>
+                <option value="gwtToken">GWTToken</option>
+                <option value="treasury">Treasury</option>
+                <option value="charity">Charity</option>
+              </select>
+            </div>
+            <div class="admin-form-group">
+              <label>Новый адрес</label>
+              <input type="text" id="newContractAddress" class="admin-input" placeholder="0x...">
+            </div>
+          </div>
+          <button class="admin-btn admin-btn-warning" id="updateContractBtn">🔄 Обновить адрес</button>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- ОПАСНАЯ ЗОНА (только Owner) -->
+        <!-- ФИНАНСОВЫЙ МЕНЕДЖМЕНТ -->
         <!-- ═══════════════════════════════════════════════════════ -->
-        <section class="admin-section danger-zone ${ownerOnlyClass}">
-          <h3>⚠️ Опасная зона</h3>
-          <p class="warning">Эти действия необратимы! Будьте осторожны.</p>
+        <section class="admin-section ${ownerOnlyClass}">
+          <h3 class="admin-section-title">💰 Финансовый менеджмент</h3>
           
-          <button class="btn-danger" id="emergencyWithdrawBtn">
-            🚨 Экстренный вывод средств
-          </button>
+          <div id="contractBalances" class="admin-balances-grid">
+            <div class="admin-loading">Загрузка балансов...</div>
+          </div>
+          
+          <h4 class="admin-subtitle">Вывод средств</h4>
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>Контракт</label>
+              <select id="withdrawContract" class="admin-select">
+                <option value="globalway">GlobalWay</option>
+                <option value="matrix">MatrixPayments</option>
+                <option value="partner">PartnerProgram</option>
+              </select>
+            </div>
+            <div class="admin-form-group">
+              <label>Адрес получателя</label>
+              <input type="text" id="withdrawAddress" class="admin-input" placeholder="0x...">
+            </div>
+            <div class="admin-form-group">
+              <label>Сумма (BNB)</label>
+              <input type="text" id="withdrawAmount" class="admin-input" placeholder="0.0">
+            </div>
+          </div>
+          <p class="admin-notice">⚠️ Для сумм свыше 5 BNB требуется голосование совета</p>
+          <button class="admin-btn admin-btn-warning" id="withdrawBtn">💸 Вывести</button>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- ДЕЛЕГИРОВАНИЕ ПРАВ -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <section class="admin-section ${ownerOnlyClass}">
+          <h3 class="admin-section-title">👥 Делегирование прав</h3>
+          <p class="admin-desc">Передача определённых прав другим адресам</p>
+          
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>Адрес делегата</label>
+              <input type="text" id="delegateAddress" class="admin-input" placeholder="0x...">
+            </div>
+            <div class="admin-form-group">
+              <label>Права</label>
+              <div class="admin-checkbox-group">
+                <label class="admin-checkbox">
+                  <input type="checkbox" id="permStats"> Статистика
+                </label>
+                <label class="admin-checkbox">
+                  <input type="checkbox" id="permUsers"> Пользователи
+                </label>
+                <label class="admin-checkbox">
+                  <input type="checkbox" id="permNews"> Новости
+                </label>
+                <label class="admin-checkbox">
+                  <input type="checkbox" id="permSupport"> Поддержка
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div class="admin-form-group">
+            <label>Причина</label>
+            <textarea id="delegateReason" class="admin-textarea" placeholder="Укажите причину делегирования..."></textarea>
+          </div>
+          
+          <button class="admin-btn admin-btn-success" id="delegateBtn">👥 Делегировать права</button>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- НОВОСТИ И ПУБЛИКАЦИИ -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <section class="admin-section ${ownerOnlyClass}">
+          <h3 class="admin-section-title">📰 Новости и публикации</h3>
+          <p class="admin-desc">Управление новостями платформы</p>
+          
+          <div class="admin-form-group">
+            <label>Заголовок</label>
+            <input type="text" id="newsTitle" class="admin-input" placeholder="Заголовок новости...">
+          </div>
+          <div class="admin-form-group">
+            <label>Текст новости</label>
+            <textarea id="newsContent" class="admin-textarea" placeholder="Текст новости..."></textarea>
+          </div>
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>Ссылка (необязательно)</label>
+              <input type="text" id="newsLink" class="admin-input" placeholder="https://...">
+            </div>
+            <div class="admin-form-group">
+              <label>Изображение</label>
+              <input type="file" id="newsImage" class="admin-input" accept="image/*">
+            </div>
+          </div>
+          
+          <button class="admin-btn admin-btn-success" id="publishNewsBtn">📰 Опубликовать</button>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
         <!-- ЭКСПОРТ БАЗЫ ДАННЫХ -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section ${ownerOnlyClass}">
-          <h3>💾 Экспорт базы данных</h3>
-          <p class="section-desc">Скачать данные для восстановления при передеплое</p>
+          <h3 class="admin-section-title">💾 Экспорт базы данных</h3>
+          <p class="admin-desc">Скачать данные для восстановления при передеплое</p>
           
-          <div class="export-buttons">
-            <button class="btn-secondary" id="exportUsersBtn">
-              📥 Скачать пользователей (JSON)
+          <div class="admin-btn-group">
+            <button class="admin-btn admin-btn-secondary" id="exportUsersBtn">
+              📥 Пользователи
             </button>
-            <button class="btn-secondary" id="exportRanksBtn">
-              📥 Скачать ранги (JSON)
+            <button class="admin-btn admin-btn-secondary" id="exportRanksBtn">
+              📥 Ранги
+            </button>
+            <button class="admin-btn admin-btn-secondary" id="exportAllBtn">
+              📥 Вся база
+            </button>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- ОПАСНАЯ ЗОНА -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <section class="admin-section admin-danger-zone ${ownerOnlyClass}">
+          <h3 class="admin-section-title">⚠️ Опасная зона</h3>
+          <p class="admin-warning-text">Эти действия необратимы! Будьте очень осторожны.</p>
+          
+          <div class="admin-btn-group">
+            <button class="admin-btn admin-btn-danger" id="emergencyWithdrawBtn">
+              🚨 Экстренный вывод
+            </button>
+            <button class="admin-btn admin-btn-danger" id="transferOwnershipBtn">
+              🔑 Передать владение
             </button>
           </div>
         </section>
       </div>
     `;
 
-    // Добавляем стили
     this.injectStyles();
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // СТИЛИ
+  // СТИЛИ (УЛУЧШЕННАЯ МОБИЛЬНАЯ АДАПТАЦИЯ)
   // ═══════════════════════════════════════════════════════════════
   injectStyles() {
-    if (document.getElementById('admin-styles-v2')) return;
+    if (document.getElementById('admin-styles-v3')) return;
 
     const styles = document.createElement('style');
-    styles.id = 'admin-styles-v2';
+    styles.id = 'admin-styles-v3';
     styles.textContent = `
-      .admin-page-v2 {
-        max-width: 1200px;
+      /* ═══════════════════════════════════════════════════════ */
+      /* БАЗОВЫЕ СТИЛИ */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-container {
+        max-width: 1000px;
         margin: 0 auto;
-        padding: 20px;
+        padding: 10px;
+        font-size: 13px;
       }
       
-      .admin-page-v2 h2 {
+      .admin-title {
         color: #ffd700;
         text-align: center;
-        margin-bottom: 30px;
+        margin-bottom: 15px;
+        font-size: 18px;
       }
       
       .admin-section {
         background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
         border: 1px solid #2a2a4a;
-        border-radius: 15px;
-        padding: 25px;
-        margin-bottom: 25px;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
       }
       
-      .admin-section h3 {
+      .admin-section-title {
         color: #ffd700;
-        margin-top: 0;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
+        margin: 0 0 10px 0;
+        padding-bottom: 8px;
         border-bottom: 1px solid #333;
-      }
-      
-      .admin-section h4 {
-        color: #ccc;
-        margin: 20px 0 10px;
-      }
-      
-      .section-desc {
-        color: #888;
         font-size: 14px;
-        margin-bottom: 20px;
       }
       
-      .hidden { display: none !important; }
+      .admin-subtitle {
+        color: #ccc;
+        margin: 12px 0 8px;
+        font-size: 12px;
+      }
       
-      /* Access Badge */
-      .access-info {
+      .admin-desc {
+        color: #888;
+        font-size: 11px;
+        margin-bottom: 12px;
+      }
+      
+      .admin-hidden { display: none !important; }
+      
+      /* ═══════════════════════════════════════════════════════ */
+      /* ИНФОРМАЦИЯ О ДОСТУПЕ */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-access-info {
         display: flex;
         align-items: center;
-        gap: 15px;
-        padding: 15px 25px !important;
+        gap: 10px;
+        padding: 10px 12px !important;
+        flex-wrap: wrap;
       }
       
-      .access-badge {
-        padding: 8px 20px;
-        border-radius: 20px;
+      .admin-badge {
+        padding: 5px 12px;
+        border-radius: 15px;
         font-weight: bold;
+        font-size: 11px;
       }
       
-      .access-badge.owner {
+      .admin-badge-owner {
         background: linear-gradient(135deg, #ffd700, #ffaa00);
         color: #000;
       }
       
-      .access-badge.guardian {
+      .admin-badge-guardian {
         background: linear-gradient(135deg, #4a90d9, #357abd);
         color: #fff;
       }
       
-      .access-address {
+      .admin-address {
         color: #888;
         font-family: monospace;
+        font-size: 11px;
       }
       
-      /* Stats Grid */
-      .stats-grid {
+      /* ═══════════════════════════════════════════════════════ */
+      /* СТАТИСТИКА */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        margin-bottom: 25px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
       }
       
-      .stat-card {
+      .admin-stat-card {
         background: rgba(255, 215, 0, 0.1);
         border: 1px solid #ffd700;
-        border-radius: 10px;
-        padding: 20px;
+        border-radius: 8px;
+        padding: 10px;
         text-align: center;
       }
       
-      .stat-value {
-        font-size: 28px;
+      .admin-stat-value {
+        font-size: 18px;
         font-weight: bold;
         color: #ffd700;
       }
       
-      .stat-label {
+      .admin-stat-label {
         color: #888;
-        font-size: 14px;
-        margin-top: 5px;
+        font-size: 10px;
+        margin-top: 3px;
       }
       
-      /* Ranks Grid */
-      .ranks-grid {
+      /* ═══════════════════════════════════════════════════════ */
+      /* РАНГИ */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-ranks-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 15px;
-        margin-bottom: 20px;
+        gap: 6px;
+        margin-bottom: 12px;
       }
       
-      .rank-card {
+      .admin-rank-card {
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 15px;
-        border-radius: 10px;
+        padding: 8px 4px;
+        border-radius: 8px;
         border: 2px solid;
       }
       
-      .rank-card.bronze { border-color: #cd7f32; background: rgba(205, 127, 50, 0.1); }
-      .rank-card.silver { border-color: #c0c0c0; background: rgba(192, 192, 192, 0.1); }
-      .rank-card.gold { border-color: #ffd700; background: rgba(255, 215, 0, 0.1); }
-      .rank-card.platinum { border-color: #e5e4e2; background: rgba(229, 228, 226, 0.1); }
+      .admin-rank-bronze { border-color: #cd7f32; background: rgba(205, 127, 50, 0.15); }
+      .admin-rank-silver { border-color: #c0c0c0; background: rgba(192, 192, 192, 0.15); }
+      .admin-rank-gold { border-color: #ffd700; background: rgba(255, 215, 0, 0.15); }
+      .admin-rank-platinum { border-color: #e5e4e2; background: rgba(229, 228, 226, 0.15); }
       
-      .rank-icon { font-size: 24px; }
-      .rank-count { font-size: 28px; font-weight: bold; color: #fff; }
-      .rank-name { color: #888; font-size: 12px; }
+      .admin-rank-icon { font-size: 16px; }
+      .admin-rank-count { font-size: 18px; font-weight: bold; color: #fff; }
+      .admin-rank-name { color: #888; font-size: 9px; }
       
-      /* Forms */
-      .form-grid {
+      /* ═══════════════════════════════════════════════════════ */
+      /* ФОРМЫ */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-form-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-        margin-bottom: 20px;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 12px;
       }
       
-      .form-group {
+      .admin-form-group {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 4px;
       }
       
-      .form-group label {
+      .admin-form-group label {
         color: #ccc;
-        font-size: 14px;
+        font-size: 11px;
       }
       
-      .form-group input,
-      .form-group select {
-        padding: 12px 15px;
+      .admin-input,
+      .admin-select,
+      .admin-textarea {
+        padding: 10px;
         border: 1px solid #333;
-        border-radius: 8px;
+        border-radius: 6px;
         background: #1a1a2e;
         color: #fff;
-        font-size: 16px;
+        font-size: 13px;
+        width: 100%;
+        box-sizing: border-box;
       }
       
-      .form-group input:focus,
-      .form-group select:focus {
+      .admin-input:focus,
+      .admin-select:focus,
+      .admin-textarea:focus {
         border-color: #ffd700;
         outline: none;
       }
       
-      .form-inline {
+      .admin-textarea {
+        min-height: 60px;
+        resize: vertical;
+      }
+      
+      .admin-inline-form {
         display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
+        gap: 8px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
       }
       
-      .form-inline input {
+      .admin-inline-form .admin-input {
         flex: 1;
-        padding: 12px 15px;
-        border: 1px solid #333;
-        border-radius: 8px;
-        background: #1a1a2e;
-        color: #fff;
+        min-width: 150px;
       }
       
-      /* Search */
-      .search-form {
+      /* ═══════════════════════════════════════════════════════ */
+      /* ПОИСК */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-search-form {
         display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
+        gap: 8px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
       }
       
-      .search-form input {
+      .admin-search-form .admin-input {
         flex: 1;
-        padding: 12px 15px;
-        border: 1px solid #333;
-        border-radius: 8px;
-        background: #1a1a2e;
-        color: #fff;
+        min-width: 150px;
       }
       
-      .search-result {
+      .admin-search-result {
         background: #1a2a1e;
         border: 1px solid #00ff88;
-        border-radius: 10px;
-        padding: 20px;
-        margin-top: 15px;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 10px;
+        font-size: 12px;
       }
       
-      .search-result.error {
+      .admin-search-result.admin-error {
         background: #2a1a1e;
         border-color: #ff4444;
       }
       
-      .search-result h4 {
+      .admin-search-result h4 {
         color: #00ff88;
-        margin-top: 0;
+        margin: 0 0 8px 0;
+        font-size: 13px;
       }
       
-      .search-result.error h4 {
+      .admin-search-result.admin-error h4 {
         color: #ff4444;
       }
       
-      .search-result p {
-        margin: 8px 0;
+      .admin-search-result p {
+        margin: 5px 0;
         color: #ccc;
       }
       
-      .search-result code {
+      .admin-search-result code {
         background: #333;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-family: monospace;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        word-break: break-all;
       }
       
-      /* Guardians List */
-      .guardians-list {
-        margin-bottom: 20px;
+      /* ═══════════════════════════════════════════════════════ */
+      /* GUARDIANS */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-guardians-list {
+        margin-bottom: 12px;
       }
       
-      .guardian-card {
+      .admin-guardian-card {
         display: flex;
         justify-content: space-between;
         align-items: center;
         background: #1a1a2e;
         border: 1px solid #333;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 10px;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+        gap: 5px;
       }
       
-      .guardian-card.owner {
+      .admin-guardian-card.admin-guardian-owner {
         border-color: #ffd700;
       }
       
-      .guardian-info {
+      .admin-guardian-info {
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 8px;
+        flex-wrap: wrap;
       }
       
-      .guardian-badge {
-        padding: 5px 12px;
-        border-radius: 15px;
-        font-size: 12px;
+      .admin-guardian-badge {
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 10px;
         font-weight: bold;
       }
       
-      .guardian-badge.owner {
+      .admin-guardian-badge.admin-badge-owner {
         background: #ffd700;
         color: #000;
       }
       
-      .guardian-badge.guardian {
+      .admin-guardian-badge.admin-badge-guardian {
         background: #4a90d9;
         color: #fff;
       }
       
-      .guardian-address {
+      .admin-guardian-address {
         font-family: monospace;
         color: #ccc;
+        font-size: 10px;
+        word-break: break-all;
       }
       
-      /* Buttons */
-      .btn-primary, .btn-secondary, .btn-success, .btn-warning, .btn-danger {
-        padding: 12px 25px;
+      /* ═══════════════════════════════════════════════════════ */
+      /* ЧЕКБОКСЫ */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      
+      .admin-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: #ccc;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      
+      .admin-checkbox input {
+        width: 14px;
+        height: 14px;
+      }
+      
+      /* ═══════════════════════════════════════════════════════ */
+      /* БАЛАНСЫ */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-balances-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      
+      .admin-balance-card {
+        background: #1a1a2e;
+        border: 1px solid #333;
+        border-radius: 6px;
+        padding: 8px;
+        text-align: center;
+      }
+      
+      .admin-balance-name {
+        color: #888;
+        font-size: 10px;
+      }
+      
+      .admin-balance-value {
+        color: #ffd700;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      
+      /* ═══════════════════════════════════════════════════════ */
+      /* КНОПКИ */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-btn {
+        padding: 10px 15px;
         border: none;
-        border-radius: 8px;
-        font-size: 16px;
+        border-radius: 6px;
+        font-size: 12px;
         font-weight: bold;
         cursor: pointer;
-        transition: all 0.3s;
+        transition: all 0.2s;
+        white-space: nowrap;
       }
       
-      .btn-primary {
+      .admin-btn-primary {
         background: linear-gradient(135deg, #ffd700, #ffaa00);
         color: #000;
       }
       
-      .btn-secondary {
+      .admin-btn-secondary {
         background: #333;
         color: #fff;
         border: 1px solid #555;
       }
       
-      .btn-success {
+      .admin-btn-success {
         background: linear-gradient(135deg, #00c853, #00a843);
         color: #fff;
       }
       
-      .btn-warning {
+      .admin-btn-warning {
         background: linear-gradient(135deg, #ff9800, #f57c00);
         color: #fff;
       }
       
-      .btn-danger {
+      .admin-btn-danger {
         background: linear-gradient(135deg, #f44336, #d32f2f);
         color: #fff;
       }
       
-      .btn-primary:hover, .btn-success:hover, .btn-warning:hover, .btn-danger:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      .admin-btn:active {
+        transform: scale(0.98);
       }
       
-      .btn-secondary:hover {
-        background: #444;
-      }
-      
-      .control-buttons {
+      .admin-btn-group {
         display: flex;
-        gap: 15px;
+        gap: 8px;
         flex-wrap: wrap;
       }
       
-      .export-buttons {
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-      }
-      
-      /* Danger Zone */
-      .danger-zone {
+      /* ═══════════════════════════════════════════════════════ */
+      /* ОПАСНАЯ ЗОНА */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-danger-zone {
         border-color: #f44336 !important;
         background: linear-gradient(145deg, #2a1a1e 0%, #1e1a1a 100%) !important;
       }
       
-      .danger-zone h3 {
+      .admin-danger-zone .admin-section-title {
         color: #f44336 !important;
       }
       
-      .danger-zone .warning {
+      .admin-warning-text {
         color: #ff6b6b;
-        font-size: 14px;
-        margin-bottom: 20px;
+        font-size: 11px;
+        margin-bottom: 12px;
       }
       
-      /* Access Denied */
-      .access-denied {
+      .admin-notice {
+        color: #ffaa00;
+        font-size: 10px;
+        margin: 8px 0;
+      }
+      
+      /* ═══════════════════════════════════════════════════════ */
+      /* ДОСТУП ЗАПРЕЩЁН */
+      /* ═══════════════════════════════════════════════════════ */
+      .admin-access-denied {
         text-align: center;
-        padding: 50px;
+        padding: 30px 15px;
       }
       
-      .access-denied h2 {
+      .admin-access-denied h2 {
         color: #f44336;
-      }
-      
-      .access-denied .warning {
-        color: #ff6b6b;
         font-size: 18px;
-        margin: 20px 0;
       }
       
-      .access-denied code {
+      .admin-access-denied .admin-warning {
+        color: #ff6b6b;
+        font-size: 13px;
+        margin: 15px 0;
+      }
+      
+      .admin-access-denied code {
         background: #333;
-        padding: 5px 15px;
-        border-radius: 5px;
+        padding: 3px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        word-break: break-all;
       }
       
-      .allowed-addresses {
+      .admin-allowed-list {
         background: #1a1a2e;
         border: 1px solid #333;
-        border-radius: 10px;
-        padding: 20px;
-        margin: 30px auto;
-        max-width: 600px;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 20px auto;
+        max-width: 500px;
         text-align: left;
       }
       
-      .allowed-addresses h4 {
+      .admin-allowed-list h4 {
         color: #ffd700;
-        margin-top: 0;
+        margin: 0 0 10px 0;
+        font-size: 13px;
       }
       
-      .allowed-addresses ul {
+      .admin-allowed-list ul {
         list-style: none;
         padding: 0;
+        margin: 0;
       }
       
-      .allowed-addresses li {
-        padding: 8px 0;
+      .admin-allowed-list li {
+        padding: 6px 0;
         border-bottom: 1px solid #333;
+        font-size: 11px;
       }
       
-      .allowed-addresses li:last-child {
+      .admin-allowed-list li:last-child {
         border-bottom: none;
       }
       
-      .loading {
+      .admin-loading {
         color: #888;
         text-align: center;
-        padding: 20px;
+        padding: 15px;
+        font-size: 12px;
       }
       
-      /* Responsive */
-      @media (max-width: 768px) {
-        .stats-grid { grid-template-columns: repeat(2, 1fr); }
-        .ranks-grid { grid-template-columns: repeat(2, 1fr); }
-        .form-grid { grid-template-columns: 1fr; }
-        .form-inline { flex-direction: column; }
-        .search-form { flex-direction: column; }
-        .control-buttons { flex-direction: column; }
-        .export-buttons { flex-direction: column; }
+      /* ═══════════════════════════════════════════════════════ */
+      /* ПЛАНШЕТ (600px+) */
+      /* ═══════════════════════════════════════════════════════ */
+      @media (min-width: 600px) {
+        .admin-container {
+          padding: 15px;
+          font-size: 14px;
+        }
+        
+        .admin-title {
+          font-size: 22px;
+          margin-bottom: 20px;
+        }
+        
+        .admin-section {
+          padding: 18px;
+          margin-bottom: 18px;
+        }
+        
+        .admin-section-title {
+          font-size: 16px;
+        }
+        
+        .admin-form-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .admin-stats-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+        
+        .admin-balances-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .admin-stat-value {
+          font-size: 24px;
+        }
+        
+        .admin-rank-count {
+          font-size: 22px;
+        }
+      }
+      
+      /* ═══════════════════════════════════════════════════════ */
+      /* ДЕСКТОП (900px+) */
+      /* ═══════════════════════════════════════════════════════ */
+      @media (min-width: 900px) {
+        .admin-container {
+          padding: 20px;
+        }
+        
+        .admin-section {
+          padding: 25px;
+        }
+        
+        .admin-form-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .admin-btn {
+          padding: 12px 20px;
+          font-size: 14px;
+        }
       }
     `;
     document.head.appendChild(styles);
@@ -823,35 +1097,43 @@ const adminModule = {
   // ЗАГРУЗКА КОНТРАКТОВ
   // ═══════════════════════════════════════════════════════════════
   async loadContracts() {
-    console.log('📥 Loading admin contracts...');
+    console.log('📥 Загрузка контрактов...');
     
     try {
       this.contracts.globalWay = await app.getContract('GlobalWay');
       this.contracts.matrixRegistry = await app.getContract('MatrixRegistry');
-      console.log('✅ Core contracts loaded');
+      console.log('✅ Основные контракты загружены');
     } catch (e) {
-      console.error('❌ Error loading core contracts:', e);
+      console.error('❌ Ошибка загрузки основных контрактов:', e);
     }
     
     try {
       this.contracts.leaderPool = await app.getContract('GlobalWayLeaderPool');
-      console.log('✅ LeaderPool contract loaded');
+      console.log('✅ LeaderPool загружен');
     } catch (e) {
-      console.log('⚠️ LeaderPool not available');
+      console.log('⚠️ LeaderPool недоступен');
     }
     
     try {
       this.contracts.governance = await app.getContract('GlobalWayGovernance');
-      console.log('✅ Governance contract loaded');
+      console.log('✅ Governance загружен');
     } catch (e) {
-      console.log('⚠️ Governance not available');
+      console.log('⚠️ Governance недоступен');
     }
     
     try {
       this.contracts.gwtToken = await app.getContract('GWTToken');
-      console.log('✅ GWTToken contract loaded');
+      console.log('✅ GWTToken загружен');
     } catch (e) {
-      console.log('⚠️ GWTToken not available');
+      console.log('⚠️ GWTToken недоступен');
+    }
+    
+    try {
+      this.contracts.matrixPayments = await app.getContract('MatrixPayments');
+      this.contracts.partnerProgram = await app.getContract('PartnerProgram');
+      console.log('✅ Дополнительные контракты загружены');
+    } catch (e) {
+      console.log('⚠️ Дополнительные контракты недоступны');
     }
   },
 
@@ -861,41 +1143,41 @@ const adminModule = {
   async loadAllData() {
     await Promise.all([
       this.loadStats(),
-      this.loadGuardians()
+      this.loadGuardians(),
+      this.loadBalances()
     ]);
   },
 
   async loadStats() {
-    console.log('📊 Loading stats...');
+    console.log('📊 Загрузка статистики...');
     
     try {
-      // Всего пользователей
+      // Пользователи
       let totalUsers = 0;
       if (this.contracts.matrixRegistry) {
         try {
           totalUsers = Number(await this.contracts.matrixRegistry.totalUsers());
         } catch (e) {
-          console.error('Error getting totalUsers from MatrixRegistry:', e);
+          console.error('Ошибка получения totalUsers из MatrixRegistry:', e);
         }
       }
       
-      // Если не получилось из MatrixRegistry, пробуем GlobalWay
       if (totalUsers === 0 && this.contracts.globalWay) {
         try {
           totalUsers = Number(await this.contracts.globalWay.getTotalUsers());
         } catch (e) {
-          console.error('Error getting totalUsers from GlobalWay:', e);
+          console.error('Ошибка получения totalUsers из GlobalWay:', e);
         }
       }
       
-      // Общий объём
+      // Объём
       let totalVolume = '0';
       if (this.contracts.globalWay) {
         try {
           const volume = await this.contracts.globalWay.totalVolume();
           totalVolume = ethers.utils.formatEther(volume);
         } catch (e) {
-          console.error('Error getting totalVolume:', e);
+          console.error('Ошибка получения totalVolume:', e);
         }
       }
       
@@ -905,35 +1187,88 @@ const adminModule = {
         const balance = await window.web3Manager.provider.getBalance(CONFIG.CONTRACTS.GlobalWay);
         contractBalance = ethers.utils.formatEther(balance);
       } catch (e) {
-        console.error('Error getting balance:', e);
+        console.error('Ошибка получения баланса:', e);
       }
       
-      // Токены GWT
+      // Токены
       let totalTokens = '0';
       if (this.contracts.gwtToken) {
         try {
           const supply = await this.contracts.gwtToken.totalSupply();
           totalTokens = ethers.utils.formatEther(supply);
         } catch (e) {
-          console.error('Error getting totalSupply:', e);
+          console.error('Ошибка получения totalSupply:', e);
         }
       }
       
       // Обновляем UI
-      document.getElementById('statTotalUsers').textContent = totalUsers;
-      document.getElementById('statTotalVolume').textContent = parseFloat(totalVolume).toFixed(4);
-      document.getElementById('statContractBalance').textContent = parseFloat(contractBalance).toFixed(4);
-      document.getElementById('statTotalTokens').textContent = parseFloat(totalTokens).toFixed(0);
+      const el = (id) => document.getElementById(id);
+      if (el('statTotalUsers')) el('statTotalUsers').textContent = totalUsers;
+      if (el('statTotalVolume')) el('statTotalVolume').textContent = parseFloat(totalVolume).toFixed(2);
+      if (el('statContractBalance')) el('statContractBalance').textContent = parseFloat(contractBalance).toFixed(2);
+      if (el('statTotalTokens')) el('statTotalTokens').textContent = this.formatNumber(parseFloat(totalTokens));
       
-      console.log('✅ Stats loaded');
+      // Загружаем ранги
+      await this.loadRanksCount(totalUsers);
+      
+      console.log('✅ Статистика загружена');
       
     } catch (error) {
-      console.error('❌ Error loading stats:', error);
+      console.error('❌ Ошибка загрузки статистики:', error);
     }
   },
 
+  async loadRanksCount(totalUsers) {
+    console.log('🏆 Загрузка рангов...');
+    
+    const ranks = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
+    
+    if (!this.contracts.leaderPool || !this.contracts.globalWay) {
+      console.log('⚠️ Контракты для рангов недоступны');
+      this.updateRanksUI(ranks);
+      return;
+    }
+    
+    try {
+      // Получаем список пользователей и проверяем их ранги
+      const maxCheck = Math.min(totalUsers, 100); // Проверяем максимум 100 пользователей
+      
+      for (let i = 0; i < maxCheck; i++) {
+        try {
+          const address = await this.contracts.globalWay.allUsers(i);
+          if (address && address !== '0x0000000000000000000000000000000000000000') {
+            const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
+            const rank = Number(rankInfo.rank || rankInfo[0] || 0);
+            
+            if (rank === 1) ranks.bronze++;
+            else if (rank === 2) ranks.silver++;
+            else if (rank === 3) ranks.gold++;
+            else if (rank === 4) ranks.platinum++;
+          }
+        } catch (e) {
+          // Пропускаем ошибки для отдельных пользователей
+        }
+      }
+      
+      console.log('✅ Ранги подсчитаны:', ranks);
+      
+    } catch (error) {
+      console.error('❌ Ошибка загрузки рангов:', error);
+    }
+    
+    this.updateRanksUI(ranks);
+  },
+
+  updateRanksUI(ranks) {
+    const el = (id) => document.getElementById(id);
+    if (el('rankBronze')) el('rankBronze').textContent = ranks.bronze;
+    if (el('rankSilver')) el('rankSilver').textContent = ranks.silver;
+    if (el('rankGold')) el('rankGold').textContent = ranks.gold;
+    if (el('rankPlatinum')) el('rankPlatinum').textContent = ranks.platinum;
+  },
+
   async loadGuardians() {
-    console.log('🛡️ Loading guardians...');
+    console.log('🛡️ Загрузка совета директоров...');
     
     const listEl = document.getElementById('guardiansList');
     if (!listEl) return;
@@ -941,35 +1276,32 @@ const adminModule = {
     try {
       let guardians = [];
       
-      // Пробуем получить из контракта Governance
       if (this.contracts.governance) {
         try {
           guardians = await this.contracts.governance.getGuardians();
-          console.log('✅ Guardians from contract:', guardians.length);
+          console.log('✅ Guardians из контракта:', guardians.length);
         } catch (e) {
-          console.log('⚠️ Cannot get guardians from contract, using CONFIG');
+          console.log('⚠️ Не удалось получить guardians из контракта, используем CONFIG');
         }
       }
       
-      // Если не получилось, используем CONFIG
       if (guardians.length === 0) {
         guardians = [CONFIG.ADMIN.owner, ...CONFIG.ADMIN.guardians];
       }
       
       this.state.guardians = guardians;
       
-      // Рендерим список
       listEl.innerHTML = guardians.map((addr, index) => {
         const isOwner = addr.toLowerCase() === CONFIG.ADMIN.owner.toLowerCase();
         return `
-          <div class="guardian-card ${isOwner ? 'owner' : ''}">
-            <div class="guardian-info">
-              <span class="guardian-badge ${isOwner ? 'owner' : 'guardian'}">
-                ${isOwner ? '👑 Owner' : `🛡️ Guardian ${index}`}
+          <div class="admin-guardian-card ${isOwner ? 'admin-guardian-owner' : ''}">
+            <div class="admin-guardian-info">
+              <span class="admin-guardian-badge ${isOwner ? 'admin-badge-owner' : 'admin-badge-guardian'}">
+                ${isOwner ? '👑 Владелец' : `🛡️ Член ${index}`}
               </span>
-              <span class="guardian-address">${addr}</span>
+              <span class="admin-guardian-address">${this.formatAddressShort(addr)}</span>
             </div>
-            <button class="btn-secondary" onclick="navigator.clipboard.writeText('${addr}'); app.showNotification('Скопировано!', 'success');">
+            <button class="admin-btn admin-btn-secondary" onclick="navigator.clipboard.writeText('${addr}'); app.showNotification('Скопировано!', 'success');">
               📋
             </button>
           </div>
@@ -977,8 +1309,54 @@ const adminModule = {
       }).join('');
       
     } catch (error) {
-      console.error('❌ Error loading guardians:', error);
-      listEl.innerHTML = '<div class="loading">Ошибка загрузки</div>';
+      console.error('❌ Ошибка загрузки guardians:', error);
+      listEl.innerHTML = '<div class="admin-loading">Ошибка загрузки</div>';
+    }
+  },
+
+  async loadBalances() {
+    const container = document.getElementById('contractBalances');
+    if (!container) return;
+    
+    try {
+      const contracts = [
+        { name: 'GlobalWay', address: CONFIG.CONTRACTS.GlobalWay },
+        { name: 'MatrixPay', address: CONFIG.CONTRACTS.MatrixPayments },
+        { name: 'Partner', address: CONFIG.CONTRACTS.PartnerProgram },
+        { name: 'Quarterly', address: CONFIG.CONTRACTS.QuarterlyPayments },
+        { name: 'Investment', address: CONFIG.CONTRACTS.InvestmentPool },
+        { name: 'Leader', address: CONFIG.CONTRACTS.GlobalWayLeaderPool }
+      ];
+      
+      let html = '';
+      
+      for (const c of contracts) {
+        if (c.address) {
+          try {
+            const balance = await window.web3Manager.provider.getBalance(c.address);
+            const bnb = parseFloat(ethers.utils.formatEther(balance)).toFixed(3);
+            html += `
+              <div class="admin-balance-card">
+                <div class="admin-balance-name">${c.name}</div>
+                <div class="admin-balance-value">${bnb} BNB</div>
+              </div>
+            `;
+          } catch (e) {
+            html += `
+              <div class="admin-balance-card">
+                <div class="admin-balance-name">${c.name}</div>
+                <div class="admin-balance-value">-</div>
+              </div>
+            `;
+          }
+        }
+      }
+      
+      container.innerHTML = html || '<div class="admin-loading">Нет данных</div>';
+      
+    } catch (error) {
+      console.error('Ошибка загрузки балансов:', error);
+      container.innerHTML = '<div class="admin-loading">Ошибка загрузки</div>';
     }
   },
 
@@ -986,82 +1364,61 @@ const adminModule = {
   // ОБРАБОТЧИКИ СОБЫТИЙ
   // ═══════════════════════════════════════════════════════════════
   initEventHandlers() {
-    console.log('🎯 Initializing event handlers...');
+    console.log('🎯 Инициализация обработчиков...');
     
-    // Обновить статистику
-    const refreshStatsBtn = document.getElementById('refreshStatsBtn');
-    if (refreshStatsBtn) {
-      refreshStatsBtn.onclick = () => this.loadStats();
-    }
+    const bind = (id, handler) => {
+      const el = document.getElementById(id);
+      if (el) el.onclick = () => handler.call(this);
+    };
     
-    // Поиск пользователя
-    const searchBtn = document.getElementById('searchUserBtn');
-    if (searchBtn) {
-      searchBtn.onclick = () => this.searchUser();
-    }
+    // Статистика
+    bind('refreshStatsBtn', this.loadStats);
     
+    // Поиск
+    bind('searchUserBtn', this.searchUser);
     const searchInput = document.getElementById('searchUserInput');
     if (searchInput) {
-      searchInput.onkeypress = (e) => {
-        if (e.key === 'Enter') this.searchUser();
-      };
+      searchInput.onkeypress = (e) => { if (e.key === 'Enter') this.searchUser(); };
     }
     
     // Регистрация + Активация
-    const regBtn = document.getElementById('registerAndActivateBtn');
-    if (regBtn) {
-      regBtn.onclick = () => this.registerAndActivate();
-    }
+    bind('registerAndActivateBtn', this.registerAndActivate);
     
     // Только активация
-    const activateBtn = document.getElementById('activateLevelsBtn');
-    if (activateBtn) {
-      activateBtn.onclick = () => this.activateLevels();
-    }
+    bind('activateLevelsBtn', this.activateLevels);
     
-    // Присвоение ранга
-    const rankBtn = document.getElementById('setRankBtn');
-    if (rankBtn) {
-      rankBtn.onclick = () => this.setUserRank();
-    }
+    // Ранги
+    bind('setRankBtn', this.setUserRank);
+    
+    // Авторизация
+    bind('setAuthBtn', this.setAuthorization);
     
     // Guardians
-    const addGuardianBtn = document.getElementById('addGuardianBtn');
-    if (addGuardianBtn) {
-      addGuardianBtn.onclick = () => this.addGuardian();
-    }
+    bind('addGuardianBtn', this.addGuardian);
+    bind('removeGuardianBtn', this.removeGuardian);
     
-    const removeGuardianBtn = document.getElementById('removeGuardianBtn');
-    if (removeGuardianBtn) {
-      removeGuardianBtn.onclick = () => this.removeGuardian();
-    }
+    // Контракты
+    bind('pauseContractBtn', this.pauseContract);
+    bind('unpauseContractBtn', this.unpauseContract);
+    bind('updateContractBtn', this.updateContractAddress);
     
-    // Контракт
-    const pauseBtn = document.getElementById('pauseContractBtn');
-    if (pauseBtn) {
-      pauseBtn.onclick = () => this.pauseContract();
-    }
+    // Финансы
+    bind('withdrawBtn', this.withdrawFunds);
     
-    const unpauseBtn = document.getElementById('unpauseContractBtn');
-    if (unpauseBtn) {
-      unpauseBtn.onclick = () => this.unpauseContract();
-    }
+    // Делегирование
+    bind('delegateBtn', this.delegateRights);
     
-    const emergencyBtn = document.getElementById('emergencyWithdrawBtn');
-    if (emergencyBtn) {
-      emergencyBtn.onclick = () => this.emergencyWithdraw();
-    }
+    // Новости
+    bind('publishNewsBtn', this.publishNews);
     
     // Экспорт
-    const exportUsersBtn = document.getElementById('exportUsersBtn');
-    if (exportUsersBtn) {
-      exportUsersBtn.onclick = () => this.exportUsers();
-    }
+    bind('exportUsersBtn', this.exportUsers);
+    bind('exportRanksBtn', this.exportRanks);
+    bind('exportAllBtn', this.exportAll);
     
-    const exportRanksBtn = document.getElementById('exportRanksBtn');
-    if (exportRanksBtn) {
-      exportRanksBtn.onclick = () => this.exportRanks();
-    }
+    // Опасная зона
+    bind('emergencyWithdrawBtn', this.emergencyWithdraw);
+    bind('transferOwnershipBtn', this.transferOwnership);
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -1079,14 +1436,13 @@ const adminModule = {
       return;
     }
     
-    resultEl.classList.remove('hidden', 'error');
-    resultEl.innerHTML = '<div class="loading">Поиск...</div>';
+    resultEl.classList.remove('admin-hidden', 'admin-error');
+    resultEl.innerHTML = '<div class="admin-loading">Поиск...</div>';
     
     try {
       let address = query;
       let userId = null;
       
-      // Если это ID (GW1234567 или просто 1234567)
       if (query.startsWith('GW') || query.startsWith('gw')) {
         userId = query.substring(2);
         address = await this.contracts.matrixRegistry.getAddressById(userId);
@@ -1095,61 +1451,57 @@ const adminModule = {
         address = await this.contracts.matrixRegistry.getAddressById(userId);
       }
       
-      // Проверяем адрес
       if (!ethers.utils.isAddress(address) || address === '0x0000000000000000000000000000000000000000') {
-        resultEl.classList.add('error');
+        resultEl.classList.add('admin-error');
         resultEl.innerHTML = `
           <h4>❌ Пользователь не найден</h4>
-          <p>Адрес или ID: <code>${query}</code></p>
+          <p>Запрос: <code>${query}</code></p>
         `;
         return;
       }
       
-      // Получаем данные
       const isRegistered = await this.contracts.matrixRegistry.isRegistered(address);
       
       if (!isRegistered) {
-        resultEl.classList.add('error');
+        resultEl.classList.add('admin-error');
         resultEl.innerHTML = `
-          <h4>❌ Пользователь не зарегистрирован</h4>
+          <h4>❌ Не зарегистрирован</h4>
           <p>Адрес: <code>${address}</code></p>
         `;
         return;
       }
       
-      // Получаем полную информацию
       if (!userId) {
         userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
       }
       
       const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
       
-      // Ранг
       let rank = 0;
       let rankName = 'Нет ранга';
       if (this.contracts.leaderPool) {
         try {
           const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
-          rank = Number(rankInfo.rank);
+          rank = Number(rankInfo.rank || rankInfo[0] || 0);
           rankName = this.RANK_NAMES[rank] || 'Нет ранга';
         } catch (e) {
-          console.log('Cannot get rank');
+          console.log('Не удалось получить ранг');
         }
       }
       
       resultEl.innerHTML = `
-        <h4>✅ Пользователь найден</h4>
-        <p><strong>Адрес:</strong> <code>${address}</code></p>
+        <h4>✅ Найден</h4>
+        <p><strong>Адрес:</strong> <code>${this.formatAddressShort(address)}</code></p>
         <p><strong>ID:</strong> GW${userId}</p>
-        <p><strong>Максимальный уровень:</strong> ${maxLevel}</p>
+        <p><strong>Уровень:</strong> ${maxLevel}</p>
         <p><strong>Ранг:</strong> ${rankName}</p>
       `;
       
     } catch (error) {
-      console.error('Search error:', error);
-      resultEl.classList.add('error');
+      console.error('Ошибка поиска:', error);
+      resultEl.classList.add('admin-error');
       resultEl.innerHTML = `
-        <h4>❌ Ошибка поиска</h4>
+        <h4>❌ Ошибка</h4>
         <p>${error.message}</p>
       `;
     }
@@ -1160,7 +1512,7 @@ const adminModule = {
   // ═══════════════════════════════════════════════════════════════
   async registerAndActivate() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может выполнять это действие', 'error');
+      app.showNotification('Только владелец может выполнять это действие', 'error');
       return;
     }
     
@@ -1168,13 +1520,11 @@ const adminModule = {
     let sponsorId = document.getElementById('regSponsorId').value.trim();
     const maxLevel = parseInt(document.getElementById('regMaxLevel').value);
     
-    // Валидация
     if (!ethers.utils.isAddress(userAddress)) {
       app.showNotification('Неверный адрес пользователя', 'error');
       return;
     }
     
-    // Убираем GW из sponsorId
     if (sponsorId.startsWith('GW') || sponsorId.startsWith('gw')) {
       sponsorId = sponsorId.substring(2);
     }
@@ -1185,23 +1535,21 @@ const adminModule = {
     }
     
     try {
-      // Проверяем, зарегистрирован ли уже
       const isRegistered = await this.contracts.matrixRegistry.isRegistered(userAddress);
       
       if (isRegistered) {
-        app.showNotification('Пользователь уже зарегистрирован! Используйте "Только активация"', 'error');
+        app.showNotification('Пользователь уже зарегистрирован! Используйте "Активация уровней"', 'error');
         return;
       }
       
-      // Проверяем спонсора
       const sponsorAddress = await this.contracts.matrixRegistry.getAddressById(sponsorId);
       if (sponsorAddress === '0x0000000000000000000000000000000000000000') {
-        app.showNotification('Спонсор с таким ID не найден', 'error');
+        app.showNotification('Спонсор не найден', 'error');
         return;
       }
       
       const confirmed = confirm(
-        `Регистрация и активация:\n\n` +
+        `Регистрация:\n\n` +
         `Пользователь: ${userAddress}\n` +
         `Спонсор: GW${sponsorId}\n` +
         `Уровень: ${maxLevel === 0 ? 'Только регистрация' : `до ${maxLevel}`}\n\n` +
@@ -1212,68 +1560,46 @@ const adminModule = {
       
       app.showNotification('Выполняется регистрация...', 'info');
       
-      // Шаг 1: Регистрация через MatrixRegistry.registerFor
       const registryContract = await app.getSignedContract('MatrixRegistry');
-      
-      // Проверяем авторизацию
-      // Если GlobalWay авторизован, используем его для регистрации
-      // Иначе используем registerFor напрямую (если Owner авторизован)
-      
-      // Пробуем через GlobalWay (если есть функция)
       const globalWayContract = await app.getSignedContract('GlobalWay');
       
+      // Регистрация
+      try {
+        const tx = await registryContract.registerFor(userAddress, sponsorId);
+        await tx.wait();
+        console.log('✅ Пользователь зарегистрирован');
+      } catch (regError) {
+        console.error('Ошибка регистрации:', regError);
+        app.showNotification('Ошибка регистрации: ' + regError.message, 'error');
+        return;
+      }
+      
+      // Активация (если нужно)
       if (maxLevel > 0) {
-        // Регистрация + Активация через ownerActivateLevels
-        // Но сначала нужно зарегистрировать...
-        
-        // Проверяем есть ли функция registerFor
-        try {
-          const tx = await registryContract.registerFor(userAddress, sponsorId);
-          await tx.wait();
-          console.log('✅ User registered');
-        } catch (regError) {
-          console.error('Registration error:', regError);
-          app.showNotification('Ошибка регистрации: ' + regError.message, 'error');
-          return;
-        }
-        
-        // Теперь активируем уровни
         app.showNotification('Активация уровней...', 'info');
         
         try {
           const tx2 = await globalWayContract.ownerActivateLevels(userAddress, maxLevel);
           await tx2.wait();
-          console.log('✅ Levels activated');
+          console.log('✅ Уровни активированы');
         } catch (actError) {
-          console.error('Activation error:', actError);
+          console.error('Ошибка активации:', actError);
           app.showNotification('Зарегистрирован, но ошибка активации: ' + actError.message, 'error');
           return;
         }
         
-        app.showNotification(`✅ Пользователь зарегистрирован и активирован до уровня ${maxLevel}!`, 'success');
-        
+        app.showNotification(`✅ Зарегистрирован и активирован до уровня ${maxLevel}!`, 'success');
       } else {
-        // Только регистрация
-        try {
-          const tx = await registryContract.registerFor(userAddress, sponsorId);
-          await tx.wait();
-          app.showNotification('✅ Пользователь зарегистрирован!', 'success');
-        } catch (regError) {
-          console.error('Registration error:', regError);
-          app.showNotification('Ошибка регистрации: ' + regError.message, 'error');
-          return;
-        }
+        app.showNotification('✅ Пользователь зарегистрирован!', 'success');
       }
       
-      // Обновляем статистику
       await this.loadStats();
       
-      // Очищаем форму
       document.getElementById('regUserAddress').value = '';
       document.getElementById('regSponsorId').value = '';
       
     } catch (error) {
-      console.error('Register and activate error:', error);
+      console.error('Ошибка:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
@@ -1283,7 +1609,7 @@ const adminModule = {
   // ═══════════════════════════════════════════════════════════════
   async activateLevels() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может выполнять это действие', 'error');
+      app.showNotification('Только владелец может выполнять это действие', 'error');
       return;
     }
     
@@ -1291,53 +1617,48 @@ const adminModule = {
     const maxLevel = parseInt(document.getElementById('activateMaxLevel').value);
     
     if (!ethers.utils.isAddress(userAddress)) {
-      app.showNotification('Неверный адрес пользователя', 'error');
+      app.showNotification('Неверный адрес', 'error');
       return;
     }
     
     try {
-      // Проверяем регистрацию
       const isRegistered = await this.contracts.matrixRegistry.isRegistered(userAddress);
       
       if (!isRegistered) {
-        app.showNotification('Пользователь не зарегистрирован! Сначала зарегистрируйте', 'error');
+        app.showNotification('Пользователь не зарегистрирован!', 'error');
         return;
       }
       
-      // Текущий уровень
       const currentLevel = await this.contracts.globalWay.getUserMaxLevel(userAddress);
       
       if (currentLevel >= maxLevel) {
-        app.showNotification(`У пользователя уже активирован уровень ${currentLevel}`, 'error');
+        app.showNotification(`Уже активирован уровень ${currentLevel}`, 'error');
         return;
       }
       
       const confirmed = confirm(
-        `Активация уровней:\n\n` +
+        `Активация:\n\n` +
         `Пользователь: ${userAddress}\n` +
-        `Текущий уровень: ${currentLevel}\n` +
-        `Активировать до: ${maxLevel}\n\n` +
+        `Текущий: ${currentLevel}\n` +
+        `Новый: ${maxLevel}\n\n` +
         `Продолжить?`
       );
       
       if (!confirmed) return;
       
-      app.showNotification('Активация уровней...', 'info');
+      app.showNotification('Активация...', 'info');
       
       const contract = await app.getSignedContract('GlobalWay');
       const tx = await contract.ownerActivateLevels(userAddress, maxLevel);
       await tx.wait();
       
-      app.showNotification(`✅ Уровни активированы до ${maxLevel}!`, 'success');
+      app.showNotification(`✅ Активировано до уровня ${maxLevel}!`, 'success');
       
-      // Обновляем статистику
       await this.loadStats();
-      
-      // Очищаем форму
       document.getElementById('activateUserAddress').value = '';
       
     } catch (error) {
-      console.error('Activate levels error:', error);
+      console.error('Ошибка:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
@@ -1347,7 +1668,7 @@ const adminModule = {
   // ═══════════════════════════════════════════════════════════════
   async setUserRank() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может выполнять это действие', 'error');
+      app.showNotification('Только владелец может выполнять это действие', 'error');
       return;
     }
     
@@ -1355,12 +1676,12 @@ const adminModule = {
     const rank = parseInt(document.getElementById('rankSelect').value);
     
     if (!ethers.utils.isAddress(userAddress)) {
-      app.showNotification('Неверный адрес пользователя', 'error');
+      app.showNotification('Неверный адрес', 'error');
       return;
     }
     
     if (!this.contracts.leaderPool) {
-      app.showNotification('Контракт LeaderPool не загружен', 'error');
+      app.showNotification('Контракт LeaderPool недоступен', 'error');
       return;
     }
     
@@ -1382,11 +1703,51 @@ const adminModule = {
       
       app.showNotification(`✅ Ранг ${this.RANK_NAMES[rank]} присвоен!`, 'success');
       
-      // Очищаем форму
+      await this.loadStats();
       document.getElementById('rankUserAddress').value = '';
       
     } catch (error) {
-      console.error('Set rank error:', error);
+      console.error('Ошибка:', error);
+      app.showNotification('Ошибка: ' + error.message, 'error');
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // АВТОРИЗАЦИЯ КОНТРАКТОВ
+  // ═══════════════════════════════════════════════════════════════
+  async setAuthorization() {
+    if (!this.access.isOwner) {
+      app.showNotification('Только владелец', 'error');
+      return;
+    }
+    
+    const address = document.getElementById('authContractAddress').value.trim();
+    const action = document.getElementById('authAction').value;
+    
+    if (!ethers.utils.isAddress(address)) {
+      app.showNotification('Неверный адрес', 'error');
+      return;
+    }
+    
+    try {
+      const confirmed = confirm(
+        `${action === 'authorize' ? 'Авторизовать' : 'Отозвать авторизацию'}:\n` +
+        `${address}\n\nПродолжить?`
+      );
+      
+      if (!confirmed) return;
+      
+      app.showNotification('Выполнение...', 'info');
+      
+      const contract = await app.getSignedContract('MatrixRegistry');
+      const tx = await contract.setAuthorizedContract(address, action === 'authorize');
+      await tx.wait();
+      
+      app.showNotification('✅ Выполнено!', 'success');
+      document.getElementById('authContractAddress').value = '';
+      
+    } catch (error) {
+      console.error('Ошибка:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
@@ -1396,7 +1757,7 @@ const adminModule = {
   // ═══════════════════════════════════════════════════════════════
   async addGuardian() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может добавлять Guardians', 'error');
+      app.showNotification('Только владелец', 'error');
       return;
     }
     
@@ -1408,36 +1769,34 @@ const adminModule = {
     }
     
     if (!this.contracts.governance) {
-      app.showNotification('Контракт Governance не загружен', 'error');
+      app.showNotification('Контракт Governance недоступен', 'error');
       return;
     }
     
     try {
-      const confirmed = confirm(`Добавить Guardian:\n${address}\n\nПродолжить?`);
+      const confirmed = confirm(`Добавить члена совета:\n${address}\n\nПродолжить?`);
       if (!confirmed) return;
       
-      app.showNotification('Добавление Guardian...', 'info');
+      app.showNotification('Добавление...', 'info');
       
       const contract = await app.getSignedContract('GlobalWayGovernance');
       const tx = await contract.addGuardian(address);
       await tx.wait();
       
-      app.showNotification('✅ Guardian добавлен!', 'success');
+      app.showNotification('✅ Добавлен!', 'success');
       
-      // Обновляем список
       await this.loadGuardians();
-      
       document.getElementById('addGuardianAddress').value = '';
       
     } catch (error) {
-      console.error('Add guardian error:', error);
+      console.error('Ошибка:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
 
   async removeGuardian() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может удалять Guardians', 'error');
+      app.showNotification('Только владелец', 'error');
       return;
     }
     
@@ -1449,105 +1808,176 @@ const adminModule = {
     }
     
     if (!this.contracts.governance) {
-      app.showNotification('Контракт Governance не загружен', 'error');
+      app.showNotification('Контракт Governance недоступен', 'error');
       return;
     }
     
     try {
       const confirmed = confirm(
-        `⚠️ Удалить Guardian:\n${address}\n\n` +
-        `Это действие требует минимум 3 Guardians в системе!\n\n` +
-        `Продолжить?`
+        `⚠️ Удалить члена совета:\n${address}\n\n` +
+        `Требуется минимум 3 члена!\n\nПродолжить?`
       );
       if (!confirmed) return;
       
-      app.showNotification('Удаление Guardian...', 'info');
+      app.showNotification('Удаление...', 'info');
       
       const contract = await app.getSignedContract('GlobalWayGovernance');
       const tx = await contract.removeGuardian(address);
       await tx.wait();
       
-      app.showNotification('✅ Guardian удалён!', 'success');
+      app.showNotification('✅ Удалён!', 'success');
       
-      // Обновляем список
       await this.loadGuardians();
-      
       document.getElementById('removeGuardianAddress').value = '';
       
     } catch (error) {
-      console.error('Remove guardian error:', error);
+      console.error('Ошибка:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // УПРАВЛЕНИЕ КОНТРАКТОМ
+  // УПРАВЛЕНИЕ КОНТРАКТАМИ
   // ═══════════════════════════════════════════════════════════════
   async pauseContract() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может ставить на паузу', 'error');
+      app.showNotification('Только владелец', 'error');
       return;
     }
     
-    const confirmed = confirm('Поставить контракт на паузу?\n\nВсе операции будут заблокированы!');
+    const confirmed = confirm('Приостановить контракт?\n\nВсе операции будут заблокированы!');
     if (!confirmed) return;
     
     try {
-      app.showNotification('Постановка на паузу...', 'info');
+      app.showNotification('Приостановка...', 'info');
       
       const contract = await app.getSignedContract('GlobalWay');
       const tx = await contract.pause();
       await tx.wait();
       
-      app.showNotification('⏸️ Контракт на паузе!', 'success');
+      app.showNotification('⏸️ Контракт приостановлен!', 'success');
       
     } catch (error) {
-      console.error('Pause error:', error);
+      console.error('Ошибка:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
 
   async unpauseContract() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может снять паузу', 'error');
+      app.showNotification('Только владелец', 'error');
       return;
     }
     
-    const confirmed = confirm('Снять контракт с паузы?');
+    const confirmed = confirm('Возобновить работу контракта?');
     if (!confirmed) return;
     
     try {
-      app.showNotification('Снятие с паузы...', 'info');
+      app.showNotification('Возобновление...', 'info');
       
       const contract = await app.getSignedContract('GlobalWay');
       const tx = await contract.unpause();
       await tx.wait();
       
-      app.showNotification('▶️ Контракт активен!', 'success');
+      app.showNotification('▶️ Контракт возобновлён!', 'success');
       
     } catch (error) {
-      console.error('Unpause error:', error);
+      console.error('Ошибка:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
 
+  async updateContractAddress() {
+    if (!this.access.isOwner) {
+      app.showNotification('Только владелец', 'error');
+      return;
+    }
+    
+    const contractType = document.getElementById('contractType').value;
+    const newAddress = document.getElementById('newContractAddress').value.trim();
+    
+    if (!ethers.utils.isAddress(newAddress)) {
+      app.showNotification('Неверный адрес', 'error');
+      return;
+    }
+    
+    try {
+      const confirmed = confirm(
+        `Изменить адрес ${contractType}:\n${newAddress}\n\n` +
+        `⚠️ Это критическое действие!\n\nПродолжить?`
+      );
+      if (!confirmed) return;
+      
+      app.showNotification('Обновление...', 'info');
+      
+      const contract = await app.getSignedContract('GlobalWay');
+      
+      const setters = {
+        partnerProgram: 'setPartnerProgram',
+        matrixPayments: 'setMatrixPayments',
+        quarterlyPayments: 'setQuarterlyPayments',
+        investmentPool: 'setInvestmentPool',
+        leaderPool: 'setLeaderPool',
+        gwtToken: 'setGWTToken',
+        treasury: 'setTreasury',
+        charity: 'setCharity'
+      };
+      
+      const method = setters[contractType];
+      if (!method) {
+        app.showNotification('Неизвестный тип контракта', 'error');
+        return;
+      }
+      
+      const tx = await contract[method](newAddress);
+      await tx.wait();
+      
+      app.showNotification('✅ Адрес обновлён!', 'success');
+      document.getElementById('newContractAddress').value = '';
+      
+    } catch (error) {
+      console.error('Ошибка:', error);
+      app.showNotification('Ошибка: ' + error.message, 'error');
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ФИНАНСЫ
+  // ═══════════════════════════════════════════════════════════════
+  async withdrawFunds() {
+    app.showNotification('Функция в разработке', 'info');
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ДЕЛЕГИРОВАНИЕ
+  // ═══════════════════════════════════════════════════════════════
+  async delegateRights() {
+    app.showNotification('Функция в разработке', 'info');
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // НОВОСТИ
+  // ═══════════════════════════════════════════════════════════════
+  async publishNews() {
+    app.showNotification('Функция в разработке', 'info');
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЭКСТРЕННЫЕ ФУНКЦИИ
+  // ═══════════════════════════════════════════════════════════════
   async emergencyWithdraw() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может выполнить экстренный вывод', 'error');
+      app.showNotification('Только владелец', 'error');
       return;
     }
     
     const confirmed = confirm(
       '⚠️ ЭКСТРЕННЫЙ ВЫВОД ⚠️\n\n' +
-      'Вывести ВСЕ средства из контракта?\n\n' +
+      'Вывести ВСЕ средства?\n\n' +
       'Это действие НЕОБРАТИМО!'
     );
     
     if (!confirmed) return;
-    
-    // Двойное подтверждение
-    const confirmed2 = confirm('Вы УВЕРЕНЫ? Введите "ДА" в следующем окне');
-    if (!confirmed2) return;
     
     const input = prompt('Введите "ДА" для подтверждения:');
     if (input !== 'ДА') {
@@ -1563,11 +1993,51 @@ const adminModule = {
       await tx.wait();
       
       app.showNotification('💰 Средства выведены!', 'success');
-      
       await this.loadStats();
       
     } catch (error) {
-      console.error('Emergency withdraw error:', error);
+      console.error('Ошибка:', error);
+      app.showNotification('Ошибка: ' + error.message, 'error');
+    }
+  },
+
+  async transferOwnership() {
+    if (!this.access.isOwner) {
+      app.showNotification('Только владелец', 'error');
+      return;
+    }
+    
+    const newOwner = prompt('Введите адрес нового владельца:');
+    if (!newOwner || !ethers.utils.isAddress(newOwner)) {
+      app.showNotification('Неверный адрес', 'error');
+      return;
+    }
+    
+    const confirmed = confirm(
+      `⚠️ ПЕРЕДАЧА ВЛАДЕНИЯ ⚠️\n\n` +
+      `Новый владелец: ${newOwner}\n\n` +
+      `ЭТО НЕОБРАТИМО!\n\nПродолжить?`
+    );
+    
+    if (!confirmed) return;
+    
+    const input = prompt('Введите "ПЕРЕДАТЬ" для подтверждения:');
+    if (input !== 'ПЕРЕДАТЬ') {
+      app.showNotification('Отменено', 'info');
+      return;
+    }
+    
+    try {
+      app.showNotification('Передача владения...', 'info');
+      
+      const contract = await app.getSignedContract('GlobalWay');
+      const tx = await contract.transferOwnership(newOwner);
+      await tx.wait();
+      
+      app.showNotification('✅ Владение передано!', 'success');
+      
+    } catch (error) {
+      console.error('Ошибка:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
@@ -1577,17 +2047,16 @@ const adminModule = {
   // ═══════════════════════════════════════════════════════════════
   async exportUsers() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может экспортировать данные', 'error');
+      app.showNotification('Только владелец', 'error');
       return;
     }
     
     try {
-      app.showNotification('Экспорт пользователей... Это может занять время', 'info');
+      app.showNotification('Экспорт пользователей...', 'info');
       
       const totalUsers = Number(await this.contracts.matrixRegistry.totalUsers());
       const users = [];
       
-      // Получаем всех пользователей
       for (let i = 0; i < totalUsers && i < 1000; i++) {
         try {
           const address = await this.contracts.globalWay.allUsers(i);
@@ -1597,7 +2066,7 @@ const adminModule = {
             const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
             
             users.push({
-              address: address,
+              address,
               userId: userId.toString(),
               sponsorId: userInfo.sponsorId.toString(),
               maxLevel: Number(maxLevel),
@@ -1605,43 +2074,32 @@ const adminModule = {
             });
           }
         } catch (e) {
-          console.log(`Skip user ${i}:`, e.message);
+          // Пропускаем
         }
       }
       
-      // Скачиваем JSON
-      const json = JSON.stringify({ exportDate: new Date().toISOString(), users }, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `globalway_users_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      
-      URL.revokeObjectURL(url);
-      
+      this.downloadJSON({ exportDate: new Date().toISOString(), users }, 'globalway_users');
       app.showNotification(`✅ Экспортировано ${users.length} пользователей!`, 'success');
       
     } catch (error) {
-      console.error('Export users error:', error);
-      app.showNotification('Ошибка экспорта: ' + error.message, 'error');
+      console.error('Ошибка:', error);
+      app.showNotification('Ошибка: ' + error.message, 'error');
     }
   },
 
   async exportRanks() {
     if (!this.access.isOwner) {
-      app.showNotification('Только Owner может экспортировать данные', 'error');
+      app.showNotification('Только владелец', 'error');
       return;
     }
     
     if (!this.contracts.leaderPool) {
-      app.showNotification('Контракт LeaderPool не загружен', 'error');
+      app.showNotification('LeaderPool недоступен', 'error');
       return;
     }
     
     try {
-      app.showNotification('Экспорт рангов... Это может занять время', 'info');
+      app.showNotification('Экспорт рангов...', 'info');
       
       const totalUsers = Number(await this.contracts.matrixRegistry.totalUsers());
       const ranks = [];
@@ -1651,37 +2109,61 @@ const adminModule = {
           const address = await this.contracts.globalWay.allUsers(i);
           if (address && address !== '0x0000000000000000000000000000000000000000') {
             const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
-            if (Number(rankInfo.rank) > 0) {
+            const rank = Number(rankInfo.rank || rankInfo[0] || 0);
+            if (rank > 0) {
               ranks.push({
-                address: address,
-                rank: Number(rankInfo.rank),
-                rankName: this.RANK_NAMES[Number(rankInfo.rank)],
-                pendingReward: ethers.utils.formatEther(rankInfo.pendingReward)
+                address,
+                rank,
+                rankName: this.RANK_NAMES[rank]
               });
             }
           }
         } catch (e) {
-          // Skip
+          // Пропускаем
         }
       }
       
-      const json = JSON.stringify({ exportDate: new Date().toISOString(), ranks }, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `globalway_ranks_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      
-      URL.revokeObjectURL(url);
-      
+      this.downloadJSON({ exportDate: new Date().toISOString(), ranks }, 'globalway_ranks');
       app.showNotification(`✅ Экспортировано ${ranks.length} рангов!`, 'success');
       
     } catch (error) {
-      console.error('Export ranks error:', error);
-      app.showNotification('Ошибка экспорта: ' + error.message, 'error');
+      console.error('Ошибка:', error);
+      app.showNotification('Ошибка: ' + error.message, 'error');
     }
+  },
+
+  async exportAll() {
+    app.showNotification('Экспорт всей базы...', 'info');
+    await this.exportUsers();
+    await this.exportRanks();
+    app.showNotification('✅ Полный экспорт завершён!', 'success');
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+  // ═══════════════════════════════════════════════════════════════
+  downloadJSON(data, filename) {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+  },
+
+  formatAddressShort(address) {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  },
+
+  formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toFixed(0);
   }
 };
 
