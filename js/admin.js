@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Admin Module - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// GlobalWay DApp - Admin Module - FIXED VERSION
 // Админ панель: управление пользователями, board members, финансы
-// ТОЛЬКО для Owner + 3 Founders + Guardians из контракта
-// Date: 2025-01-19 - FIXED
+// ТОЛЬКО для Owner + 3 Guardians из CONFIG
+// Date: 2025-12-11 - FIXED
 // ═══════════════════════════════════════════════════════════════════
 
 const adminModule = {
@@ -13,7 +13,6 @@ const adminModule = {
   
   access: {
     isOwner: false,
-    isFounder: false,
     isGuardian: false,
     level: 'No Access'
   },
@@ -37,20 +36,21 @@ const adminModule = {
     
     try {
       if (!app.state.userAddress) {
+        console.log('❌ No wallet connected');
         this.showAccessDenied();
         return;
       }
 
-      // Загружаем контракты
-      await this.loadContracts();
-      
-      // СТРОГАЯ ПРОВЕРКА ПРАВ
-      const hasAccess = await this.checkRights();
+      // СТРОГАЯ ПРОВЕРКА ПРАВ (без загрузки контрактов)
+      const hasAccess = this.checkRights();
       
       if (!hasAccess) {
         this.showAccessDenied();
         return;
       }
+
+      // Загружаем контракты только если есть доступ
+      await this.loadContracts();
 
       // Загружаем данные
       await this.loadAllData();
@@ -66,62 +66,61 @@ const adminModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ПРОВЕРКА ПРАВ ДОСТУПА
+  // ПРОВЕРКА ПРАВ ДОСТУПА (без контракта - только CONFIG)
   // ═══════════════════════════════════════════════════════════════
-  async checkRights() {
+  checkRights() {
     if (!app.state.userAddress) {
       console.error('❌ No wallet connected');
       return false;
     }
 
     const currentAddress = app.state.userAddress.toLowerCase();
+    
+    console.log('🔐 Checking admin access for:', currentAddress);
 
     // 1️⃣ Проверяем Owner из CONFIG
-    const isOwner = currentAddress === CONFIG.ADMIN.owner.toLowerCase();
+    const ownerAddress = CONFIG.ADMIN.owner.toLowerCase();
+    const isOwner = currentAddress === ownerAddress;
+    console.log('   Owner check:', isOwner, '(owner:', ownerAddress, ')');
     
-    // 2️⃣ Проверяем Founders из CONFIG (первые 3)
-    const isFounder = CONFIG.ADMIN.founders.slice(0, 3)
-      .map(f => f.toLowerCase())
-      .includes(currentAddress);
-    
-    // 3️⃣ Проверяем через смарт-контракт GlobalWayGovernance
-    let isGuardian = false;
-    if (this.contracts.governance) {
-      try {
-        isGuardian = await this.contracts.governance.isGuardian(app.state.userAddress);
-        console.log('🔐 Guardian check from contract:', isGuardian);
-      } catch (error) {
-        console.error('❌ Error checking guardian status:', error);
-      }
-    }
+    // 2️⃣ Проверяем Guardians из CONFIG (первые 3)
+    const guardians = CONFIG.ADMIN.guardians.map(g => g.toLowerCase());
+    const isGuardian = guardians.includes(currentAddress);
+    console.log('   Guardian check:', isGuardian);
+    console.log('   Guardians list:', guardians);
 
-    // ✅ Доступ есть если: Owner, Founder или Guardian
-    const hasAccess = isOwner || isFounder || isGuardian;
+    // ✅ Доступ есть если: Owner или Guardian
+    const hasAccess = isOwner || isGuardian;
 
     if (!hasAccess) {
-      console.error('❌ ADMIN ACCESS DENIED for:', app.state.userAddress);
-      console.log('   Owner:', isOwner);
-      console.log('   Founder:', isFounder);
-      console.log('   Guardian:', isGuardian);
+      console.error('❌ ADMIN ACCESS DENIED for:', currentAddress);
       return false;
     }
 
-    // Определяем уровень прав
+    // Сохраняем уровень прав
     this.access.isOwner = isOwner;
-    this.access.isFounder = isFounder;
     this.access.isGuardian = isGuardian;
-    
-    this.access.level = isOwner ? 'Owner' : 
-                       isFounder ? 'Founder' : 
-                       'Guardian';
+    this.access.level = isOwner ? 'Owner' : 'Guardian';
 
     console.log('✅ Admin access granted:', this.access.level);
-    console.log('🔐 Address:', app.state.userAddress);
 
     // Обновляем UI
     this.updateAccessUI();
 
     return true;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // СТАТИЧЕСКАЯ ПРОВЕРКА (для показа кнопки в навигации)
+  // ═══════════════════════════════════════════════════════════════
+  static hasAccess(address) {
+    if (!address) return false;
+    
+    const addr = address.toLowerCase();
+    const owner = CONFIG.ADMIN.owner.toLowerCase();
+    const guardians = CONFIG.ADMIN.guardians.map(g => g.toLowerCase());
+    
+    return addr === owner || guardians.includes(addr);
   },
 
   updateAccessUI() {
@@ -134,29 +133,35 @@ const adminModule = {
 
   showAccessDenied() {
     const adminPage = document.querySelector('.admin-page');
-    if (!adminPage) return;
+    if (!adminPage) {
+      console.error('❌ Admin page container not found');
+      return;
+    }
+
+    const guardiansList = CONFIG.ADMIN.guardians
+      .map((g, i) => `<li>🛡️ <strong>Guardian ${i + 1}:</strong> <code>${g}</code></li>`)
+      .join('');
 
     adminPage.innerHTML = `
-      <div style="text-align: center; padding: 50px;">
-        <h2>🔒 Доступ Запрещен</h2>
+      <div style="text-align: center; padding: 50px; color: #fff;">
+        <h2 style="color: #ff4444;">🔒 Доступ Запрещен</h2>
         <p style="color: #ff4444; font-weight: bold; margin: 20px 0;">
-          Админ панель доступна только Owner, Founders (первые 3) и Guardians.
+          Админ панель доступна только для Owner и Guardians.
         </p>
-        <p>Ваш адрес: <code>${app.state.userAddress || 'Не подключен'}</code></p>
+        <p>Ваш адрес: <code style="background: #333; padding: 5px 10px; border-radius: 5px;">${app.state.userAddress || 'Не подключен'}</code></p>
         
-        <div style="margin-top: 30px; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
-          <p><strong>Разрешенные адреса:</strong></p>
-          <ul style="list-style: none; padding: 0;">
+        <div style="margin-top: 30px; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto; background: #1a1a2e; padding: 20px; border-radius: 10px; border: 1px solid #333;">
+          <p style="color: #ffd700;"><strong>Разрешенные адреса:</strong></p>
+          <ul style="list-style: none; padding: 0; line-height: 2;">
             <li>👑 <strong>Owner:</strong> <code>${CONFIG.ADMIN.owner}</code></li>
-            <li>🔥 <strong>Founder 1 (ID: 7777777):</strong> <code>${CONFIG.ADMIN.founders[0]}</code></li>
-            <li>🔥 <strong>Founder 2 (ID: 5555555):</strong> <code>${CONFIG.ADMIN.founders[1]}</code></li>
-            <li>🔥 <strong>Founder 3 (ID: 9999999):</strong> <code>${CONFIG.ADMIN.founders[2]}</code></li>
-            <li>🛡️ <strong>+ Guardians из контракта GlobalWayGovernance</strong></li>
+            ${guardiansList}
           </ul>
         </div>
         
         <p style="margin-top: 30px;">
-          <button class="btn-secondary" onclick="app.showPage('dashboard')">← Вернуться на главную</button>
+          <button class="btn-secondary" onclick="app.showPage('dashboard')" style="padding: 10px 20px; background: #ffd700; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+            ← Вернуться на главную
+          </button>
         </p>
       </div>
     `;
@@ -168,8 +173,13 @@ const adminModule = {
   async loadContracts() {
     console.log('📥 Loading contracts for admin...');
     
-    this.contracts.globalWay = await app.getContract('GlobalWay');
-    this.contracts.matrixRegistry = await app.getContract('MatrixRegistry');
+    try {
+      this.contracts.globalWay = await app.getContract('GlobalWay');
+      this.contracts.matrixRegistry = await app.getContract('MatrixRegistry');
+      console.log('✅ Core contracts loaded');
+    } catch (e) {
+      console.error('❌ Error loading core contracts:', e);
+    }
     
     // Governance - опционально
     try {
@@ -179,8 +189,6 @@ const adminModule = {
       console.log('⚠️ Governance contract not available');
       this.contracts.governance = null;
     }
-    
-    console.log('✅ All admin contracts loaded');
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -203,7 +211,9 @@ const adminModule = {
       // Общее количество пользователей
       let totalUsers = 0;
       try {
-        totalUsers = Number(await this.contracts.globalWay.getTotalUsers());
+        if (this.contracts.globalWay) {
+          totalUsers = Number(await this.contracts.globalWay.getTotalUsers());
+        }
       } catch (e) {
         console.error('Error getting total users:', e);
       }
@@ -211,20 +221,17 @@ const adminModule = {
       // Баланс контракта GlobalWay
       let contractBalance = '0';
       try {
-        const balance = await app.provider.getBalance(CONFIG.CONTRACTS.GlobalWay);
+        const balance = await window.web3Manager.provider.getBalance(CONFIG.CONTRACTS.GlobalWay);
         contractBalance = ethers.utils.formatEther(balance);
       } catch (e) {
         console.error('Error getting balance:', e);
       }
 
-      // Total volume (можно получить из событий)
-      let totalVolume = '0';
-      
       this.state.stats = {
         totalUsers,
-        activeUsers: 0, // TODO: подсчитать активных
+        activeUsers: 0,
         contractBalance,
-        totalVolume,
+        totalVolume: '0',
         totalIDs: totalUsers
       };
 
@@ -244,8 +251,8 @@ const adminModule = {
     const elements = {
       adminTotalUsers: totalUsers,
       adminActiveUsers: activeUsers || '-',
-      adminContractBalance: `${app.formatNumber(contractBalance, 4)} BNB`,
-      adminTotalVolume: `${app.formatNumber(totalVolume, 4)} BNB`,
+      adminContractBalance: `${parseFloat(contractBalance).toFixed(4)} BNB`,
+      adminTotalVolume: `${parseFloat(totalVolume).toFixed(4)} BNB`,
       totalIdsAssigned: totalIDs
     };
 
@@ -262,21 +269,8 @@ const adminModule = {
     try {
       console.log('📋 Loading board members...');
 
-      let members = [];
-      
-      if (this.contracts.governance) {
-        try {
-          // Получаем guardians из контракта
-          const guardiansCount = await this.contracts.governance.guardiansCount();
-          
-          for (let i = 0; i < guardiansCount; i++) {
-            const guardian = await this.contracts.governance.guardians(i);
-            members.push(guardian);
-          }
-        } catch (e) {
-          console.error('Error loading guardians:', e);
-        }
-      }
+      // Используем guardians из CONFIG
+      const members = CONFIG.ADMIN.guardians;
       
       this.state.boardMembers = members;
 
@@ -304,13 +298,12 @@ const adminModule = {
     }
 
     listEl.innerHTML = this.state.boardMembers.map((address, index) => `
-      <div class="board-member-card">
+      <div class="board-member-card" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; margin: 10px 0; background: #1a1a2e; border-radius: 8px; border: 1px solid #333;">
         <div class="member-info">
-          <span class="member-number">#${index + 1}</span>
-          <span class="member-address">${address}</span>
-          <span class="member-short">${app.formatAddress(address)}</span>
+          <span class="member-number" style="color: #ffd700; font-weight: bold;">#${index + 1}</span>
+          <span class="member-address" style="margin-left: 15px; font-family: monospace;">${address}</span>
         </div>
-        <button class="btn-small btn-copy" onclick="app.copyToClipboard('${address}')">
+        <button class="btn-small btn-copy" onclick="navigator.clipboard.writeText('${address}'); app.showNotification('Скопировано!', 'success');" style="padding: 5px 10px; background: #333; border: 1px solid #ffd700; color: #ffd700; border-radius: 5px; cursor: pointer;">
           📋 Copy
         </button>
       </div>
@@ -353,8 +346,8 @@ const adminModule = {
       const resultEl = document.getElementById('lookupResult');
       if (resultEl) {
         resultEl.innerHTML = `
-          <div class="lookup-result">
-            <h4>Информация о пользователе</h4>
+          <div class="lookup-result" style="background: #1a2a1e; border: 1px solid #00ff88; padding: 20px; border-radius: 10px; margin-top: 15px;">
+            <h4 style="color: #00ff88; margin-top: 0;">✅ Информация о пользователе</h4>
             <p><strong>Адрес:</strong> ${address}</p>
             <p><strong>ID:</strong> GW${userId.toString()}</p>
             <p><strong>Максимальный уровень:</strong> ${maxLevel}</p>
@@ -372,7 +365,7 @@ const adminModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // УПРАВЛЕНИЕ КОНТРАКТОМ
+  // УПРАВЛЕНИЕ КОНТРАКТОМ (только Owner)
   // ═══════════════════════════════════════════════════════════════
   async pauseContract() {
     if (!this.access.isOwner) {
@@ -454,81 +447,6 @@ const adminModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // BOARD MEMBERS MANAGEMENT
-  // ═══════════════════════════════════════════════════════════════
-  async addBoardMember() {
-    if (!this.access.isOwner) {
-      app.showNotification('Только Owner может добавлять board members', 'error');
-      return;
-    }
-
-    if (!this.contracts.governance) {
-      app.showNotification('Контракт Governance не доступен', 'error');
-      return;
-    }
-
-    const address = prompt('Введите адрес нового board member:');
-    if (!address) return;
-
-    if (!ethers.utils.isAddress(address)) {
-      app.showNotification('Неверный адрес', 'error');
-      return;
-    }
-
-    try {
-      app.showNotification('Добавление board member...', 'info');
-
-      const contract = await app.getSignedContract('GlobalWayGovernance');
-      const tx = await contract.addGuardian(address);
-      await tx.wait();
-
-      app.showNotification('Board member добавлен! ✅', 'success');
-      
-      await this.loadBoardMembers();
-
-    } catch (error) {
-      console.error('Add board member error:', error);
-      app.showNotification('Ошибка: ' + error.message, 'error');
-    }
-  },
-
-  async removeBoardMember() {
-    if (!this.access.isOwner) {
-      app.showNotification('Только Owner может удалять board members', 'error');
-      return;
-    }
-
-    if (!this.contracts.governance) {
-      app.showNotification('Контракт Governance не доступен', 'error');
-      return;
-    }
-
-    const address = prompt('Введите адрес board member для удаления:');
-    if (!address) return;
-
-    if (!ethers.utils.isAddress(address)) {
-      app.showNotification('Неверный адрес', 'error');
-      return;
-    }
-
-    try {
-      app.showNotification('Удаление board member...', 'info');
-
-      const contract = await app.getSignedContract('GlobalWayGovernance');
-      const tx = await contract.removeGuardian(address);
-      await tx.wait();
-
-      app.showNotification('Board member удален! ✅', 'success');
-      
-      await this.loadBoardMembers();
-
-    } catch (error) {
-      console.error('Remove board member error:', error);
-      app.showNotification('Ошибка: ' + error.message, 'error');
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
   // UI ИНИЦИАЛИЗАЦИЯ
   // ═══════════════════════════════════════════════════════════════
   initUI() {
@@ -540,43 +458,35 @@ const adminModule = {
       lookupBtn.onclick = () => this.lookupUser();
     }
 
-    // Contract Management
-    const pauseBtn = document.getElementById('pauseContractBtn');
-    if (pauseBtn) {
-      pauseBtn.onclick = () => this.pauseContract();
+    // Enter key for lookup
+    const lookupInput = document.getElementById('lookupAddress');
+    if (lookupInput) {
+      lookupInput.onkeypress = (e) => {
+        if (e.key === 'Enter') this.lookupUser();
+      };
     }
 
-    const unpauseBtn = document.getElementById('unpauseContractBtn');
-    if (unpauseBtn) {
-      unpauseBtn.onclick = () => this.unpauseContract();
+    // Contract Management (только для Owner)
+    if (this.access.isOwner) {
+      const pauseBtn = document.getElementById('pauseContractBtn');
+      if (pauseBtn) pauseBtn.onclick = () => this.pauseContract();
+
+      const unpauseBtn = document.getElementById('unpauseContractBtn');
+      if (unpauseBtn) unpauseBtn.onclick = () => this.unpauseContract();
+
+      const emergencyBtn = document.getElementById('emergencyWithdrawBtn');
+      if (emergencyBtn) emergencyBtn.onclick = () => this.emergencyWithdraw();
     }
 
-    // Emergency Withdraw
-    const emergencyBtn = document.getElementById('emergencyWithdrawBtn');
-    if (emergencyBtn) {
-      emergencyBtn.onclick = () => this.emergencyWithdraw();
-    }
-
-    // Board Members Management
-    const addBoardBtn = document.getElementById('addBoardMemberBtn');
-    if (addBoardBtn) {
-      addBoardBtn.onclick = () => this.addBoardMember();
-    }
-
-    const removeBoardBtn = document.getElementById('removeBoardMemberBtn');
-    if (removeBoardBtn) {
-      removeBoardBtn.onclick = () => this.removeBoardMember();
+    // Refresh buttons
+    const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+    if (refreshStatsBtn) {
+      refreshStatsBtn.onclick = () => this.loadStats();
     }
 
     const refreshBoardBtn = document.getElementById('refreshBoardBtn');
     if (refreshBoardBtn) {
       refreshBoardBtn.onclick = () => this.loadBoardMembers();
-    }
-
-    // Refresh Stats
-    const refreshStatsBtn = document.getElementById('refreshStatsBtn');
-    if (refreshStatsBtn) {
-      refreshStatsBtn.onclick = () => this.loadStats();
     }
   },
 
@@ -591,3 +501,14 @@ const adminModule = {
 
 // Экспорт в window
 window.adminModule = adminModule;
+
+// Функция для проверки доступа (для использования в app.js)
+window.checkAdminAccess = function(address) {
+  if (!address) return false;
+  
+  const addr = address.toLowerCase();
+  const owner = CONFIG.ADMIN.owner.toLowerCase();
+  const guardians = CONFIG.ADMIN.guardians.map(g => g.toLowerCase());
+  
+  return addr === owner || guardians.includes(addr);
+};
