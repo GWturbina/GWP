@@ -34,6 +34,13 @@ const adminModule = {
   async init() {
     console.log('⚙️ Initializing Admin Panel...');
     
+    // ✅ Принудительно показываем страницу admin
+    const adminPage = document.getElementById('admin');
+    if (adminPage) {
+      adminPage.classList.add('active');
+      adminPage.style.display = 'block';
+    }
+    
     try {
       if (!app.state.userAddress) {
         console.log('❌ No wallet connected');
