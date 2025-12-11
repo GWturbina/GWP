@@ -232,10 +232,7 @@ body {
 /* DApp Background */
 #dapp {
   min-height: auto;
-  background: linear-gradient(
-    rgba(5, 15, 35, 0.97), 
-    rgba(0, 26, 51, 0.98)
-  ), url('../assets/images/background.jpg');
+  background: url('../assets/images/background.jpg');
   background-size: cover;
   background-attachment: fixed;
   background-position: center;
@@ -436,8 +433,7 @@ body.admin-access .nav-btn[data-page="admin"] {
   padding: var(--spacing-lg);
   max-width: 1200px;
   margin: 0 auto;
-  background: rgba(5, 20, 45, 0.95);
-  backdrop-filter: blur(10px);
+  background: transparent;
   border-radius: var(--radius-lg);
   margin-top: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
@@ -470,7 +466,7 @@ body.admin-access .page-content#admin.active {
 
 /* Sections */
 section {
-  background: rgba(0, 26, 51, 0.9);
+  background: rgba(0, 26, 51, 0.95);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
