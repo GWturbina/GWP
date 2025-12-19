@@ -100,52 +100,32 @@ const partnersModule = {
       const address = app.state.userAddress;
       console.log('📊 Loading team stats...');
       
-      // 1. Получаем количество на первой линии (лично приглашённых)
+      // ✅ ИСПРАВЛЕНО: getUserStructureStats возвращает (directReferrals, activeLevels, levelStatus[12])
       const result = await this.contracts.stats.getUserStructureStats(address);
+      
+      // result[0] = directReferrals (uint256)
+      // result[1] = activeLevels (uint256)  
+      // result[2] = levelStatus (bool[12])
+      
       const directReferrals = Number(result[0]);
+      const activeLevels = Number(result[1]);
       
-      console.log('👥 Direct referrals (1st line):', directReferrals);
-      
-      // 2. Получаем всех рефералов в структуре
-      let allReferrals = [];
+      // Подсчитываем общее количество в структуре через GlobalWay
+      let totalInStructure = directReferrals;
       try {
-        allReferrals = await this.contracts.globalWay.getUserReferrals(address);
-        console.log('📋 Total referrals in structure:', allReferrals.length);
+        const allReferrals = await this.contracts.globalWay.getUserReferrals(address);
+        totalInStructure = allReferrals.length;
       } catch (e) {
-        console.warn('⚠️ Could not get referrals:', e);
+        console.warn('⚠️ Could not get total referrals:', e);
       }
-      
-      // 3. Подсчитываем активных партнёров (у кого maxLevel >= 1)
-      let activePartnersCount = 0;
-      
-      if (allReferrals.length > 0) {
-        // Проверяем каждого партнёра параллельно (батчами по 10)
-        const batchSize = 10;
-        for (let i = 0; i < allReferrals.length; i += batchSize) {
-          const batch = allReferrals.slice(i, i + batchSize);
-          const results = await Promise.all(
-            batch.map(async (refAddress) => {
-              try {
-                const maxLevel = await this.contracts.globalWay.getUserMaxLevel(refAddress);
-                return Number(maxLevel) >= 1 ? 1 : 0;
-              } catch (e) {
-                return 0;
-              }
-            })
-          );
-          activePartnersCount += results.reduce((sum, val) => sum + val, 0);
-        }
-      }
-      
-      console.log('✅ Active partners (maxLevel >= 1):', activePartnersCount);
 
       this.state.stats = {
-        personal: directReferrals,           // Лично приглашённых (1-я линия)
-        active: activePartnersCount,         // Активных партнёров (с пакетами)
-        total: activePartnersCount           // Общая команда = активные партнёры
+        personal: directReferrals,
+        active: activeLevels,
+        total: totalInStructure
       };
 
-      console.log('✅ Team stats:', this.state.stats);
+      console.log('✅ Team stats loaded:', this.state.stats);
       this.updateStatsUI();
       
     } catch (error) {
