@@ -1,23 +1,19 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Partners Module
-// Партнерская структура: 12 уровней глубины, статистика, квалификация
-// ПОЛНОСТЬЮ ПЕРЕПИСАН под новые контракты
-// Date: 2025-01-19
+// GlobalWay DApp - Partners Module - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Партнёрская программа: 12 уровней глубины
+// ПРАВИЛЬНАЯ ЛОГИКА: данные берутся из MatrixRegistry.getDirectReferrals()
 // ═══════════════════════════════════════════════════════════════════
 
 const partnersModule = {
-  // ═══════════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════════
   contracts: {},
   
   state: {
     currentLevel: 1,
     partners: [],
     stats: {
-      personal: 0,
-      active: 0,
-      total: 0
+      personal: 0,    // Лично приглашённых (первая линия)
+      active: 0,      // Активных партнёров (с пакетами)
+      total: 0        // Общая команда
     },
     qualification: {
       bronze: { achieved: false, progress: 0 },
@@ -93,39 +89,64 @@ const partnersModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // СТАТИСТИКА КОМАНДЫ
+  // СТАТИСТИКА КОМАНДЫ - ИСПРАВЛЕННАЯ
   // ═══════════════════════════════════════════════════════════════
   async loadTeamStats() {
     try {
       const address = app.state.userAddress;
-      console.log('📊 Loading team stats...');
+      console.log('📊 Loading team stats for', address);
       
-      // ✅ ИСПРАВЛЕНО: getUserStructureStats возвращает (directReferrals, activeLevels, levelStatus[12])
-      const result = await this.contracts.stats.getUserStructureStats(address);
+      // 1. Лично приглашённых - из MatrixRegistry.getDirectReferrals
+      const directReferrals = await this.contracts.matrixRegistry.getDirectReferrals(address);
+      const personalCount = directReferrals.length;
+      console.log('👥 Direct referrals (1st line):', personalCount);
       
-      // result[0] = directReferrals (uint256)
-      // result[1] = activeLevels (uint256)  
-      // result[2] = levelStatus (bool[12])
+      // 2. Собираем ВСЮ команду по всем 12 уровням
+      let allTeamAddresses = [];
+      let activeCount = 0;
       
-      const directReferrals = Number(result[0]);
-      const activeLevels = Number(result[1]);
+      // Рекурсивно собираем всех партнёров
+      const collectAllPartners = async (addr, depth) => {
+        if (depth > 12) return;
+        
+        try {
+          const refs = await this.contracts.matrixRegistry.getDirectReferrals(addr);
+          
+          for (const refAddr of refs) {
+            if (refAddr && refAddr !== ethers.constants.AddressZero) {
+              if (!allTeamAddresses.includes(refAddr.toLowerCase())) {
+                allTeamAddresses.push(refAddr.toLowerCase());
+                
+                // Проверяем активирован ли (maxLevel >= 1)
+                try {
+                  const maxLevel = await this.contracts.globalWay.getUserMaxLevel(refAddr);
+                  if (Number(maxLevel) >= 1) {
+                    activeCount++;
+                  }
+                } catch (e) {}
+                
+                // Идём глубже
+                await collectAllPartners(refAddr, depth + 1);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Error collecting partners at depth', depth, e);
+        }
+      };
       
-      // Подсчитываем общее количество в структуре через GlobalWay
-      let totalInStructure = directReferrals;
-      try {
-        const allReferrals = await this.contracts.globalWay.getUserReferrals(address);
-        totalInStructure = allReferrals.length;
-      } catch (e) {
-        console.warn('⚠️ Could not get total referrals:', e);
-      }
+      await collectAllPartners(address, 1);
+      
+      console.log('📊 Total team:', allTeamAddresses.length);
+      console.log('📊 Active partners:', activeCount);
 
       this.state.stats = {
-        personal: directReferrals,
-        active: activeLevels,
-        total: totalInStructure
+        personal: personalCount,
+        active: activeCount,
+        total: allTeamAddresses.length
       };
 
-      console.log('✅ Team stats loaded:', this.state.stats);
+      console.log('✅ Team stats:', this.state.stats);
       this.updateStatsUI();
       
     } catch (error) {
@@ -143,11 +164,9 @@ const partnersModule = {
       const address = app.state.userAddress;
       console.log('🏆 Loading qualification...');
 
-      // Получаем текущий ранг из LeaderPool
       const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
       const rankNum = Number(rankInfo.rank);
 
-      // Устанавливаем достижения на основе ранга
       this.state.qualification = {
         bronze: { 
           achieved: rankNum >= 1, 
@@ -167,112 +186,56 @@ const partnersModule = {
         }
       };
 
-      console.log('✅ Qualification loaded:', this.state.qualification);
+      console.log('✅ Qualification loaded, rank:', rankNum);
       this.updateQualificationUI();
       
     } catch (error) {
       console.error('❌ Error loading qualification:', error);
-      this.state.qualification = {
-        bronze: { achieved: false, progress: 0 },
-        silver: { achieved: false, progress: 0 },
-        gold: { achieved: false, progress: 0 },
-        platinum: { achieved: false, progress: 0 }
-      };
-      this.updateQualificationUI();
     }
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ДОХОДЫ
+  // ЗАРАБОТОК
   // ═══════════════════════════════════════════════════════════════
   async loadEarnings() {
     try {
       const address = app.state.userAddress;
       console.log('💰 Loading earnings...');
 
-      // ✅ ИСПОЛЬЗУЕМ GlobalWayStats.getUserBalances()
+      let direct = '0', partner = '0', matrix = '0', leadership = '0';
+      
       try {
-        const balances = await this.contracts.stats.getUserBalances(address);
-        // balances: (partnerFromSponsor, partnerFromUpline, matrixEarnings, 
-        //            matrixFrozen, pensionBalance, leaderBalance, totalBalance)
-        
-        const direct = ethers.utils.formatEther(balances[0]); // от спонсора
-        const partner = ethers.utils.formatEther(balances[1]); // от вышестоящих
-        const matrix = ethers.utils.formatEther(balances[2]); // матричные
-        const leadership = ethers.utils.formatEther(balances[5]); // лидерские
-
-        const total = (
-          parseFloat(direct) + 
-          parseFloat(partner) + 
-          parseFloat(matrix) + 
-          parseFloat(leadership)
-        ).toFixed(4);
-
-        this.state.earnings = {
-          direct,
-          partner,
-          matrix,
-          leadership,
-          total
-        };
-        
-        console.log('✅ Earnings loaded from GlobalWayStats:', this.state.earnings);
+        const payments = await this.contracts.matrixPayments.getUserPaymentStats(address);
+        direct = ethers.utils.formatEther(payments.totalDirect || 0);
+        partner = ethers.utils.formatEther(payments.totalPartner || 0);
+        matrix = ethers.utils.formatEther(payments.totalMatrix || 0);
+        leadership = ethers.utils.formatEther(payments.totalLeadership || 0);
       } catch (e) {
-        console.warn('⚠️ Could not get earnings from Stats, trying individual contracts:', e);
-        
-        // Фолбек: получаем из отдельных контрактов
-        const [fromSponsor, fromUpline, totalPartner] = 
-          await this.contracts.partnerProgram.getUserEarnings(address);
-        
-        const direct = ethers.utils.formatEther(fromSponsor);
-        const partner = ethers.utils.formatEther(fromUpline);
-        
-        // Matrix earnings
-        let matrix = '0';
         try {
-          const matrixEarnings = await this.contracts.matrixPayments.totalEarnedFromMatrix(address);
-          matrix = ethers.utils.formatEther(matrixEarnings);
+          const stats = await this.contracts.stats.getUserEarnings(address);
+          direct = ethers.utils.formatEther(stats[0] || 0);
+          partner = ethers.utils.formatEther(stats[1] || 0);
+          matrix = ethers.utils.formatEther(stats[2] || 0);
+          leadership = ethers.utils.formatEther(stats[3] || 0);
         } catch (e2) {
-          console.warn('⚠️ Could not get matrix earnings:', e2);
+          console.warn('⚠️ Could not load earnings:', e2);
         }
-        
-        // Leader earnings  
-        let leadership = '0';
-        try {
-          const pendingReward = await this.contracts.leaderPool.pendingRewards(address);
-          leadership = ethers.utils.formatEther(pendingReward);
-        } catch (e2) {
-          console.warn('⚠️ Could not get leader earnings:', e2);
-        }
-
-        const total = (
-          parseFloat(direct) + 
-          parseFloat(partner) + 
-          parseFloat(matrix) + 
-          parseFloat(leadership)
-        ).toFixed(4);
-
-        this.state.earnings = {
-          direct,
-          partner,
-          matrix,
-          leadership,
-          total
-        };
       }
 
+      const total = (
+        parseFloat(direct) + 
+        parseFloat(partner) + 
+        parseFloat(matrix) + 
+        parseFloat(leadership)
+      ).toFixed(4);
+
+      this.state.earnings = { direct, partner, matrix, leadership, total };
       console.log('✅ Earnings loaded:', this.state.earnings);
       this.updateEarningsUI();
       
     } catch (error) {
       console.error('❌ Error loading earnings:', error);
-      this.state.earnings = {
-        direct: '0',
-        partner: '0',
-        matrix: '0',
-        leadership: '0',
-        total: '0'
-      };
+      this.state.earnings = { direct: '0', partner: '0', matrix: '0', leadership: '0', total: '0' };
       this.updateEarningsUI();
     }
   },
@@ -282,27 +245,10 @@ const partnersModule = {
   // ═══════════════════════════════════════════════════════════════
   async loadLevelInfo(level) {
     try {
-      const address = app.state.userAddress;
-      
-      // Стоимость уровня
       const cost = CONFIG.LEVEL_PRICES[level - 1];
-      
-      // Всего заработано на этом уровне (можно взять из событий)
-      let earned = '0';
-      try {
-        // Можно получить из PartnerProgram события для этого уровня
-        // Пока используем общую статистику
-        earned = this.state.earnings.total;
-      } catch (e) {
-        console.warn('⚠️ Could not get level earnings:', e);
-      }
+      const earned = this.state.earnings.total;
 
-      this.state.levelInfo = {
-        level,
-        cost,
-        earned
-      };
-
+      this.state.levelInfo = { level, cost, earned };
       this.updateLevelInfoUI();
       
     } catch (error) {
@@ -311,7 +257,10 @@ const partnersModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ПАРТНЕРЫ ПО УРОВНЮ ГЛУБИНЫ
+  // ПАРТНЁРЫ ПО УРОВНЮ ГЛУБИНЫ - ИСПРАВЛЕННАЯ
+  // Уровень 1 = первая линия (прямые рефералы)
+  // Уровень 2 = вторая линия (рефералы рефералов)
+  // И так далее до 12
   // ═══════════════════════════════════════════════════════════════
   async loadPartnersByLevel(depth) {
     try {
@@ -324,19 +273,20 @@ const partnersModule = {
       tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Загрузка...</td></tr>';
 
       // Получаем партнёров на нужной глубине
-      let referrals = await this.getPartnersAtDepth(address, depth);
+      const referrals = await this.getPartnersAtDepth(address, depth);
     
-      // Ограничиваем для производительности
-      referrals = referrals.slice(0, 50);
+      console.log(`📋 Found ${referrals.length} partners at depth ${depth}`);
 
       if (referrals.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Партнеры не найдены</td></tr>';
         return;
       }
 
-      // Получаем детали для каждого партнера
+      // Получаем детали для каждого партнера (максимум 100 для производительности)
+      const limitedReferrals = referrals.slice(0, 100);
+      
       const partnersData = await Promise.all(
-        referrals.map(refAddress => this.getPartnerDetails(refAddress))
+        limitedReferrals.map(refAddress => this.getPartnerDetails(refAddress))
       );
   
       // Обновляем таблицу
@@ -349,12 +299,12 @@ const partnersModule = {
           <td>${partner.date}</td>
           <td>${partner.level}</td>
           <td>${partner.team}</td>
-          <td><span class="badge badge-${partner.rank.toLowerCase()}">${partner.rank}</span></td>
+          <td><span class="badge badge-${partner.rank.toLowerCase().replace(' ', '-')}">${partner.rank}</span></td>
         </tr>
       `).join('');
 
       this.state.partners = partnersData;
-      console.log(`✅ Loaded ${partnersData.length} partners`);
+      console.log(`✅ Loaded ${partnersData.length} partners for level ${depth}`);
 
     } catch (error) {
       console.error('❌ Error loading partners:', error);
@@ -367,28 +317,52 @@ const partnersModule = {
 
   // ═══════════════════════════════════════════════════════════════
   // ПОЛУЧИТЬ ПАРТНЁРОВ НА ОПРЕДЕЛЁННОЙ ГЛУБИНЕ
+  // Использует MatrixRegistry.getDirectReferrals()
   // ═══════════════════════════════════════════════════════════════
-  async getPartnersAtDepth(address, targetDepth, currentDepth = 1) {
+  async getPartnersAtDepth(address, targetDepth) {
     try {
-      console.log(`🔍 getPartnersAtDepth: addr=${address.slice(0,10)}..., target=${targetDepth}, current=${currentDepth}`);
+      console.log(`🔍 getPartnersAtDepth: target=${targetDepth}`);
       
-      const directRefs = await this.getDirectReferrals(address);
-      console.log(`  📦 Найдено рефералов: ${directRefs.length}`);
+      // Для глубины 1 - просто возвращаем прямых рефералов
+      if (targetDepth === 1) {
+        const refs = await this.contracts.matrixRegistry.getDirectReferrals(address);
+        const validRefs = refs.filter(addr => addr && addr !== ethers.constants.AddressZero);
+        console.log(`  ✅ Level 1: ${validRefs.length} direct referrals`);
+        return validRefs;
+      }
       
-      if (currentDepth === targetDepth) {
-        console.log(`  ✅ Достигли глубины ${targetDepth}, возвращаем ${directRefs.length} рефералов`);
-        return directRefs;
+      // Для глубины > 1 - идём рекурсивно
+      let currentLevel = [address];
+      
+      for (let depth = 1; depth <= targetDepth; depth++) {
+        let nextLevel = [];
+        
+        for (const addr of currentLevel) {
+          try {
+            const refs = await this.contracts.matrixRegistry.getDirectReferrals(addr);
+            const validRefs = refs.filter(r => r && r !== ethers.constants.AddressZero);
+            nextLevel.push(...validRefs);
+          } catch (e) {
+            console.warn(`Error getting refs for ${addr}:`, e.message);
+          }
+        }
+        
+        console.log(`  Level ${depth}: ${nextLevel.length} partners`);
+        
+        if (depth === targetDepth) {
+          return nextLevel;
+        }
+        
+        currentLevel = nextLevel;
+        
+        // Если текущий уровень пустой, дальше искать нечего
+        if (currentLevel.length === 0) {
+          return [];
+        }
       }
-    
-      // Ещё не достигли — идём глубже
-      let result = [];
-      for (let ref of directRefs) {
-        const subRefs = await this.getPartnersAtDepth(ref, targetDepth, currentDepth + 1);
-        result.push(...subRefs);
-      }
-    
-      console.log(`  📊 Итого на глубине ${targetDepth}: ${result.length}`);
-      return result;
+      
+      return [];
+      
     } catch (error) {
       console.error('❌ Error getting partners at depth:', error);
       return [];
@@ -396,64 +370,7 @@ const partnersModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ПОЛУЧИТЬ ПРЯМЫХ РЕФЕРАЛОВ
-  // ═══════════════════════════════════════════════════════════════
-  async getDirectReferrals(address) {
-    try {
-      console.log(`  🔗 getDirectReferrals для ${address.slice(0,10)}...`);
-      
-      // Используем функцию контракта GlobalWay.getDirectReferrals()
-      // Она возвращает массив адресов всех прямых рефералов
-      const referrals = await this.contracts.globalWay.getDirectReferrals(address);
-      
-      // Фильтруем невалидные адреса
-      const validReferrals = referrals.filter(addr => 
-        addr && addr !== ethers.constants.AddressZero
-      );
-      
-      console.log(`  🔗 Найдено ${validReferrals.length} рефералов из контракта`);
-      return validReferrals;
-      
-    } catch (error) {
-      console.error('❌ Error getting direct referrals:', error);
-      
-      // Fallback: пробуем через события
-      try {
-        console.log('  🔄 Trying events fallback...');
-        const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
-        const userIdStr = userId.toString();
-        
-        if (userIdStr === '0') return [];
-        
-        const referrals = [];
-        const currentBlock = await window.web3Manager.provider.getBlockNumber();
-        const fromBlock = Math.max(0, currentBlock - 100000);
-        
-        const filter = this.contracts.matrixRegistry.filters.UserRegistered();
-        const events = await this.contracts.matrixRegistry.queryFilter(filter, fromBlock, currentBlock);
-        
-        for (let event of events) {
-          const eventSponsorId = event.args?.sponsorId?.toString();
-          if (eventSponsorId === userIdStr) {
-            const refAddr = event.args?.user;
-            if (refAddr && refAddr !== ethers.constants.AddressZero && !referrals.includes(refAddr)) {
-              referrals.push(refAddr);
-            }
-          }
-        }
-        
-        console.log(`  🔗 Найдено ${referrals.length} рефералов через события`);
-        return referrals;
-        
-      } catch (fallbackError) {
-        console.error('❌ Fallback also failed:', fallbackError);
-        return [];
-      }
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ПОЛУЧИТЬ ДЕТАЛИ ПАРТНЕРА
+  // ПОЛУЧИТЬ ДЕТАЛИ ПАРТНЁРА
   // ═══════════════════════════════════════════════════════════════
   async getPartnerDetails(address) {
     try {
@@ -461,44 +378,43 @@ const partnersModule = {
       const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
       const id = userId.toString() !== '0' ? `GW${userId.toString()}` : app.formatAddress(address);
 
-      // 2. Спонсор
+      // 2. Спонсор из UserInfo
       let sponsorId = '-';
       try {
         const userInfo = await this.contracts.matrixRegistry.getUserInfo(address);
-        const sponsorUserId = userInfo.sponsorId;
+        const sponsorUserId = userInfo.sponsorId || userInfo[2];
         sponsorId = sponsorUserId.toString() !== '0' ? `GW${sponsorUserId.toString()}` : '-';
       } catch (e) {
-        console.warn('⚠️ Could not get sponsor:', e);
+        // Fallback через matrixNodes
+        try {
+          const node = await this.contracts.matrixRegistry.matrixNodes(userId);
+          const sid = node[2].toString();
+          sponsorId = sid !== '0' ? `GW${sid}` : '-';
+        } catch (e2) {}
       }
 
-      // 3. Максимальный уровень
+      // 3. Максимальный уровень (пакеты)
       let maxLevel = 0;
       try {
         maxLevel = Number(await this.contracts.globalWay.getUserMaxLevel(address));
-      } catch (e) {
-        console.warn('⚠️ Could not get max level:', e);
-      }
+      } catch (e) {}
 
-      // 4. Прямая команда (считаем рефералов)
+      // 4. Прямая команда (количество прямых рефералов)
       let team = 0;
       try {
-        const result = await this.contracts.stats.getUserStructureStats(address);
-        team = Number(result[0]); // directReferrals
-      } catch (e) {
-        console.warn('⚠️ Could not get team count:', e);
-      }
+        const refs = await this.contracts.matrixRegistry.getDirectReferrals(address);
+        team = refs.filter(r => r && r !== ethers.constants.AddressZero).length;
+      } catch (e) {}
 
       // 5. Ранг
       let rank = 'Никто';
       try {
         const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
         rank = this.getRankName(Number(rankInfo.rank));
-      } catch (e) {
-        console.warn('⚠️ Could not get rank:', e);
-      }
+      } catch (e) {}
 
       // 6. Дата активации
-      const date = await this.getActivationDate(address);
+      const date = await this.getActivationDate(address, userId);
 
       return {
         address,
@@ -526,39 +442,20 @@ const partnersModule = {
   // ═══════════════════════════════════════════════════════════════
   // ПОЛУЧИТЬ ДАТУ АКТИВАЦИИ
   // ═══════════════════════════════════════════════════════════════
-  async getActivationDate(address) {
+  async getActivationDate(address, userId) {
     try {
-      // Способ 1: Напрямую из MatrixRegistry.matrixNodes[6] (registrationTime)
-      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
-      
-      if (userId.toString() !== '0') {
+      // Из matrixNodes.registeredAt
+      if (userId && userId.toString() !== '0') {
         const node = await this.contracts.matrixRegistry.matrixNodes(userId);
-        const registrationTime = Number(node[6]);
+        const registrationTime = Number(node[6]); // registeredAt
         
         if (registrationTime > 0) {
           return new Date(registrationTime * 1000).toLocaleDateString('ru-RU');
         }
       }
       
-      // Способ 2: Через события (с ограничением блоков)
-      try {
-        const currentBlock = await window.web3Manager.provider.getBlockNumber();
-        const fromBlock = Math.max(0, currentBlock - 49000);
-        
-        const filter = this.contracts.globalWay.filters.LevelActivated(address, 1);
-        const events = await this.contracts.globalWay.queryFilter(filter, fromBlock, currentBlock);
-        
-        if (events.length > 0) {
-          const block = await events[0].getBlock();
-          return new Date(block.timestamp * 1000).toLocaleDateString('ru-RU');
-        }
-      } catch(e) {
-        // Игнорируем ошибки событий
-      }
-      
       return '-';
     } catch (error) {
-      console.warn('⚠️ Could not get activation date:', error.message);
       return '-';
     }
   },
@@ -591,15 +488,11 @@ const partnersModule = {
       if (qual.achieved) {
         badge.classList.add('achieved');
         const progressBar = badge.querySelector('.progress');
-        if (progressBar) {
-          progressBar.style.width = '100%';
-        }
+        if (progressBar) progressBar.style.width = '100%';
       } else {
         badge.classList.remove('achieved');
         const progressBar = badge.querySelector('.progress');
-        if (progressBar) {
-          progressBar.style.width = `${qual.progress}%`;
-        }
+        if (progressBar) progressBar.style.width = `${qual.progress}%`;
       }
     });
   },
@@ -624,18 +517,17 @@ const partnersModule = {
     const { level, cost, earned } = this.state.levelInfo;
 
     const levelEl = document.getElementById('currentLevelNum');
-    const costEl = document.getElementById('currentLevelCost');
-    const earnedEl = document.getElementById('currentLevelEarned');
+    const costEl = document.getElementById('levelCost');
+    const earnedEl = document.getElementById('levelEarned');
 
     if (levelEl) levelEl.textContent = level;
     if (costEl) costEl.textContent = `${cost} BNB`;
-    if (earnedEl) earnedEl.textContent = `${earned} BNB`;
+    if (earnedEl) earnedEl.textContent = `${app.formatNumber(earned, 4)} BNB`;
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // UI ЭЛЕМЕНТЫ
+  // КНОПКИ УРОВНЕЙ
   // ═══════════════════════════════════════════════════════════════
-  
   createLevelButtons() {
     const container = document.getElementById('partnerLevels');
     if (!container) return;
@@ -656,23 +548,17 @@ const partnersModule = {
   async selectLevel(level) {
     console.log(`🔘 Selected level ${level}`);
     
-    // Обновляем активную кнопку
     document.querySelectorAll('#partnerLevels .level-btn').forEach((btn, index) => {
       btn.classList.toggle('active', index + 1 === level);
     });
 
     this.state.currentLevel = level;
-
-    // Обновляем информацию об уровне
     await this.loadLevelInfo(level);
-
-    // Загружаем партнеров этого уровня
     await this.loadPartnersByLevel(level);
   },
 
   initUI() {
     console.log('🎨 Initializing Partners UI...');
-    // Обработчики уже созданы через createLevelButtons
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -690,12 +576,10 @@ const partnersModule = {
     return ranks[rankId] || 'Никто';
   },
 
-  // Обновление данных
   async refresh() {
     console.log('🔄 Refreshing partners data...');
     await this.loadAllData();
   }
 };
 
-// Экспорт в window
 window.partnersModule = partnersModule;
