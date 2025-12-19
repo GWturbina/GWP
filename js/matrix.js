@@ -270,7 +270,8 @@ const matrixModule = {
   },
 
   async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side) {
-    if (depth >= 12 || childId.toString() === '0') return;
+    // Останавливаемся после 12 уровня (depth > 12)
+    if (depth > 12 || childId.toString() === '0') return;
     
     try {
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
@@ -399,16 +400,23 @@ const matrixModule = {
     const tableBody = document.getElementById('matrixTableBody');
     if (!tableBody) return;
 
-    const allPositions = [structure.root, ...structure.positions]
+    // Фильтруем ТОЛЬКО по выбранному уровню глубины (currentLevel)
+    // Кнопка 1 = depth 1 (первая линия - 2 позиции)
+    // Кнопка 2 = depth 2 (вторая линия - 4 позиции) и т.д.
+    const levelPositions = structure.positions
+      .filter(p => p.depth === this.state.currentLevel)
       .filter(p => p.address && p.address !== ethers.constants.AddressZero);
 
-    if (allPositions.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Нет данных</td></tr>';
+    // Обновляем информацию о уровне
+    const maxPositionsOnLevel = Math.pow(2, this.state.currentLevel);
+
+    if (levelPositions.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ffd700;">Линия ${this.state.currentLevel} пуста (макс. ${maxPositionsOnLevel} позиций)</td></tr>`;
       return;
     }
 
     const positionsData = await Promise.all(
-      allPositions.map(async (p, index) => {
+      levelPositions.map(async (p, index) => {
         const userId = p.userId || 'N/A';
         
         let sponsorId = '-';
