@@ -143,9 +143,13 @@ const matrixModule = {
 
   async goUp() {
     try {
+      console.log(`⬆️ goUp clicked! viewingUserId=${this.state.viewingUserId}`);
+      
       // Получаем parentBinaryId текущего просматриваемого пользователя
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(this.state.viewingUserId);
       const parentBinaryId = nodeData[5].toString(); // parentBinaryId
+      
+      console.log(`⬆️ parentBinaryId for GW${this.state.viewingUserId} = ${parentBinaryId}`);
       
       if (parentBinaryId === '0') {
         app.showNotification('Вы на верхнем уровне структуры', 'info');
@@ -176,12 +180,13 @@ const matrixModule = {
 
   async loadMatrixData(userId, level, addToHistory = false) {
     try {
-      console.log(`📊 Loading matrix for GW${userId}, level ${level}, addToHistory=${addToHistory}`);
+      console.log(`📊 loadMatrixData START: GW${userId}, level ${level}, addToHistory=${addToHistory}`);
 
       const userAddress = await this.contracts.matrixRegistry.getAddressById(userId);
+      console.log(`📊 userAddress for GW${userId}:`, userAddress);
       
       if (!userAddress || userAddress === ethers.constants.AddressZero) {
-        console.error('❌ Invalid user address');
+        console.error('❌ Invalid user address for GW' + userId);
         app.showNotification('Пользователь не найден', 'error');
         return;
       }
@@ -192,21 +197,30 @@ const matrixModule = {
       }
 
       this.state.viewingUserId = userId.toString();
+      console.log(`📊 viewingUserId set to: ${this.state.viewingUserId}`);
 
       const matrixStructure = await this.getMatrixStructure(userId, level);
+      console.log(`📊 matrixStructure:`, matrixStructure);
 
       this.state.matrixData = matrixStructure;
       this.state.currentLevel = level;
 
+      console.log(`📊 Calling renderMatrix...`);
       this.renderMatrix(matrixStructure);
+      
+      console.log(`📊 Calling renderMatrixTable...`);
       await this.renderMatrixTable(matrixStructure);
+      
+      console.log(`📊 Calling updateMatrixStats...`);
       this.updateMatrixStats(matrixStructure);
+      
+      console.log(`📊 Calling updateNavigationUI...`);
       this.updateNavigationUI();
 
-      console.log('✅ Matrix data loaded for GW' + userId);
+      console.log('✅ loadMatrixData COMPLETE for GW' + userId);
       
     } catch (error) {
-      console.error('❌ Error loading matrix data:', error);
+      console.error('❌ Error in loadMatrixData:', error);
       app.showNotification('Ошибка загрузки матрицы', 'error');
     }
   },
@@ -587,10 +601,17 @@ const matrixModule = {
     closeBtn.onclick = closeModal;
 
     if (nodeUserId && nodeUserId !== 'N/A' && nodeUserId !== '0') {
-      viewBtn.onclick = function() {
-        console.log(`🌐 Loading matrix for GW${nodeUserId}, adding current to history...`);
+      viewBtn.onclick = async function() {
+        console.log(`🌐 Button clicked! Loading matrix for GW${nodeUserId}...`);
+        alert(`Открываю матрицу GW${nodeUserId}`); // Временно для отладки
         closeModal();
-        self.loadMatrixData(nodeUserId, currentLevel, true);
+        try {
+          await self.loadMatrixData(nodeUserId, currentLevel, true);
+          console.log('✅ Matrix loaded successfully');
+        } catch (err) {
+          console.error('❌ Error loading matrix:', err);
+          alert('Ошибка: ' + err.message);
+        }
       };
     } else {
       viewBtn.disabled = true;
@@ -637,20 +658,35 @@ const matrixModule = {
     const searchBtn = document.getElementById('matrixSearchBtn');
     const searchInput = document.getElementById('matrixSearchInput');
 
+    console.log('🔍 initUI: searchBtn=', searchBtn, 'searchInput=', searchInput);
+
     if (searchBtn && searchInput) {
       const self = this;
       searchBtn.onclick = async () => {
         let userId = searchInput.value.trim().replace(/^GW/i, '');
+        console.log(`🔍 Search clicked! userId=${userId}`);
+        
         if (!/^\d+$/.test(userId)) {
           app.showNotification('Введите корректный ID', 'error');
           return;
         }
-        await self.loadMatrixData(userId, self.state.currentLevel, true);
+        
+        alert(`Ищу матрицу GW${userId}`); // Временно для отладки
+        
+        try {
+          await self.loadMatrixData(userId, self.state.currentLevel, true);
+          console.log('✅ Search completed');
+        } catch (err) {
+          console.error('❌ Search error:', err);
+          alert('Ошибка поиска: ' + err.message);
+        }
       };
 
       searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchBtn.click();
       });
+    } else {
+      console.warn('⚠️ Search elements not found!');
     }
   },
 
