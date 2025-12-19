@@ -228,17 +228,18 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
     // Обновляем топ-позицию (корень)
     this.updateMatrixPosition('topPosition', structure.root);
 
-    // Обновляем позиции первой линии (2 позиции)
+    // ✅ ИСПРАВЛЕНО: используем position вместо индекса массива!
+    // position=0 → левый ребёнок, position=1 → правый ребёнок
     const firstLine = structure.positions.filter(p => p.depth === 1);
-    this.updateMatrixPosition('position1', firstLine[0] || null);
-    this.updateMatrixPosition('position2', firstLine[1] || null);
+    this.updateMatrixPosition('position1', firstLine.find(p => p.position === 0) || null);
+    this.updateMatrixPosition('position2', firstLine.find(p => p.position === 1) || null);
 
-    // Обновляем позиции второй линии (4 позиции)
+    // position=0,1 → под левым (position1); position=2,3 → под правым (position2)
     const secondLine = structure.positions.filter(p => p.depth === 2);
-    this.updateMatrixPosition('position3', secondLine[0] || null);
-    this.updateMatrixPosition('position4', secondLine[1] || null);
-    this.updateMatrixPosition('position5', secondLine[2] || null);
-    this.updateMatrixPosition('position6', secondLine[3] || null);
+    this.updateMatrixPosition('position3', secondLine.find(p => p.position === 0) || null);
+    this.updateMatrixPosition('position4', secondLine.find(p => p.position === 1) || null);
+    this.updateMatrixPosition('position5', secondLine.find(p => p.position === 2) || null);
+    this.updateMatrixPosition('position6', secondLine.find(p => p.position === 3) || null);
   },
 
   updateMatrixPosition(elementId, nodeData) {
