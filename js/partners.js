@@ -195,47 +195,96 @@ const partnersModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ЗАРАБОТОК
+  // ЗАРАБОТОК - ОРИГИНАЛЬНЫЙ КОД
   // ═══════════════════════════════════════════════════════════════
   async loadEarnings() {
     try {
       const address = app.state.userAddress;
       console.log('💰 Loading earnings...');
 
-      let direct = '0', partner = '0', matrix = '0', leadership = '0';
-      
       try {
-        const payments = await this.contracts.matrixPayments.getUserPaymentStats(address);
-        direct = ethers.utils.formatEther(payments.totalDirect || 0);
-        partner = ethers.utils.formatEther(payments.totalPartner || 0);
-        matrix = ethers.utils.formatEther(payments.totalMatrix || 0);
-        leadership = ethers.utils.formatEther(payments.totalLeadership || 0);
+        // Основной способ: через GlobalWayStats.getUserBalances
+        const balances = await this.contracts.stats.getUserBalances(address);
+        // balances: (partnerFromSponsor, partnerFromUpline, matrixEarnings, 
+        //            matrixFrozen, pensionBalance, leaderBalance, totalBalance)
+        
+        const direct = ethers.utils.formatEther(balances[0]); // от спонсора
+        const partner = ethers.utils.formatEther(balances[1]); // от вышестоящих
+        const matrix = ethers.utils.formatEther(balances[2]); // матричные
+        const leadership = ethers.utils.formatEther(balances[5]); // лидерские
+
+        const total = (
+          parseFloat(direct) + 
+          parseFloat(partner) + 
+          parseFloat(matrix) + 
+          parseFloat(leadership)
+        ).toFixed(4);
+
+        this.state.earnings = {
+          direct,
+          partner,
+          matrix,
+          leadership,
+          total
+        };
+        
+        console.log('✅ Earnings loaded from GlobalWayStats:', this.state.earnings);
       } catch (e) {
+        console.warn('⚠️ Could not get earnings from Stats, trying individual contracts:', e);
+        
+        // Фолбек: получаем из отдельных контрактов
+        const [fromSponsor, fromUpline, totalPartner] = 
+          await this.contracts.partnerProgram.getUserEarnings(address);
+        
+        const direct = ethers.utils.formatEther(fromSponsor);
+        const partner = ethers.utils.formatEther(fromUpline);
+        
+        // Matrix earnings
+        let matrix = '0';
         try {
-          const stats = await this.contracts.stats.getUserEarnings(address);
-          direct = ethers.utils.formatEther(stats[0] || 0);
-          partner = ethers.utils.formatEther(stats[1] || 0);
-          matrix = ethers.utils.formatEther(stats[2] || 0);
-          leadership = ethers.utils.formatEther(stats[3] || 0);
+          const matrixEarnings = await this.contracts.matrixPayments.totalEarnedFromMatrix(address);
+          matrix = ethers.utils.formatEther(matrixEarnings);
         } catch (e2) {
-          console.warn('⚠️ Could not load earnings:', e2);
+          console.warn('⚠️ Could not get matrix earnings:', e2);
         }
+        
+        // Leader earnings  
+        let leadership = '0';
+        try {
+          const pendingReward = await this.contracts.leaderPool.pendingRewards(address);
+          leadership = ethers.utils.formatEther(pendingReward);
+        } catch (e2) {
+          console.warn('⚠️ Could not get leader earnings:', e2);
+        }
+
+        const total = (
+          parseFloat(direct) + 
+          parseFloat(partner) + 
+          parseFloat(matrix) + 
+          parseFloat(leadership)
+        ).toFixed(4);
+
+        this.state.earnings = {
+          direct,
+          partner,
+          matrix,
+          leadership,
+          total
+        };
       }
 
-      const total = (
-        parseFloat(direct) + 
-        parseFloat(partner) + 
-        parseFloat(matrix) + 
-        parseFloat(leadership)
-      ).toFixed(4);
-
-      this.state.earnings = { direct, partner, matrix, leadership, total };
       console.log('✅ Earnings loaded:', this.state.earnings);
       this.updateEarningsUI();
       
     } catch (error) {
       console.error('❌ Error loading earnings:', error);
-      this.state.earnings = { direct: '0', partner: '0', matrix: '0', leadership: '0', total: '0' };
+      this.state.earnings = {
+        direct: '0',
+        partner: '0',
+        matrix: '0',
+        leadership: '0',
+        total: '0'
+      };
       this.updateEarningsUI();
     }
   },
