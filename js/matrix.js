@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Matrix Module - FINAL VERSION
-// Обновляет HTML элементы вместо создания SVG
-// Date: 2025-01-19
-// FIX: Показывает только пользователей с активированным уровнем
+// GlobalWay DApp - Matrix Module - VERSION 2.0 WITH NAVIGATION
+// Date: 2025-12-19
+// FIX: Правильное отображение позиций по position вместо индекса
+// NEW: Навигация Вверх/Домой для просмотра структуры
 // ═══════════════════════════════════════════════════════════════════
 
 const matrixModule = {
@@ -10,8 +10,10 @@ const matrixModule = {
   
   state: {
     currentLevel: 1,
-    currentUserId: null,
+    currentUserId: null,        // ID залогиненного пользователя
     currentUserAddress: null,
+    viewingUserId: null,        // ID которого сейчас смотрим
+    navigationHistory: [],      // История навигации для кнопки "Вверх"
     matrixData: {},
     stats: {
       totalPositions: 0,
@@ -29,7 +31,7 @@ const matrixModule = {
   },
 
   async init() {
-    console.log('🌐 Initializing Matrix...');
+    console.log('🌐 Initializing Matrix v2.0 with Navigation...');
     
     try {
       if (!app.state.userAddress) {
@@ -44,12 +46,15 @@ const matrixModule = {
         this.state.currentUserAddress
       );
       this.state.currentUserId = userId.toString();
+      this.state.viewingUserId = userId.toString();
+      this.state.navigationHistory = [];
 
       this.createLevelButtons();
+      this.createNavigationUI();
       this.initUI();
-      await this.loadMatrixData(this.state.currentUserId, this.state.currentLevel);
+      await this.loadMatrixData(this.state.currentUserId, this.state.currentLevel, false);
 
-      console.log('✅ Matrix loaded');
+      console.log('✅ Matrix v2.0 loaded');
     } catch (error) {
       console.error('❌ Matrix init error:', error);
       app.showNotification('Ошибка загрузки матрицы', 'error');
@@ -63,17 +68,122 @@ const matrixModule = {
     console.log('✅ All matrix contracts loaded');
   },
 
-  async loadMatrixData(userId, level) {
+  // ═══════════════════════════════════════════════════════════════
+  // НАВИГАЦИЯ
+  // ═══════════════════════════════════════════════════════════════
+  
+  createNavigationUI() {
+    const matrixContainer = document.querySelector('.interactive-matrix');
+    if (!matrixContainer) return;
+
+    if (document.getElementById('matrixNavigation')) return;
+
+    const navHTML = `
+      <div id="matrixNavigation" style="display:flex; justify-content:center; align-items:center; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
+        <button id="matrixGoUp" style="display:none; padding:10px 20px; background:linear-gradient(135deg, #667eea, #764ba2); color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; transition:all 0.3s;">
+          ⬆️ Назад
+        </button>
+        <button id="matrixGoHome" style="display:none; padding:10px 20px; background:linear-gradient(135deg, #ffd700, #ffaa00); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; transition:all 0.3s;">
+          🏠 Моя матрица
+        </button>
+        <span id="matrixViewingInfo" style="color:#ffd700; font-size:14px; font-weight:600;"></span>
+      </div>
+    `;
+
+    const title = matrixContainer.querySelector('h3');
+    if (title) {
+      title.insertAdjacentHTML('afterend', navHTML);
+    } else {
+      matrixContainer.insertAdjacentHTML('afterbegin', navHTML);
+    }
+
+    const goUpBtn = document.getElementById('matrixGoUp');
+    const goHomeBtn = document.getElementById('matrixGoHome');
+    const self = this;
+
+    if (goUpBtn) {
+      goUpBtn.onclick = function() {
+        self.goUp();
+      };
+    }
+
+    if (goHomeBtn) {
+      goHomeBtn.onclick = function() {
+        self.goHome();
+      };
+    }
+  },
+
+  updateNavigationUI() {
+    const goUpBtn = document.getElementById('matrixGoUp');
+    const goHomeBtn = document.getElementById('matrixGoHome');
+    const viewingInfo = document.getElementById('matrixViewingInfo');
+
+    const isViewingOther = this.state.viewingUserId !== this.state.currentUserId;
+    const hasHistory = this.state.navigationHistory.length > 0;
+
+    // Кнопка "Вверх" видна только когда есть история навигации
+    if (goUpBtn) {
+      goUpBtn.style.display = hasHistory ? 'inline-block' : 'none';
+    }
+
+    if (goHomeBtn) {
+      goHomeBtn.style.display = isViewingOther ? 'inline-block' : 'none';
+    }
+
+    if (viewingInfo) {
+      if (isViewingOther) {
+        viewingInfo.textContent = `Просмотр: GW${this.state.viewingUserId}`;
+        viewingInfo.style.display = 'inline-block';
+      } else {
+        viewingInfo.textContent = '';
+        viewingInfo.style.display = 'none';
+      }
+    }
+  },
+
+  async goUp() {
+    // Возврат к ПРЕДЫДУЩЕМУ просмотру (не к родителю в бинаре!)
+    if (this.state.navigationHistory.length === 0) {
+      app.showNotification('Вы на своей матрице', 'info');
+      return;
+    }
+
+    const previousId = this.state.navigationHistory.pop();
+    console.log(`⬆️ Going back to previous: GW${previousId}`);
+    
+    await this.loadMatrixData(previousId, this.state.currentLevel, false);
+  },
+
+  async goHome() {
+    console.log(`🏠 Going home to GW${this.state.currentUserId}`);
+    this.state.navigationHistory = [];
+    await this.loadMatrixData(this.state.currentUserId, this.state.currentLevel, false);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА ДАННЫХ
+  // ═══════════════════════════════════════════════════════════════
+
+  async loadMatrixData(userId, level, addToHistory = false) {
     try {
-      console.log(`📊 Loading matrix data for user ${userId}, level ${level}...`);
+      console.log(`📊 Loading matrix: GW${userId}, level ${level}`);
 
       const userAddress = await this.contracts.matrixRegistry.getAddressById(userId);
       
       if (!userAddress || userAddress === ethers.constants.AddressZero) {
-        console.error('❌ Invalid user address');
+        console.error('❌ User not found: GW' + userId);
         app.showNotification('Пользователь не найден', 'error');
         return;
       }
+
+      // Добавляем в историю для кнопки "Назад"
+      if (addToHistory && this.state.viewingUserId && this.state.viewingUserId !== userId.toString()) {
+        this.state.navigationHistory.push(this.state.viewingUserId);
+        console.log(`📚 History: [${this.state.navigationHistory.join(' → ')}]`);
+      }
+
+      this.state.viewingUserId = userId.toString();
 
       const matrixStructure = await this.getMatrixStructure(userId, level);
 
@@ -83,11 +193,12 @@ const matrixModule = {
       this.renderMatrix(matrixStructure);
       await this.renderMatrixTable(matrixStructure);
       this.updateMatrixStats(matrixStructure);
+      this.updateNavigationUI();
 
-      console.log('✅ Matrix data loaded');
+      console.log('✅ Matrix loaded: GW' + userId);
       
     } catch (error) {
-      console.error('❌ Error loading matrix data:', error);
+      console.error('❌ loadMatrixData error:', error);
       app.showNotification('Ошибка загрузки матрицы', 'error');
     }
   },
@@ -113,6 +224,7 @@ const matrixModule = {
           leftChildId: nodeData[3].toString(),
           rightChildId: nodeData[4].toString(),
           sponsorId: nodeData[2].toString(),
+          parentBinaryId: nodeData[5].toString(),
           isTechAccount: nodeData[8]
         },
         positions: []
@@ -150,91 +262,83 @@ const matrixModule = {
         leftChildId: '0',
         rightChildId: '0',
         sponsorId: '0',
+        parentBinaryId: '0',
         isTechAccount: false
       },
       positions: []
     };
   },
 
-async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side) {
-  if (depth >= 12 || childId.toString() === '0') return;
-  
-  try {
-    const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
-    if (!nodeData[7]) return;
+  async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side) {
+    if (depth >= 12 || childId.toString() === '0') return;
     
-    // Получаем maxLevel для отображения (БЕЗ пропуска пользователя)
-    const userMaxLevel = await this.getUserMaxLevel(nodeData[1]);
-    
-    const node = {
-      address: nodeData[1],
-      userId: nodeData[0].toString(),
-      maxLevel: userMaxLevel,
-      rank: 'Участник',
-      depth,
-      position,
-      side,
-      type: await this.getPositionType(nodeData[1], structure.root.address, nodeData[2]),
-      isTechAccount: nodeData[8]
-    };
-    
-    structure.positions.push(node);
-    
-    if (nodeData[3].toString() !== '0') {
-      await this.buildMatrixTreeFromNodes(
-        structure,
-        nodeData[3],
-        level,
-        depth + 1,
-        position * 2,
-        'left'
-      );
+    try {
+      const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
+      if (!nodeData[7]) return;
+      
+      const userMaxLevel = await this.getUserMaxLevel(nodeData[1]);
+      
+      const node = {
+        address: nodeData[1],
+        userId: nodeData[0].toString(),
+        maxLevel: userMaxLevel,
+        rank: 'Участник',
+        depth,
+        position,
+        side,
+        type: await this.getPositionType(nodeData[1], structure.root.address, nodeData[2]),
+        isTechAccount: nodeData[8]
+      };
+      
+      structure.positions.push(node);
+      
+      if (nodeData[3].toString() !== '0') {
+        await this.buildMatrixTreeFromNodes(
+          structure,
+          nodeData[3],
+          level,
+          depth + 1,
+          position * 2,
+          'left'
+        );
+      }
+      
+      if (nodeData[4].toString() !== '0') {
+        await this.buildMatrixTreeFromNodes(
+          structure,
+          nodeData[4],
+          level,
+          depth + 1,
+          position * 2 + 1,
+          'right'
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error building tree:', error);
     }
-    
-    if (nodeData[4].toString() !== '0') {
-      await this.buildMatrixTreeFromNodes(
-        structure,
-        nodeData[4],
-        level,
-        depth + 1,
-        position * 2 + 1,
-        'right'
-      );
-    }
-  } catch (error) {
-    console.error('❌ Error building tree:', error);
-  }
-},
+  },
 
   async getPositionType(address, rootAddress, nodeSponsorId) {
     try {
-      // Если это тех. место (sponsorId = 7777777)
       if (nodeSponsorId.toString() === '7777777') {
         return 'technical';
       }
-
-      // Всё остальное - партнёр
       return 'partner';
-      
     } catch (error) {
       return 'partner';
     }
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // РЕНДЕРИНГ МАТРИЦЫ (обновляем HTML элементы)
+  // РЕНДЕРИНГ МАТРИЦЫ
   // ═══════════════════════════════════════════════════════════════
   renderMatrix(structure) {
-    // Обновляем топ-позицию (корень)
     this.updateMatrixPosition('topPosition', structure.root);
 
-    // ✅ ИСПРАВЛЕНО: используем position вместо индекса массива!
-    // position=0 → левый ребёнок, position=1 → правый ребёнок
     const firstLine = structure.positions.filter(p => p.depth === 1);
     this.updateMatrixPosition('position1', firstLine.find(p => p.position === 0) || null);
     this.updateMatrixPosition('position2', firstLine.find(p => p.position === 1) || null);
 
-    // position=0,1 → под левым (position1); position=2,3 → под правым (position2)
     const secondLine = structure.positions.filter(p => p.depth === 2);
     this.updateMatrixPosition('position3', secondLine.find(p => p.position === 0) || null);
     this.updateMatrixPosition('position4', secondLine.find(p => p.position === 1) || null);
@@ -252,17 +356,16 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
     const avatar = element.querySelector('.position-avatar');
 
     if (!nodeData || !nodeData.address || nodeData.address === ethers.constants.AddressZero) {
-      // Пустая позиция
       if (idSpan) idSpan.textContent = 'Empty';
       if (typeSpan) typeSpan.textContent = 'Available';
       if (levelSpan) levelSpan.textContent = '';
       if (avatar) avatar.textContent = '?';
       element.style.background = '';
       element.classList.remove('filled', 'partner', 'charity', 'technical');
+      element.onclick = null;
       return;
     }
 
-    // Заполненная позиция
     const userId = nodeData.userId || 'N/A';
     const idText = userId !== 'N/A' && userId !== '0' ? `GW${userId}` : app.formatAddress(nodeData.address);
     
@@ -270,7 +373,6 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
     if (levelSpan) levelSpan.textContent = `Level ${nodeData.maxLevel || 0}`;
     if (avatar) avatar.textContent = '✓';
 
-    // Тип позиции
     let typeText = 'Partner';
     let typeClass = 'partner';
     
@@ -280,64 +382,58 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
     }
 
     if (typeSpan) typeSpan.textContent = typeText;
-    
-    // Добавляем классы
-    element.classList.add('filled', typeClass);
-    element.classList.remove('partner', 'charity', 'technical');
-    element.classList.add(typeClass);
 
-    // Клик
-    element.onclick = () => this.showNodeModal(nodeData);
+    element.classList.remove('partner', 'charity', 'technical', 'available');
+    element.classList.add('filled', typeClass);
+
+    const self = this;
+    element.onclick = function() {
+      self.showNodeModal(nodeData);
+    };
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // РЕНДЕРИНГ ТАБЛИЦЫ
+  // ТАБЛИЦА ПОЗИЦИЙ
   // ═══════════════════════════════════════════════════════════════
   async renderMatrixTable(structure) {
     const tableBody = document.getElementById('matrixTableBody');
     if (!tableBody) return;
 
-    // ✅ ИСПРАВЛЕНО: Показываем только позиции выбранного уровня глубины
-    const levelDepth = this.state.currentLevel;
-    const levelPositions = structure.positions.filter(p => p.depth === levelDepth);
+    const allPositions = [structure.root, ...structure.positions]
+      .filter(p => p.address && p.address !== ethers.constants.AddressZero);
 
-    if (levelPositions.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="7" class="no-data">На этом уровне нет партнеров</td></tr>';
+    if (allPositions.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Нет данных</td></tr>';
       return;
     }
 
     const positionsData = await Promise.all(
-      levelPositions.map(async (pos, index) => {
-        const userId = pos.userId || 'N/A';
+      allPositions.map(async (p, index) => {
+        const userId = p.userId || 'N/A';
         
-        // ✅ ИСПРАВЛЕНО: Получаем sponsorId из matrixNodes
         let sponsorId = '-';
         try {
           const nodeData = await this.contracts.matrixRegistry.matrixNodes(userId);
-          const sponsorIdNum = nodeData[2].toString();
-          sponsorId = sponsorIdNum !== '0' ? `GW${sponsorIdNum}` : '-';
-        } catch (e) {
-          console.warn('⚠️ Could not get sponsor:', e);
-        }
-        
-        const date = '-';
-        const maxLevel = pos.maxLevel || 0;
-        
-        // ✅ ИСПРАВЛЕНО: Получаем ранг из LeaderPool
-        let rank = 'Никто';
+          const sid = nodeData[2].toString();
+          sponsorId = sid !== '0' ? `GW${sid}` : '-';
+        } catch (e) {}
+
+        let date = '-';
         try {
-          const leaderPool = await app.getContract('GlobalWayLeaderPool');
-          const rankInfo = await leaderPool.getUserRankInfo(pos.address);
-          rank = this.getRankName(Number(rankInfo.rank));
-        } catch (e) {
-          console.warn('⚠️ Could not get rank:', e);
-          rank = 'Участник';
-        }
+          const nodeData = await this.contracts.matrixRegistry.matrixNodes(userId);
+          const timestamp = Number(nodeData[6]);
+          if (timestamp > 0) {
+            date = new Date(timestamp * 1000).toLocaleDateString('ru-RU');
+          }
+        } catch (e) {}
+
+        let maxLevel = p.maxLevel || 0;
+        let rank = 'Участник';
 
         return {
           num: index + 1,
-          id: userId !== 'N/A' && userId !== '0' ? `GW${userId}` : app.formatAddress(pos.address),
-          address: pos.address,
+          id: userId !== 'N/A' && userId !== '0' ? `GW${userId}` : 'N/A',
+          address: p.address,
           sponsorId,
           date,
           level: maxLevel,
@@ -415,12 +511,10 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
       return;
     }
 
-    // Сохраняем данные для обработчиков
     const nodeUserId = node.userId;
     const currentLevel = this.state.currentLevel;
     const self = this;
 
-    // Получаем спонсора
     let sponsorId = '-';
     try {
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(node.userId);
@@ -430,7 +524,6 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
       console.warn('⚠️ Could not get sponsor:', e);
     }
 
-    // Получаем ранг
     let rank = 'Никто';
     try {
       const leaderPool = await app.getContract('GlobalWayLeaderPool');
@@ -445,75 +538,110 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
     const oldModal = document.getElementById('nodeModal');
     if (oldModal) oldModal.remove();
 
-    // HTML с инлайн стилями для гарантированного отображения
-    const modalHTML = `
-      <div id="nodeModal" style="display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center;">
-        <div style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border:2px solid #ffd700; border-radius:15px; padding:25px; max-width:400px; width:90%; position:relative;">
-          <span id="nodeModalCloseX" style="position:absolute; top:10px; right:15px; font-size:28px; color:#ffd700; cursor:pointer;">&times;</span>
-          <div style="text-align:center; margin-bottom:20px;">
-            <h2 style="color:#ffd700; margin:0;">Информация о позиции</h2>
-          </div>
-          <div style="color:#fff; line-height:2;">
-            <p><strong>ID:</strong> ${nodeUserId !== 'N/A' && nodeUserId !== '0' ? 'GW' + nodeUserId : 'N/A'}</p>
-            <p><strong>Адрес:</strong> ${app.formatAddress(node.address)}</p>
-            <p><strong>Спонсор:</strong> ${sponsorId}</p>
-            <p><strong>Уровень:</strong> ${node.maxLevel}</p>
-            <p><strong>Ранг:</strong> ${rank}</p>
-            <p><strong>Тип:</strong> ${this.getTypeLabel(node.type, node.isTechAccount)}</p>
-          </div>
-          <div style="display:flex; gap:10px; margin-top:25px;">
-            <button id="viewMatrixBtn" style="flex:1; padding:14px 15px; background:linear-gradient(135deg, #ffd700, #ffaa00); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
-              🌐 Матрица
-            </button>
-            <button id="closeModalBtn" style="flex:1; padding:14px 15px; background:transparent; color:#ffd700; border:2px solid #ffd700; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
-              ✕ Закрыть
-            </button>
-          </div>
-        </div>
-      </div>
+    // Создаём контейнер
+    const modalOverlay = document.createElement('div');
+    modalOverlay.id = 'nodeModal';
+    modalOverlay.style.cssText = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center;';
+
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = 'background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border:2px solid #ffd700; border-radius:15px; padding:25px; max-width:400px; width:90%; position:relative;';
+
+    // Крестик закрытия
+    const closeX = document.createElement('span');
+    closeX.innerHTML = '&times;';
+    closeX.style.cssText = 'position:absolute; top:10px; right:15px; font-size:28px; color:#ffd700; cursor:pointer;';
+
+    // Заголовок
+    const header = document.createElement('div');
+    header.style.cssText = 'text-align:center; margin-bottom:20px;';
+    header.innerHTML = '<h2 style="color:#ffd700; margin:0;">Информация о позиции</h2>';
+
+    // Контент
+    const content = document.createElement('div');
+    content.style.cssText = 'color:#fff; line-height:2;';
+    content.innerHTML = `
+      <p><strong>ID:</strong> <span style="color:#ffd700;">${nodeUserId !== 'N/A' && nodeUserId !== '0' ? 'GW' + nodeUserId : 'N/A'}</span></p>
+      <p><strong>Адрес:</strong> ${app.formatAddress(node.address)}</p>
+      <p><strong>Спонсор:</strong> ${sponsorId}</p>
+      <p><strong>Уровень:</strong> ${node.maxLevel}</p>
+      <p><strong>Ранг:</strong> ${rank}</p>
+      <p><strong>Тип:</strong> ${this.getTypeLabel(node.type, node.isTechAccount)}</p>
     `;
 
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    // Кнопки
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.style.cssText = 'display:flex; gap:10px; margin-top:25px;';
 
-    // Получаем элементы
-    const modal = document.getElementById('nodeModal');
-    const closeX = document.getElementById('nodeModalCloseX');
-    const closeBtn = document.getElementById('closeModalBtn');
-    const viewBtn = document.getElementById('viewMatrixBtn');
+    const viewMatrixBtn = document.createElement('button');
+    viewMatrixBtn.textContent = '🌐 Матрица';
+    viewMatrixBtn.style.cssText = 'flex:1; padding:14px 15px; background:linear-gradient(135deg, #ffd700, #ffaa00); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;';
+
+    const closeModalBtn = document.createElement('button');
+    closeModalBtn.textContent = '✕ Закрыть';
+    closeModalBtn.style.cssText = 'flex:1; padding:14px 15px; background:transparent; color:#ffd700; border:2px solid #ffd700; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;';
 
     // Функция закрытия
     const closeModal = () => {
-      console.log('🔴 Closing modal');
+      console.log('🔴 Closing modal...');
       const m = document.getElementById('nodeModal');
       if (m) m.remove();
     };
 
-    // Крестик закрытия
-    closeX.onclick = function() {
+    // Обработчики с addEventListener
+    closeX.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('❌ CloseX clicked');
       closeModal();
-    };
+    });
 
-    // Кнопка "Закрыть"
-    closeBtn.onclick = function() {
+    closeModalBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('❌ CloseBtn clicked');
       closeModal();
-    };
+    });
 
-    // Кнопка "Посмотреть матрицу"
     if (nodeUserId && nodeUserId !== 'N/A' && nodeUserId !== '0') {
-      viewBtn.onclick = function() {
-        console.log(`🌐 Loading matrix for user ${nodeUserId}...`);
+      viewMatrixBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log(`🌐 ViewMatrix clicked for GW${nodeUserId}`);
         closeModal();
-        self.loadMatrixData(nodeUserId, currentLevel);
-      };
+        try {
+          await self.loadMatrixData(nodeUserId, currentLevel, true);
+          console.log('✅ Matrix loaded for GW' + nodeUserId);
+        } catch (err) {
+          console.error('❌ Error:', err);
+          app.showNotification('Ошибка загрузки матрицы', 'error');
+        }
+      });
     } else {
-      viewBtn.disabled = true;
-      viewBtn.style.opacity = '0.5';
-      viewBtn.style.cursor = 'not-allowed';
+      viewMatrixBtn.disabled = true;
+      viewMatrixBtn.style.opacity = '0.5';
+      viewMatrixBtn.style.cursor = 'not-allowed';
     }
 
-    // НЕ закрываем по клику на фон - только по кнопкам
+    // Клик по оверлею закрывает модалку
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal();
+      }
+    });
 
-    console.log('✅ Modal opened for user:', nodeUserId);
+    // Собираем DOM
+    buttonsDiv.appendChild(viewMatrixBtn);
+    buttonsDiv.appendChild(closeModalBtn);
+    
+    modalContent.appendChild(closeX);
+    modalContent.appendChild(header);
+    modalContent.appendChild(content);
+    modalContent.appendChild(buttonsDiv);
+    
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
+
+    console.log('✅ Modal opened for GW' + nodeUserId);
   },
 
   getTypeLabel(type, isTechAccount) {
@@ -545,7 +673,7 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
       btn.classList.toggle('active', index + 1 === level);
     });
 
-    await this.loadMatrixData(this.state.currentUserId, level);
+    await this.loadMatrixData(this.state.viewingUserId, level, false);
   },
 
   initUI() {
@@ -553,14 +681,23 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
     const searchInput = document.getElementById('matrixSearchInput');
 
     if (searchBtn && searchInput) {
-      searchBtn.onclick = async () => {
+      const self = this;
+      searchBtn.addEventListener('click', async () => {
         let userId = searchInput.value.trim().replace(/^GW/i, '');
+        console.log(`🔍 Search: ${userId}`);
+        
         if (!/^\d+$/.test(userId)) {
           app.showNotification('Введите корректный ID', 'error');
           return;
         }
-        await this.loadMatrixData(userId, this.state.currentLevel);
-      };
+        
+        try {
+          await self.loadMatrixData(userId, self.state.currentLevel, true);
+        } catch (err) {
+          console.error('❌ Search error:', err);
+          app.showNotification('Пользователь не найден', 'error');
+        }
+      });
 
       searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchBtn.click();
@@ -577,7 +714,7 @@ async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side)
   },
 
   async refresh() {
-    await this.loadMatrixData(this.state.currentUserId, this.state.currentLevel);
+    await this.loadMatrixData(this.state.viewingUserId, this.state.currentLevel, false);
   }
 };
 
