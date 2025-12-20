@@ -330,24 +330,9 @@ const app = {
       // Показываем модальное окно с прогрессом
       this.showTransactionProgress('Регистрация', 'Подтвердите транзакцию в кошельке...');
       
-      // 🔥 iOS FIX: Добавляем явный gasPrice
-      const txParams = { 
+      const registerTx = await matrixRegistrySigned.register(sponsorId, { 
         gasLimit: CONFIG.GAS.register || 500000
-      };
-      
-      if (window.web3Manager.isIOS) {
-        try {
-          const rpcProvider = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
-          const gasPrice = await rpcProvider.getGasPrice();
-          txParams.gasPrice = gasPrice;
-          console.log('📱 iOS: gasPrice:', ethers.utils.formatUnits(gasPrice, 'gwei'), 'gwei');
-        } catch (e) {
-          txParams.gasPrice = ethers.utils.parseUnits('0.001', 'gwei');
-          console.log('📱 iOS: fallback gasPrice: 0.001 gwei');
-        }
-      }
-      
-      const registerTx = await matrixRegistrySigned.register(sponsorId, txParams);
+      });
 
       console.log('⏳ Transaction sent:', registerTx.hash);
       console.log('⏳ Waiting for confirmation...');
@@ -359,14 +344,7 @@ const app = {
         registerTx.hash
       );
 
-      // 🔥 iOS FIX: Используем polling для ожидания
-      let receipt;
-      if (window.web3Manager.isIOS && registerTx.hash) {
-        console.log('📱 iOS: Using RPC polling for registration tx...');
-        receipt = await this.waitForTransactionIOS(registerTx.hash);
-      } else {
-        receipt = await registerTx.wait();
-      }
+      const receipt = await registerTx.wait();
       console.log('✅ Transaction confirmed:', receipt.transactionHash);
 
       // Закрываем прогресс
@@ -745,7 +723,6 @@ const app = {
   async activateUserLevel(level, price, button) {
     try {
       console.log(`🔄 Activating level ${level} for ${price} BNB...`);
-      console.log(`📱 Platform: ${window.web3Manager.isIOS ? 'iOS' : (window.web3Manager.isAndroid ? 'Android' : 'Desktop')}`);
       
       if (!this.state.isRegistered) {
         this.showNotification('Сначала зарегистрируйтесь', 'error');
@@ -762,48 +739,10 @@ const app = {
       const globalWaySigned = await this.getSignedContract('GlobalWay');
       const priceInWei = ethers.utils.parseEther(price);
       
-      console.log('📤 Sending transaction...');
-      console.log('💰 Value:', price, 'BNB');
-      console.log('⛽ Gas limit:', CONFIG.GAS.buyLevel || 500000);
-      
-      let tx;
-      try {
-        // 🔥 iOS FIX: Добавляем явный gasPrice для SafePal iOS
-        const txParams = {
-          value: priceInWei,
-          gasLimit: CONFIG.GAS.buyLevel || 500000
-        };
-        
-        // На iOS добавляем gasPrice явно
-        if (window.web3Manager.isIOS) {
-          // Получаем gasPrice из сети или используем минимальный для opBNB
-          try {
-            const rpcProvider = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
-            const gasPrice = await rpcProvider.getGasPrice();
-            txParams.gasPrice = gasPrice;
-            console.log('📱 iOS: Using gasPrice:', ethers.utils.formatUnits(gasPrice, 'gwei'), 'gwei');
-          } catch (e) {
-            // Fallback: минимальный gasPrice для opBNB (0.001 gwei)
-            txParams.gasPrice = ethers.utils.parseUnits('0.001', 'gwei');
-            console.log('📱 iOS: Using fallback gasPrice: 0.001 gwei');
-          }
-        }
-        
-        tx = await globalWaySigned.activateLevel(level, txParams);
-        console.log('✅ Transaction sent:', tx.hash);
-      } catch (txError) {
-        console.error('❌ Transaction send error:', txError);
-        // На iOS может быть проблема с возвратом результата
-        if (window.web3Manager.isIOS) {
-          console.log('⚠️ iOS detected - checking if tx was actually sent...');
-          this.hideTransactionProgress();
-          button.disabled = false;
-          button.textContent = originalText;
-          this.showNotification('⚠️ Проверьте статус транзакции в кошельке. Если подтвердили - обновите страницу через 30 сек.', 'warning');
-          return;
-        }
-        throw txError;
-      }
+      const tx = await globalWaySigned.activateLevel(level, {
+        value: priceInWei,
+        gasLimit: CONFIG.GAS.buyLevel || 500000
+      });
       
       // Обновляем статус с хешем транзакции
       button.textContent = '⏳ Ожидание...';
@@ -813,30 +752,7 @@ const app = {
         tx.hash
       );
       
-      console.log('⏳ Waiting for confirmation...');
-      
-      try {
-        // 🔥 iOS FIX: Используем polling через RPC вместо tx.wait()
-        if (window.web3Manager.isIOS && tx.hash) {
-          console.log('📱 iOS: Using RPC polling for tx confirmation...');
-          await this.waitForTransactionIOS(tx.hash);
-          console.log('✅ Transaction confirmed via RPC polling');
-        } else {
-          await tx.wait();
-          console.log('✅ Transaction confirmed');
-        }
-      } catch (waitError) {
-        console.error('❌ Wait error:', waitError);
-        // Если ошибка при ожидании но tx был отправлен - возможно всё ок
-        if (tx.hash) {
-          this.hideTransactionProgress();
-          this.showNotification(`⚠️ Транзакция отправлена (${tx.hash.substring(0, 10)}...). Обновите страницу через 30 сек.`, 'warning');
-          button.disabled = false;
-          button.textContent = originalText;
-          return;
-        }
-        throw waitError;
-      }
+      await tx.wait();
       
       // Закрываем прогресс
       this.hideTransactionProgress();
@@ -858,7 +774,6 @@ const app = {
       
     } catch (error) {
       console.error('❌ Activation error:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       
       // Закрываем прогресс при ошибке
       this.hideTransactionProgress();
@@ -868,21 +783,12 @@ const app = {
       
       if (error.code === 4001) {
         this.showNotification('❌ Транзакция отменена', 'error');
-      } else if (error.code === 'ACTION_REJECTED') {
-        this.showNotification('❌ Транзакция отклонена в кошельке', 'error');
       } else if (error.message && error.message.includes('Level already active')) {
         this.showNotification('❌ Уровень уже активирован', 'error');
       } else if (error.message && error.message.includes('Previous level not active')) {
         this.showNotification('❌ Сначала активируйте предыдущий уровень', 'error');
-      } else if (error.message && error.message.includes('user rejected')) {
-        this.showNotification('❌ Транзакция отклонена', 'error');
       } else {
-        // На iOS показываем более понятное сообщение
-        if (window.web3Manager.isIOS) {
-          this.showNotification('⚠️ Ошибка на iOS. Проверьте кошелёк и обновите страницу.', 'warning');
-        } else {
-          this.showNotification('❌ Ошибка активации: ' + (error.reason || error.message), 'error');
-        }
+        this.showNotification('❌ Ошибка активации: ' + error.message, 'error');
       }
     }
   },
@@ -1002,8 +908,7 @@ const app = {
   // РАБОТА С КОНТРАКТАМИ
   // ═══════════════════════════════════════════════════════════════
   async getContract(contractName) {
-    // 🔥 iOS FIX: На iOS не используем кэш (readProvider для чтения, signer для транзакций)
-    if (!window.web3Manager?.isIOS && this.state.contracts[contractName]) {
+    if (this.state.contracts[contractName]) {
       return this.state.contracts[contractName];
     }
 
@@ -1027,29 +932,10 @@ const app = {
 
       const contractData = await response.json();
       
-      // 🔥 iOS FIX: Используем readProvider для read-only операций
-      let providerOrSigner;
-      if (window.web3Manager?.isIOS) {
-        // На iOS используем JsonRpcProvider для чтения (через getter для ленивой инициализации)
-        providerOrSigner = window.web3Manager.getReadProvider();
-        if (providerOrSigner) {
-          console.log('📱 iOS: Using JsonRpcProvider for contract read');
-        }
-      }
-      
-      // Fallback для non-iOS или если readProvider не доступен
-      if (!providerOrSigner) {
-        providerOrSigner = window.web3Manager?.signer || window.web3Manager?.provider;
-      }
+      const providerOrSigner = window.web3Manager?.signer || window.web3Manager?.provider;
       
       if (!providerOrSigner) {
-        // Последний fallback: создаём JsonRpcProvider напрямую
-        if (CONFIG.NETWORK && CONFIG.NETWORK.rpcUrl) {
-          providerOrSigner = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
-          console.log('⚠️ Fallback: Created JsonRpcProvider directly');
-        } else {
-          throw new Error('Web3 not initialized');
-        }
+        throw new Error('Web3 not initialized');
       }
       
       const contract = new ethers.Contract(
@@ -1058,10 +944,7 @@ const app = {
         providerOrSigner
       );
 
-      // 🔥 iOS FIX: На iOS не кэшируем контракты (readProvider vs signer)
-      if (!window.web3Manager?.isIOS) {
-        this.state.contracts[contractName] = contract;
-      }
+      this.state.contracts[contractName] = contract;
       
       console.log(`✅ Contract ${contractName} loaded at ${address}`);
       return contract;
@@ -1072,60 +955,9 @@ const app = {
   },
 
   async getSignedContract(contractName) {
-    // 🔥 iOS FIX: На iOS создаём контракт напрямую с signer (без кэша)
-    if (window.web3Manager?.isIOS) {
-      const address = CONFIG.CONTRACTS[contractName];
-      const abiPath = CONFIG.ABI_PATHS[contractName];
-      const response = await fetch(abiPath);
-      const contractData = await response.json();
-      const signer = window.web3Manager.signer;
-      
-      if (!signer) {
-        throw new Error('Signer not available on iOS');
-      }
-      
-      console.log('📱 iOS: Creating contract directly with signer');
-      return new ethers.Contract(address, contractData.abi, signer);
-    }
-    
-    // Стандартный путь для non-iOS
     const contract = await this.getContract(contractName);
     const signer = window.web3Manager.signer;
     return contract.connect(signer);
-  },
-
-  // 🔥 iOS FIX: Ожидание транзакции через RPC polling
-  async waitForTransactionIOS(txHash, maxAttempts = 60, intervalMs = 2000) {
-    console.log(`📱 iOS: Polling for tx ${txHash}...`);
-    
-    // Создаём RPC provider для проверки
-    const rpcProvider = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
-    
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        const receipt = await rpcProvider.getTransactionReceipt(txHash);
-        
-        if (receipt) {
-          if (receipt.status === 1) {
-            console.log(`✅ iOS: Transaction confirmed in block ${receipt.blockNumber}`);
-            return receipt;
-          } else {
-            console.error('❌ iOS: Transaction failed (reverted)');
-            throw new Error('Transaction reverted');
-          }
-        }
-        
-        console.log(`⏳ iOS: Attempt ${i + 1}/${maxAttempts} - waiting...`);
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
-        
-      } catch (e) {
-        if (e.message === 'Transaction reverted') throw e;
-        console.warn(`⚠️ iOS: Polling error (attempt ${i + 1}):`, e.message);
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
-      }
-    }
-    
-    throw new Error('Transaction confirmation timeout');
   },
 
   // ═══════════════════════════════════════════════════════════════
