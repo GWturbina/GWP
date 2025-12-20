@@ -723,7 +723,6 @@ const app = {
   async activateUserLevel(level, price, button) {
     try {
       console.log(`🔄 Activating level ${level} for ${price} BNB...`);
-      console.log(`📱 Platform: ${window.web3Manager.isIOS ? 'iOS' : (window.web3Manager.isAndroid ? 'Android' : 'Desktop')}`);
       
       if (!this.state.isRegistered) {
         this.showNotification('Сначала зарегистрируйтесь', 'error');
@@ -740,30 +739,10 @@ const app = {
       const globalWaySigned = await this.getSignedContract('GlobalWay');
       const priceInWei = ethers.utils.parseEther(price);
       
-      console.log('📤 Sending transaction...');
-      console.log('💰 Value:', price, 'BNB');
-      console.log('⛽ Gas limit:', CONFIG.GAS.buyLevel || 500000);
-      
-      let tx;
-      try {
-        tx = await globalWaySigned.activateLevel(level, {
-          value: priceInWei,
-          gasLimit: CONFIG.GAS.buyLevel || 500000
-        });
-        console.log('✅ Transaction sent:', tx.hash);
-      } catch (txError) {
-        console.error('❌ Transaction send error:', txError);
-        // На iOS может быть проблема с возвратом результата
-        if (window.web3Manager.isIOS) {
-          console.log('⚠️ iOS detected - checking if tx was actually sent...');
-          this.hideTransactionProgress();
-          button.disabled = false;
-          button.textContent = originalText;
-          this.showNotification('⚠️ Проверьте статус транзакции в кошельке. Если подтвердили - обновите страницу через 30 сек.', 'warning');
-          return;
-        }
-        throw txError;
-      }
+      const tx = await globalWaySigned.activateLevel(level, {
+        value: priceInWei,
+        gasLimit: CONFIG.GAS.buyLevel || 500000
+      });
       
       // Обновляем статус с хешем транзакции
       button.textContent = '⏳ Ожидание...';
@@ -773,23 +752,7 @@ const app = {
         tx.hash
       );
       
-      console.log('⏳ Waiting for confirmation...');
-      
-      try {
-        await tx.wait();
-        console.log('✅ Transaction confirmed');
-      } catch (waitError) {
-        console.error('❌ Wait error:', waitError);
-        // Если ошибка при ожидании но tx был отправлен - возможно всё ок
-        if (tx.hash) {
-          this.hideTransactionProgress();
-          this.showNotification(`⚠️ Транзакция отправлена (${tx.hash.substring(0, 10)}...). Обновите страницу через 30 сек.`, 'warning');
-          button.disabled = false;
-          button.textContent = originalText;
-          return;
-        }
-        throw waitError;
-      }
+      await tx.wait();
       
       // Закрываем прогресс
       this.hideTransactionProgress();
@@ -811,7 +774,6 @@ const app = {
       
     } catch (error) {
       console.error('❌ Activation error:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       
       // Закрываем прогресс при ошибке
       this.hideTransactionProgress();
@@ -821,21 +783,12 @@ const app = {
       
       if (error.code === 4001) {
         this.showNotification('❌ Транзакция отменена', 'error');
-      } else if (error.code === 'ACTION_REJECTED') {
-        this.showNotification('❌ Транзакция отклонена в кошельке', 'error');
       } else if (error.message && error.message.includes('Level already active')) {
         this.showNotification('❌ Уровень уже активирован', 'error');
       } else if (error.message && error.message.includes('Previous level not active')) {
         this.showNotification('❌ Сначала активируйте предыдущий уровень', 'error');
-      } else if (error.message && error.message.includes('user rejected')) {
-        this.showNotification('❌ Транзакция отклонена', 'error');
       } else {
-        // На iOS показываем более понятное сообщение
-        if (window.web3Manager.isIOS) {
-          this.showNotification('⚠️ Ошибка на iOS. Проверьте кошелёк и обновите страницу.', 'warning');
-        } else {
-          this.showNotification('❌ Ошибка активации: ' + (error.reason || error.message), 'error');
-        }
+        this.showNotification('❌ Ошибка активации: ' + error.message, 'error');
       }
     }
   },
