@@ -30,7 +30,40 @@ class Web3Manager {
     this.isAndroid = /Android/i.test(navigator.userAgent);
     this.isSafePalBrowser = this.detectSafePalBrowser();
     
+    // 🔥 READ-ONLY PROVIDER для iOS - используется для чтения данных с контрактов
+    this.readProvider = null;
+    this.initReadProvider();
+    
     console.log('📱 Platform:', this.isIOS ? 'iOS' : (this.isAndroid ? 'Android' : 'Desktop'));
+  }
+
+  // 🔥 Инициализация read-only провайдера через RPC (ленивая)
+  initReadProvider() {
+    if (this.readProvider) return; // Уже инициализирован
+    
+    try {
+      if (typeof CONFIG !== 'undefined' && CONFIG.NETWORK && CONFIG.NETWORK.rpcUrl) {
+        this.readProvider = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
+        console.log('✅ Read-only provider initialized:', CONFIG.NETWORK.rpcUrl);
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not init read provider:', e);
+    }
+  }
+
+  // 🔥 Получить провайдер для ЧТЕНИЯ (read-only операции)
+  getReadProvider() {
+    // Ленивая инициализация
+    if (!this.readProvider) {
+      this.initReadProvider();
+    }
+    
+    // На iOS используем JsonRpcProvider для чтения
+    if (this.isIOS && this.readProvider) {
+      return this.readProvider;
+    }
+    // На других платформах можно использовать обычный provider
+    return this.readProvider || this.provider;
   }
 
   // 🔥 УЛУЧШЕННАЯ детекция SafePal
