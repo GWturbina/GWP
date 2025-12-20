@@ -905,8 +905,15 @@ async loadQuarterlyInfo() {
       
       let receipt;
       try {
-        receipt = await tx.wait();
-        console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+        // 🔥 iOS FIX: Используем polling через RPC
+        if (window.web3Manager.isIOS && tx.hash) {
+          console.log('📱 iOS: Using RPC polling for tx confirmation...');
+          receipt = await app.waitForTransactionIOS(tx.hash);
+          console.log(`✅ iOS: Transaction confirmed in block ${receipt.blockNumber}`);
+        } else {
+          receipt = await tx.wait();
+          console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+        }
       } catch (waitError) {
         console.error('❌ Wait error:', waitError);
         if (tx && tx.hash) {
@@ -1021,7 +1028,14 @@ async loadQuarterlyInfo() {
       console.log(`📝 Quarterly transaction sent: ${tx.hash}`);
       app.showNotification('Ожидание подтверждения...', 'info');
       
-      const receipt = await tx.wait();
+      let receipt;
+      // 🔥 iOS FIX: Используем polling через RPC
+      if (window.web3Manager.isIOS && tx.hash) {
+        console.log('📱 iOS: Using RPC polling for quarterly tx...');
+        receipt = await app.waitForTransactionIOS(tx.hash);
+      } else {
+        receipt = await tx.wait();
+      }
       console.log(`✅ Quarterly confirmed in block ${receipt.blockNumber}`);
 
       app.showNotification('✅ Quarterly оплачен!', 'success');
