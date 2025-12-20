@@ -881,10 +881,25 @@ async loadQuarterlyInfo() {
       
       let tx;
       try {
-        tx = await contract.activateLevel(level, {
+        // 🔥 iOS FIX: Добавляем явный gasPrice
+        const txParams = {
           value: priceWei,
           gasLimit: CONFIG.GAS.buyLevel
-        });
+        };
+        
+        if (window.web3Manager.isIOS) {
+          try {
+            const rpcProvider = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
+            const gasPrice = await rpcProvider.getGasPrice();
+            txParams.gasPrice = gasPrice;
+            console.log('📱 iOS: gasPrice:', ethers.utils.formatUnits(gasPrice, 'gwei'), 'gwei');
+          } catch (e) {
+            txParams.gasPrice = ethers.utils.parseUnits('0.001', 'gwei');
+            console.log('📱 iOS: fallback gasPrice: 0.001 gwei');
+          }
+        }
+        
+        tx = await contract.activateLevel(level, txParams);
         console.log(`📝 Transaction sent: ${tx.hash}`);
       } catch (txError) {
         console.error('❌ Transaction send error:', txError);
@@ -1020,10 +1035,24 @@ async loadQuarterlyInfo() {
 
       const contract = await app.getSignedContract('QuarterlyPayments');
       
-      const tx = await contract.payQuarterly({
+      // 🔥 iOS FIX: Добавляем явный gasPrice
+      const txParams = {
         value: costWei,
         gasLimit: CONFIG.GAS.payQuarterly
-      });
+      };
+      
+      if (window.web3Manager.isIOS) {
+        try {
+          const rpcProvider = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
+          const gasPrice = await rpcProvider.getGasPrice();
+          txParams.gasPrice = gasPrice;
+          console.log('📱 iOS: gasPrice:', ethers.utils.formatUnits(gasPrice, 'gwei'), 'gwei');
+        } catch (e) {
+          txParams.gasPrice = ethers.utils.parseUnits('0.001', 'gwei');
+        }
+      }
+      
+      const tx = await contract.payQuarterly(txParams);
 
       console.log(`📝 Quarterly transaction sent: ${tx.hash}`);
       app.showNotification('Ожидание подтверждения...', 'info');
