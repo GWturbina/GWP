@@ -776,6 +776,7 @@ async loadQuarterlyInfo() {
     this.buyLevelInProgress = true;
     
     console.log(`=== 🛒 buyLevel() START for level ${level} ===`);
+    console.log(`📱 Platform: ${window.web3Manager.isIOS ? 'iOS' : (window.web3Manager.isAndroid ? 'Android' : 'Desktop')}`);
     
     if (!app.state.userAddress) {
       console.log('❌ No user address');
@@ -878,16 +879,46 @@ async loadQuarterlyInfo() {
       const contract = await app.getSignedContract('GlobalWay');
       console.log('   Contract loaded:', contract.address);
       
-      const tx = await contract.activateLevel(level, {
-        value: priceWei,
-        gasLimit: CONFIG.GAS.buyLevel
-      });
+      let tx;
+      try {
+        tx = await contract.activateLevel(level, {
+          value: priceWei,
+          gasLimit: CONFIG.GAS.buyLevel
+        });
+        console.log(`📝 Transaction sent: ${tx.hash}`);
+      } catch (txError) {
+        console.error('❌ Transaction send error:', txError);
+        // Специальная обработка для iOS
+        if (window.web3Manager.isIOS) {
+          console.log('⚠️ iOS - checking if tx was sent...');
+          app.showNotification('⚠️ Проверьте кошелёк. Если подтвердили - обновите страницу через 30 сек.', 'warning');
+          this.buyLevelInProgress = false;
+          document.querySelectorAll('.level-btn').forEach(btn => {
+            if (!btn.classList.contains('active')) btn.disabled = false;
+          });
+          return;
+        }
+        throw txError;
+      }
       
-      console.log(`📝 Transaction sent: ${tx.hash}`);
       app.showNotification(`Транзакция отправлена! Ожидание...`, 'info');
       
-      const receipt = await tx.wait();
-      console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+      let receipt;
+      try {
+        receipt = await tx.wait();
+        console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+      } catch (waitError) {
+        console.error('❌ Wait error:', waitError);
+        if (tx && tx.hash) {
+          app.showNotification(`⚠️ Транзакция ${tx.hash.substring(0, 10)}... отправлена. Обновите страницу.`, 'warning');
+          this.buyLevelInProgress = false;
+          document.querySelectorAll('.level-btn').forEach(btn => {
+            if (!btn.classList.contains('active')) btn.disabled = false;
+          });
+          return;
+        }
+        throw waitError;
+      }
       
       if (receipt.status === 0) {
         throw new Error('Transaction failed');
@@ -902,13 +933,20 @@ async loadQuarterlyInfo() {
       
     } catch (error) {
       console.error('❌ Buy level error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       
-      if (error.code === 4001) {
+      if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
         app.showNotification('Транзакция отклонена', 'error');
       } else if (error.message && error.message.includes('insufficient funds')) {
         app.showNotification('Недостаточно средств', 'error');
+      } else if (error.message && error.message.includes('user rejected')) {
+        app.showNotification('Транзакция отклонена', 'error');
       } else {
-        app.showNotification('Ошибка покупки: ' + error.message, 'error');
+        if (window.web3Manager.isIOS) {
+          app.showNotification('⚠️ Ошибка на iOS. Проверьте кошелёк.', 'warning');
+        } else {
+          app.showNotification('Ошибка покупки: ' + (error.reason || error.message), 'error');
+        }
       }
     } finally {
       document.querySelectorAll('.level-btn').forEach(btn => {
