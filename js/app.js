@@ -330,9 +330,24 @@ const app = {
       // Показываем модальное окно с прогрессом
       this.showTransactionProgress('Регистрация', 'Подтвердите транзакцию в кошельке...');
       
-      const registerTx = await matrixRegistrySigned.register(sponsorId, { 
+      // 🔥 iOS FIX: Добавляем явный gasPrice
+      const txParams = { 
         gasLimit: CONFIG.GAS.register || 500000
-      });
+      };
+      
+      if (window.web3Manager.isIOS) {
+        try {
+          const rpcProvider = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
+          const gasPrice = await rpcProvider.getGasPrice();
+          txParams.gasPrice = gasPrice;
+          console.log('📱 iOS: gasPrice:', ethers.utils.formatUnits(gasPrice, 'gwei'), 'gwei');
+        } catch (e) {
+          txParams.gasPrice = ethers.utils.parseUnits('0.001', 'gwei');
+          console.log('📱 iOS: fallback gasPrice: 0.001 gwei');
+        }
+      }
+      
+      const registerTx = await matrixRegistrySigned.register(sponsorId, txParams);
 
       console.log('⏳ Transaction sent:', registerTx.hash);
       console.log('⏳ Waiting for confirmation...');
@@ -344,7 +359,14 @@ const app = {
         registerTx.hash
       );
 
-      const receipt = await registerTx.wait();
+      // 🔥 iOS FIX: Используем polling для ожидания
+      let receipt;
+      if (window.web3Manager.isIOS && registerTx.hash) {
+        console.log('📱 iOS: Using RPC polling for registration tx...');
+        receipt = await this.waitForTransactionIOS(registerTx.hash);
+      } else {
+        receipt = await registerTx.wait();
+      }
       console.log('✅ Transaction confirmed:', receipt.transactionHash);
 
       // Закрываем прогресс
@@ -746,10 +768,28 @@ const app = {
       
       let tx;
       try {
-        tx = await globalWaySigned.activateLevel(level, {
+        // 🔥 iOS FIX: Добавляем явный gasPrice для SafePal iOS
+        const txParams = {
           value: priceInWei,
           gasLimit: CONFIG.GAS.buyLevel || 500000
-        });
+        };
+        
+        // На iOS добавляем gasPrice явно
+        if (window.web3Manager.isIOS) {
+          // Получаем gasPrice из сети или используем минимальный для opBNB
+          try {
+            const rpcProvider = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
+            const gasPrice = await rpcProvider.getGasPrice();
+            txParams.gasPrice = gasPrice;
+            console.log('📱 iOS: Using gasPrice:', ethers.utils.formatUnits(gasPrice, 'gwei'), 'gwei');
+          } catch (e) {
+            // Fallback: минимальный gasPrice для opBNB (0.001 gwei)
+            txParams.gasPrice = ethers.utils.parseUnits('0.001', 'gwei');
+            console.log('📱 iOS: Using fallback gasPrice: 0.001 gwei');
+          }
+        }
+        
+        tx = await globalWaySigned.activateLevel(level, txParams);
         console.log('✅ Transaction sent:', tx.hash);
       } catch (txError) {
         console.error('❌ Transaction send error:', txError);
