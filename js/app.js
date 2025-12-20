@@ -776,8 +776,15 @@ const app = {
       console.log('⏳ Waiting for confirmation...');
       
       try {
-        await tx.wait();
-        console.log('✅ Transaction confirmed');
+        // 🔥 iOS FIX: Используем polling через RPC вместо tx.wait()
+        if (window.web3Manager.isIOS && tx.hash) {
+          console.log('📱 iOS: Using RPC polling for tx confirmation...');
+          await this.waitForTransactionIOS(tx.hash);
+          console.log('✅ Transaction confirmed via RPC polling');
+        } else {
+          await tx.wait();
+          console.log('✅ Transaction confirmed');
+        }
       } catch (waitError) {
         console.error('❌ Wait error:', waitError);
         // Если ошибка при ожидании но tx был отправлен - возможно всё ок
@@ -955,7 +962,8 @@ const app = {
   // РАБОТА С КОНТРАКТАМИ
   // ═══════════════════════════════════════════════════════════════
   async getContract(contractName) {
-    if (this.state.contracts[contractName]) {
+    // 🔥 iOS FIX: На iOS не используем кэш (readProvider для чтения, signer для транзакций)
+    if (!window.web3Manager?.isIOS && this.state.contracts[contractName]) {
       return this.state.contracts[contractName];
     }
 
@@ -979,10 +987,29 @@ const app = {
 
       const contractData = await response.json();
       
-      const providerOrSigner = window.web3Manager?.signer || window.web3Manager?.provider;
+      // 🔥 iOS FIX: Используем readProvider для read-only операций
+      let providerOrSigner;
+      if (window.web3Manager?.isIOS) {
+        // На iOS используем JsonRpcProvider для чтения (через getter для ленивой инициализации)
+        providerOrSigner = window.web3Manager.getReadProvider();
+        if (providerOrSigner) {
+          console.log('📱 iOS: Using JsonRpcProvider for contract read');
+        }
+      }
+      
+      // Fallback для non-iOS или если readProvider не доступен
+      if (!providerOrSigner) {
+        providerOrSigner = window.web3Manager?.signer || window.web3Manager?.provider;
+      }
       
       if (!providerOrSigner) {
-        throw new Error('Web3 not initialized');
+        // Последний fallback: создаём JsonRpcProvider напрямую
+        if (CONFIG.NETWORK && CONFIG.NETWORK.rpcUrl) {
+          providerOrSigner = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
+          console.log('⚠️ Fallback: Created JsonRpcProvider directly');
+        } else {
+          throw new Error('Web3 not initialized');
+        }
       }
       
       const contract = new ethers.Contract(
@@ -991,7 +1018,10 @@ const app = {
         providerOrSigner
       );
 
-      this.state.contracts[contractName] = contract;
+      // 🔥 iOS FIX: На iOS не кэшируем контракты (readProvider vs signer)
+      if (!window.web3Manager?.isIOS) {
+        this.state.contracts[contractName] = contract;
+      }
       
       console.log(`✅ Contract ${contractName} loaded at ${address}`);
       return contract;
@@ -1002,9 +1032,60 @@ const app = {
   },
 
   async getSignedContract(contractName) {
+    // 🔥 iOS FIX: На iOS создаём контракт напрямую с signer (без кэша)
+    if (window.web3Manager?.isIOS) {
+      const address = CONFIG.CONTRACTS[contractName];
+      const abiPath = CONFIG.ABI_PATHS[contractName];
+      const response = await fetch(abiPath);
+      const contractData = await response.json();
+      const signer = window.web3Manager.signer;
+      
+      if (!signer) {
+        throw new Error('Signer not available on iOS');
+      }
+      
+      console.log('📱 iOS: Creating contract directly with signer');
+      return new ethers.Contract(address, contractData.abi, signer);
+    }
+    
+    // Стандартный путь для non-iOS
     const contract = await this.getContract(contractName);
     const signer = window.web3Manager.signer;
     return contract.connect(signer);
+  },
+
+  // 🔥 iOS FIX: Ожидание транзакции через RPC polling
+  async waitForTransactionIOS(txHash, maxAttempts = 60, intervalMs = 2000) {
+    console.log(`📱 iOS: Polling for tx ${txHash}...`);
+    
+    // Создаём RPC provider для проверки
+    const rpcProvider = new ethers.providers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const receipt = await rpcProvider.getTransactionReceipt(txHash);
+        
+        if (receipt) {
+          if (receipt.status === 1) {
+            console.log(`✅ iOS: Transaction confirmed in block ${receipt.blockNumber}`);
+            return receipt;
+          } else {
+            console.error('❌ iOS: Transaction failed (reverted)');
+            throw new Error('Transaction reverted');
+          }
+        }
+        
+        console.log(`⏳ iOS: Attempt ${i + 1}/${maxAttempts} - waiting...`);
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        
+      } catch (e) {
+        if (e.message === 'Transaction reverted') throw e;
+        console.warn(`⚠️ iOS: Polling error (attempt ${i + 1}):`, e.message);
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    }
+    
+    throw new Error('Transaction confirmation timeout');
   },
 
   // ═══════════════════════════════════════════════════════════════
