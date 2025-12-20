@@ -354,6 +354,20 @@ async connect() {
       let provider = null;
       let rawProvider = null;
       
+      // 🔥 iOS DEBUG: Показываем что видим
+      if (this.isIOS) {
+        const debugInfo = {
+          'window.safepalProvider': !!window.safepalProvider,
+          'window.safepal': !!window.safepal,
+          'window.ethereum': !!window.ethereum,
+          'ethereum.isSafePal': window.ethereum?.isSafePal,
+          'ethereum.isSafePalWallet': window.ethereum?.isSafePalWallet,
+          'ethereum.providers': window.ethereum?.providers?.length || 0
+        };
+        console.log('📱 iOS DEBUG:', JSON.stringify(debugInfo, null, 2));
+        alert('iOS DEBUG:\n' + JSON.stringify(debugInfo, null, 2));
+      }
+      
       // 🔥 ПРИОРИТЕТ 1: window.safepalProvider (официальный EVM провайдер SafePal)
       // Это КРИТИЧНО для iOS! На iOS window.ethereum может быть Solana провайдером!
       if (window.safepalProvider) {
@@ -380,9 +394,24 @@ async connect() {
         console.log('🔗 Connecting via window.ethereum (SafePal flags)');
         rawProvider = window.ethereum;
       }
+      // 🔥 ПРИОРИТЕТ 5: Просто window.ethereum (fallback для iOS)
+      else if (window.ethereum) {
+        console.log('🔗 Connecting via window.ethereum (generic fallback)');
+        if (this.isIOS) {
+          alert('iOS: Using generic window.ethereum as fallback');
+        }
+        rawProvider = window.ethereum;
+      }
 
       if (!rawProvider) {
+        if (this.isIOS) {
+          alert('iOS ERROR: No provider found!\nProviders checked:\n- safepalProvider\n- safepal\n- ethereum');
+        }
         throw new Error('SafePal EVM provider not found');
+      }
+      
+      if (this.isIOS) {
+        alert('iOS: Found provider, type: ' + (rawProvider.constructor?.name || 'unknown'));
       }
 
       // Создаём Web3Provider
