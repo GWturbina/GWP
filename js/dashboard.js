@@ -112,17 +112,45 @@ const dashboardModule = {
       const balance = await this.web3Provider.getBalance(address);
       this.userData.balance = ethers.utils.formatEther(balance);
 
-      // 2. Проверка регистрации
-      this.userData.isRegistered = await this.contracts.globalWay.isUserRegistered(address);
+      // 2. Проверка регистрации - 🔥 FIX: используем MatrixRegistry как в app.js
+      // Также проверяем app.state.isRegistered как fallback
+      try {
+        this.userData.isRegistered = await this.contracts.matrixRegistry.isUserRegistered(address);
+        console.log('📋 Dashboard registration check (MatrixRegistry):', this.userData.isRegistered);
+      } catch (e) {
+        console.warn('⚠️ MatrixRegistry check failed, using app.state:', e.message);
+        this.userData.isRegistered = app.state.isRegistered || false;
+      }
+      
+      // Fallback: если app.js уже загрузил данные, используем их
+      if (!this.userData.isRegistered && app.state.isRegistered) {
+        console.log('📋 Using app.state.isRegistered as fallback');
+        this.userData.isRegistered = true;
+      }
 
       if (this.userData.isRegistered) {
-        // 3. User ID
-        const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
-        this.userData.userId = userId.toString();
+        // 3. User ID - также с fallback на app.state
+        try {
+          const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
+          this.userData.userId = userId.toString();
+        } catch (e) {
+          console.warn('⚠️ getUserIdByAddress failed, using app.state:', e.message);
+          this.userData.userId = app.state.userId || null;
+        }
+        
+        // Fallback
+        if (!this.userData.userId && app.state.userId) {
+          this.userData.userId = app.state.userId;
+        }
 
         // 4. Максимальный уровень
-        const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
-        this.userData.maxLevel = Number(maxLevel);
+        try {
+          const maxLevel = await this.contracts.globalWay.getUserMaxLevel(address);
+          this.userData.maxLevel = Number(maxLevel);
+        } catch (e) {
+          console.warn('⚠️ getUserMaxLevel failed, using app.state:', e.message);
+          this.userData.maxLevel = app.state.maxLevel || 0;
+        }
 
         // 5. Ранг (из LeaderPool)
         try {
@@ -800,7 +828,8 @@ async loadQuarterlyInfo() {
     try {
       console.log('1️⃣ Checking registration...');
       
-      if (!this.userData.isRegistered) {
+      // 🔥 FIX: Используем app.state.isRegistered (он корректно загружается в app.js)
+      if (!app.state.isRegistered && !this.userData.isRegistered) {
         console.log('❌ User not registered');
         app.showNotification('Сначала зарегистрируйтесь', 'error');
         this.buyLevelInProgress = false;
