@@ -26,11 +26,7 @@ class Web3Manager {
     this.address = null;
     this.connected = false;
     this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    this.isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    this.isAndroid = /Android/i.test(navigator.userAgent);
     this.isSafePalBrowser = this.detectSafePalBrowser();
-    
-    console.log('📱 Platform:', this.isIOS ? 'iOS' : (this.isAndroid ? 'Android' : 'Desktop'));
   }
 
   // 🔥 УЛУЧШЕННАЯ детекция SafePal
