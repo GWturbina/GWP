@@ -4,8 +4,8 @@
 // Оптимизированные задержки, упрощённая логика, лучшая совместимость
 
 // ═══════════════════════════════════════════════════════════════
-// GlobalWay DApp - PRODUCTION READY v2.0
-// Date: 2025-11-12
+// GlobalWay DApp - PRODUCTION READY v2.1
+// Date: 2025-12-28
 // Status: ✅ 100% COMPLETE
 // 
 // Changes in this version:
@@ -16,6 +16,7 @@
 // - Better UX messages
 // - Caching optimization
 // - Final polish applied
+// - 🔥 NEW: Solana provider detection & user-friendly error message
 // ═══════════════════════════════════════════════════════════════
 
 
@@ -72,6 +73,63 @@ class Web3Manager {
       console.warn('SafePal detect error', e);
     }
     return false;
+  }
+
+  // 🔥 НОВОЕ: Проверка на Solana провайдер (не EVM)
+  isSolanaProvider(provider) {
+    try {
+      if (!provider) return false;
+      
+      // Признак 1: адрес не начинается с 0x (это Base58 Solana адрес)
+      if (provider.address && typeof provider.address === 'string') {
+        if (!provider.address.startsWith('0x') && provider.address.length > 30) {
+          console.log('⚠️ Solana address detected:', provider.address.substring(0, 10) + '...');
+          return true;
+        }
+      }
+      
+      // Признак 2: publicKey в формате Base58
+      if (provider.publicKey && typeof provider.publicKey === 'string') {
+        if (!provider.publicKey.startsWith('0x') && provider.publicKey.length > 30) {
+          console.log('⚠️ Solana publicKey detected');
+          return true;
+        }
+      }
+      
+      // Признак 3: isPhantom без EVM методов
+      if (provider.isPhantom && !provider.request) {
+        console.log('⚠️ Phantom Solana provider detected');
+        return true;
+      }
+      
+      // Признак 4: Solana-специфичные методы
+      if (typeof provider.signTransaction === 'function' && 
+          typeof provider.signAllTransactions === 'function' &&
+          typeof provider.request !== 'function') {
+        console.log('⚠️ Solana provider methods detected');
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      console.warn('isSolanaProvider check error', e);
+      return false;
+    }
+  }
+
+  // 🔥 НОВОЕ: Показ сообщения о неправильной сети
+  showSolanaNetworkError() {
+    const message = 
+      '⚠️ Обнаружен Solana кошелёк!\n\n' +
+      'GlobalWay работает на opBNB (EVM сеть).\n\n' +
+      'Пожалуйста:\n' +
+      '1. Откройте SafePal кошелёк\n' +
+      '2. Переключитесь на opBNB или BNB Smart Chain\n' +
+      '3. Убедитесь что выбран EVM кошелёк (адрес 0x...)\n' +
+      '4. Обновите страницу и подключитесь снова';
+    
+    alert(message);
+    throw new Error('Solana wallet detected. Please switch to opBNB/BNB network in SafePal.');
   }
 
   async init() {
@@ -292,26 +350,44 @@ async connect() {
   async connectSafePal() {
     try {
       let provider = null;
+      let rawProvider = null; // 🔥 Сохраняем raw провайдер для проверки
       
       if (window.safepal) {
         console.log('🔗 Connecting via window.safepal');
-        provider = new ethers.providers.Web3Provider(window.safepal);
+        rawProvider = window.safepal;
       } else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
         console.log('🔗 Connecting via ethereum.providers');
-        const safePalProvider = window.ethereum.providers.find(p => 
+        rawProvider = window.ethereum.providers.find(p => 
           p && (p.isSafePal || p.isSafePalWallet || p.isSafePalProvider)
         );
-        
-        if (safePalProvider) {
-          provider = new ethers.providers.Web3Provider(safePalProvider);
-        }
       } else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
         console.log('🔗 Connecting via window.ethereum');
-        provider = new ethers.providers.Web3Provider(window.ethereum);
+        rawProvider = window.ethereum;
       }
 
-      if (!provider) {
+      // 🔥 НОВОЕ: Проверка на Solana провайдер ПЕРЕД созданием ethers провайдера
+      if (rawProvider && this.isSolanaProvider(rawProvider)) {
+        console.error('❌ Solana provider detected, cannot use with EVM DApp');
+        this.showSolanaNetworkError();
+        return; // showSolanaNetworkError выбросит ошибку
+      }
+
+      if (!rawProvider) {
         throw new Error('SafePal provider not found after detection');
+      }
+
+      // Создаём ethers провайдер только если это EVM
+      try {
+        provider = new ethers.providers.Web3Provider(rawProvider);
+      } catch (providerError) {
+        // 🔥 Ловим ошибку "unsupported provider" и показываем понятное сообщение
+        if (providerError.code === 'INVALID_ARGUMENT' || 
+            providerError.message.includes('unsupported provider')) {
+          console.error('❌ Unsupported provider - likely Solana:', providerError);
+          this.showSolanaNetworkError();
+          return;
+        }
+        throw providerError;
       }
 
       console.log('📤 Requesting accounts...');
@@ -321,15 +397,31 @@ async connect() {
         throw new Error('No accounts returned from wallet');
       }
 
+      // 🔥 НОВОЕ: Проверка что адрес начинается с 0x
+      const account = accounts[0];
+      if (!account.startsWith('0x')) {
+        console.error('❌ Non-EVM address returned:', account);
+        this.showSolanaNetworkError();
+        return;
+      }
+
       this.provider = provider;
       this.signer = provider.getSigner();
-      this.address = accounts[0].toLowerCase(); // 🔥 FIX: Normalize to lowercase
+      this.address = account.toLowerCase(); // 🔥 FIX: Normalize to lowercase
       
       console.log('✅ SafePal connected successfully');
       console.log('📍 Address:', this.address);
       
     } catch (error) {
       console.error('❌ SafePal connection error:', error);
+      
+      // 🔥 НОВОЕ: Дополнительная проверка на Solana ошибку
+      if (error.code === 'INVALID_ARGUMENT' || 
+          (error.message && error.message.includes('unsupported provider'))) {
+        this.showSolanaNetworkError();
+        return;
+      }
+      
       throw error;
     }
   }
@@ -344,31 +436,54 @@ async connect() {
       }
 
       let provider = null;
+      let rawProvider = null; // 🔥 Сохраняем raw провайдер для проверки
 
       // Ищем SafePal провайдер
       if (window.safepal) {
-        provider = new ethers.providers.Web3Provider(window.safepal);
+        rawProvider = window.safepal;
       } else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
+        rawProvider = window.ethereum;
       } else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
-        const safePal = window.ethereum.providers.find(p => p && (p.isSafePal || p.isSafePalWallet));
-        if (safePal) {
-          provider = new ethers.providers.Web3Provider(safePal);
-        }
+        rawProvider = window.ethereum.providers.find(p => p && (p.isSafePal || p.isSafePalWallet));
       }
 
-      if (!provider) {
+      if (!rawProvider) {
         console.log('⚠️ No provider for auto-connect');
         return;
+      }
+
+      // 🔥 НОВОЕ: Проверка на Solana провайдер
+      if (this.isSolanaProvider(rawProvider)) {
+        console.warn('⚠️ Solana provider detected in auto-connect, skipping');
+        return; // Не показываем ошибку при автоподключении, просто пропускаем
+      }
+
+      // Создаём ethers провайдер только если это EVM
+      try {
+        provider = new ethers.providers.Web3Provider(rawProvider);
+      } catch (providerError) {
+        if (providerError.code === 'INVALID_ARGUMENT' || 
+            providerError.message.includes('unsupported provider')) {
+          console.warn('⚠️ Unsupported provider in auto-connect, skipping');
+          return;
+        }
+        throw providerError;
       }
 
       // Проверяем уже подключённые аккаунты (без popup)
       const accounts = await provider.listAccounts();
 
       if (accounts && accounts.length > 0) {
+        // 🔥 НОВОЕ: Проверка что адрес начинается с 0x
+        const account = accounts[0];
+        if (!account.startsWith('0x')) {
+          console.warn('⚠️ Non-EVM address in auto-connect, skipping');
+          return;
+        }
+        
         this.provider = provider;
         this.signer = provider.getSigner();
-        this.address = accounts[0].toLowerCase();
+        this.address = account.toLowerCase();
         this.connected = true;
         await this.checkNetwork();
         console.log('✅ Auto-connected:', this.address);
