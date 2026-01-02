@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Projects Module - REDESIGNED
 // Красивые квадратные карточки проектов
-// Date: 2025-12-10
+// С ПРОВЕРКОЙ РЕГИСТРАЦИИ v2.0
+// Date: 2025-01-02
 // ═══════════════════════════════════════════════════════════════════
 
 const projectsModule = {
@@ -14,10 +15,11 @@ const projectsModule = {
       name: 'KardGift',
       icon: 'CardGift.png',
       description: 'Платформа подарочных сертификатов',
-      url: '#',
-      status: 'development',
-      statusText: 'В разработке',
-      releaseDate: 'Q2 2025'
+      url: 'https://cardgift-website.vercel.app',  // ✅ ДОБАВЛЕН URL
+      status: 'active',                             // ✅ ИЗМЕНЕНО: development → active
+      statusText: 'Активен',                        // ✅ ИЗМЕНЕНО
+      releaseDate: 'Q1 2025',
+      requiredLevel: 0  // ✅ ДОБАВЛЕНО: минимальный уровень (0 = только регистрация)
     },
     {
       id: 'globaltub',
@@ -27,7 +29,8 @@ const projectsModule = {
       url: '#',
       status: 'development',
       statusText: 'В разработке',
-      releaseDate: 'Q3 2025'
+      releaseDate: 'Q3 2025',
+      requiredLevel: 1
     },
     {
       id: 'globalmarket',
@@ -37,7 +40,8 @@ const projectsModule = {
       url: '#',
       status: 'coming',
       statusText: 'Скоро',
-      releaseDate: 'Q4 2025'
+      releaseDate: 'Q4 2025',
+      requiredLevel: 1
     },
     {
       id: 'globalgame',
@@ -47,7 +51,8 @@ const projectsModule = {
       url: '#',
       status: 'coming',
       statusText: 'Скоро',
-      releaseDate: 'Q1 2026'
+      releaseDate: 'Q1 2026',
+      requiredLevel: 1
     },
     {
       id: 'globalsocial',
@@ -57,7 +62,8 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'Планируется',
-      releaseDate: 'Q2 2026'
+      releaseDate: 'Q2 2026',
+      requiredLevel: 2
     },
     {
       id: 'globalbank',
@@ -67,7 +73,8 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'Планируется',
-      releaseDate: 'Q3 2026'
+      releaseDate: 'Q3 2026',
+      requiredLevel: 3
     },
     {
       id: 'globaledu',
@@ -77,7 +84,8 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'Планируется',
-      releaseDate: 'Q4 2026'
+      releaseDate: 'Q4 2026',
+      requiredLevel: 2
     },
     {
       id: 'globalai',
@@ -87,7 +95,8 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'Планируется',
-      releaseDate: 'Q1 2027'
+      releaseDate: 'Q1 2027',
+      requiredLevel: 4
     },
     {
       id: 'ecovillages',
@@ -97,9 +106,21 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'Планируется',
-      releaseDate: 'Q2 2027'
+      releaseDate: 'Q2 2027',
+      requiredLevel: 4
     }
   ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // СОСТОЯНИЕ ПОЛЬЗОВАТЕЛЯ (для проверки доступа)
+  // ═══════════════════════════════════════════════════════════════
+  userState: {
+    isConnected: false,
+    isRegistered: false,
+    userLevel: 0,
+    userId: null,
+    walletAddress: null
+  },
 
   // ═══════════════════════════════════════════════════════════════
   // ИНИЦИАЛИЗАЦИЯ
@@ -110,6 +131,9 @@ const projectsModule = {
     try {
       // Добавляем стили
       this.injectStyles();
+      
+      // ✅ НОВОЕ: Проверяем статус пользователя
+      await this.checkUserStatus();
       
       // Отображаем проекты
       this.displayProjects();
@@ -124,7 +148,42 @@ const projectsModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // СТИЛИ
+  // ✅ НОВОЕ: ПРОВЕРКА СТАТУСА ПОЛЬЗОВАТЕЛЯ
+  // ═══════════════════════════════════════════════════════════════
+  async checkUserStatus() {
+    console.log('🔍 Checking user status for projects access...');
+    
+    try {
+      // Получаем данные из app (если есть)
+      if (typeof app !== 'undefined' && app.userAddress) {
+        this.userState.walletAddress = app.userAddress;
+        this.userState.isConnected = true;
+        
+        // Проверяем регистрацию
+        if (app.isRegistered !== undefined) {
+          this.userState.isRegistered = app.isRegistered;
+        }
+        
+        // Получаем уровень
+        if (app.userLevel !== undefined) {
+          this.userState.userLevel = app.userLevel;
+        }
+        
+        // Получаем ID
+        if (app.userId !== undefined) {
+          this.userState.userId = app.userId;
+        }
+      }
+      
+      console.log('📊 User state:', this.userState);
+      
+    } catch (error) {
+      console.error('checkUserStatus error:', error);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // СТИЛИ (добавлены стили для блокировки)
   // ═══════════════════════════════════════════════════════════════
   injectStyles() {
     if (document.getElementById('projects-styles')) return;
@@ -140,6 +199,99 @@ const projectsModule = {
         padding: 20px;
         max-width: 1400px;
         margin: 0 auto;
+      }
+      
+      /* ✅ НОВОЕ: Сообщение о необходимости регистрации */
+      .projects-locked-message {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 30px;
+        background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        border: 2px solid #ffd700;
+        border-radius: 20px;
+        margin: 20px;
+      }
+      
+      .projects-locked-message .lock-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+      
+      .projects-locked-message h2 {
+        color: #ffd700;
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+      }
+      
+      .projects-locked-message p {
+        color: #aaa;
+        font-size: 1.1rem;
+        margin-bottom: 25px;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      
+      .projects-locked-message .register-btn {
+        background: linear-gradient(135deg, #ffd700, #ffaa00);
+        color: #000;
+        border: none;
+        border-radius: 12px;
+        padding: 15px 40px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      
+      .projects-locked-message .register-btn:hover {
+        background: linear-gradient(135deg, #ffaa00, #ff8800);
+        transform: scale(1.05);
+      }
+      
+      /* ✅ НОВОЕ: Сообщение о подключении кошелька */
+      .projects-connect-message {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 30px;
+        background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+        border: 2px solid #4a9eff;
+        border-radius: 20px;
+        margin: 20px;
+      }
+      
+      .projects-connect-message .wallet-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+      
+      .projects-connect-message h2 {
+        color: #4a9eff;
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+      }
+      
+      .projects-connect-message p {
+        color: #aaa;
+        font-size: 1.1rem;
+        margin-bottom: 25px;
+      }
+      
+      .projects-connect-message .connect-btn {
+        background: linear-gradient(135deg, #4a9eff, #2d7dd2);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        padding: 15px 40px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      
+      .projects-connect-message .connect-btn:hover {
+        background: linear-gradient(135deg, #2d7dd2, #1a5fa8);
+        transform: scale(1.05);
       }
       
       /* Карточка проекта - квадратная */
@@ -161,6 +313,30 @@ const projectsModule = {
         border-color: #ffd700;
         transform: translateY(-5px);
         box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+      }
+      
+      /* ✅ НОВОЕ: Заблокированная карточка */
+      .project-card.locked {
+        opacity: 0.6;
+        filter: grayscale(30%);
+      }
+      
+      .project-card.locked:hover {
+        transform: none;
+        border-color: #2a2a4a;
+        box-shadow: none;
+      }
+      
+      .level-required-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 100, 100, 0.9);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: bold;
       }
       
       /* Иконка проекта */
@@ -239,6 +415,12 @@ const projectsModule = {
         width: 100%;
       }
       
+      /* ✅ НОВОЕ: Активный проект */
+      .project-btn-status.active {
+        color: #4ade80;
+        border-color: #4ade80;
+      }
+      
       /* Карточка "Твой проект" - такая же как остальные */
       .project-card.your-project {
         background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
@@ -289,6 +471,17 @@ const projectsModule = {
         
         .project-name {
           font-size: 1.2rem;
+        }
+        
+        .projects-locked-message,
+        .projects-connect-message {
+          padding: 40px 20px;
+          margin: 10px;
+        }
+        
+        .projects-locked-message h2,
+        .projects-connect-message h2 {
+          font-size: 1.4rem;
         }
       }
       
@@ -391,6 +584,20 @@ const projectsModule = {
     container.innerHTML = '';
     container.className = 'projects-grid';
 
+    // ✅ НОВОЕ: Проверяем подключён ли кошелёк
+    if (!this.userState.isConnected) {
+      container.innerHTML = this.createConnectWalletMessage();
+      console.log('⚠️ Wallet not connected - showing connect message');
+      return;
+    }
+
+    // ✅ НОВОЕ: Проверяем зарегистрирован ли в GlobalWay
+    if (!this.userState.isRegistered) {
+      container.innerHTML = this.createRegistrationRequiredMessage();
+      console.log('⚠️ User not registered - showing registration message');
+      return;
+    }
+
     // Добавляем карточки проектов
     this.projects.forEach(project => {
       const card = this.createProjectCard(project);
@@ -405,17 +612,78 @@ const projectsModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
+  // ✅ НОВОЕ: СООБЩЕНИЕ О ПОДКЛЮЧЕНИИ КОШЕЛЬКА
+  // ═══════════════════════════════════════════════════════════════
+  createConnectWalletMessage() {
+    return `
+      <div class="projects-connect-message">
+        <div class="wallet-icon">🔗</div>
+        <h2>Подключите кошелёк</h2>
+        <p>Для просмотра и использования проектов GlobalWay необходимо подключить кошелёк SafePal</p>
+        <button class="connect-btn" onclick="app.connectWallet()">
+          Подключить SafePal
+        </button>
+      </div>
+    `;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ✅ НОВОЕ: СООБЩЕНИЕ О НЕОБХОДИМОСТИ РЕГИСТРАЦИИ
+  // ═══════════════════════════════════════════════════════════════
+  createRegistrationRequiredMessage() {
+    return `
+      <div class="projects-locked-message">
+        <div class="lock-icon">🔒</div>
+        <h2>Требуется регистрация в GlobalWay</h2>
+        <p>Для доступа к проектам экосистемы необходимо зарегистрироваться в GlobalWay. После регистрации вам станут доступны все инструменты.</p>
+        <button class="register-btn" onclick="showPage('dashboard')">
+          Зарегистрироваться
+        </button>
+      </div>
+    `;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
   // СОЗДАНИЕ КАРТОЧКИ ПРОЕКТА
   // ═══════════════════════════════════════════════════════════════
   createProjectCard(project) {
     const card = document.createElement('div');
-    card.className = 'project-card';
+    
+    // ✅ НОВОЕ: Проверяем уровень для доступа
+    const hasAccess = this.userState.userLevel >= (project.requiredLevel || 0);
+    const isActive = project.status === 'active' && project.url && project.url !== '#';
+    const isLocked = !hasAccess && project.requiredLevel > 0;
+    
+    card.className = `project-card ${isLocked ? 'locked' : ''}`;
     card.id = `project-${project.id}`;
+    card.style.position = 'relative';
 
     // Путь к иконке
     const iconPath = `assets/icons/${project.icon}`;
 
+    // ✅ НОВОЕ: Бейдж уровня для заблокированных
+    const levelBadge = isLocked 
+      ? `<div class="level-required-badge">🔒 Уровень ${project.requiredLevel}+</div>` 
+      : '';
+
+    // ✅ НОВОЕ: Определяем текст и состояние кнопки
+    let buttonText = 'Открыть проект';
+    let buttonDisabled = true;
+    
+    if (isActive && hasAccess) {
+      buttonDisabled = false;
+    } else if (isLocked) {
+      buttonText = `🔒 Нужен уровень ${project.requiredLevel}`;
+    } else if (project.status !== 'active') {
+      buttonText = 'Открыть проект';
+    }
+
+    // ✅ НОВОЕ: Статус для активных проектов
+    const statusClass = project.status === 'active' ? 'active' : project.status;
+    const statusText = project.status === 'active' ? '✅ Активен' : `${project.statusText} • ${project.releaseDate}`;
+
     card.innerHTML = `
+      ${levelBadge}
       <img 
         src="${iconPath}" 
         alt="${project.name}" 
@@ -428,12 +696,12 @@ const projectsModule = {
         <button 
           class="project-btn-open" 
           onclick="projectsModule.openProject('${project.id}')"
-          ${project.status === 'active' ? '' : 'disabled'}
+          ${buttonDisabled ? 'disabled' : ''}
         >
-          Открыть проект
+          ${buttonText}
         </button>
-        <button class="project-btn-status ${project.status}">
-          ${project.statusText} • ${project.releaseDate}
+        <button class="project-btn-status ${statusClass}">
+          ${statusText}
         </button>
       </div>
     `;
@@ -475,17 +743,53 @@ const projectsModule = {
     const project = this.projects.find(p => p.id === projectId);
     if (!project) return;
 
+    // ✅ НОВОЕ: Проверяем уровень
+    const requiredLevel = project.requiredLevel || 0;
+    if (this.userState.userLevel < requiredLevel) {
+      app.showNotification(`Для доступа к ${project.name} нужен уровень ${requiredLevel}. Ваш уровень: ${this.userState.userLevel}`, 'warning');
+      return;
+    }
+
     if (project.status !== 'active') {
       app.showNotification(`${project.name} находится в разработке. Запуск: ${project.releaseDate}`, 'info');
       return;
     }
 
-    // Открываем проект
+    // ✅ НОВОЕ: Открываем проект с параметрами для автологина в CardGift
     if (project.url && project.url !== '#') {
-      window.open(project.url, '_blank');
+      let targetUrl = project.url;
+      
+      // Добавляем параметры для CardGift
+      if (project.id === 'kardgift' && this.userState.userId) {
+        const params = new URLSearchParams({
+          from: 'globalway',
+          ref: this.userState.userId,
+          wallet: this.userState.walletAddress || ''
+        });
+        targetUrl = `${project.url}?${params.toString()}`;
+      }
+      
+      console.log(`🚀 Opening project: ${project.name}`, targetUrl);
+      
+      // В SafePal открываем в том же окне, иначе в новой вкладке
+      if (this.isSafePalBrowser()) {
+        window.location.href = targetUrl;
+      } else {
+        window.open(targetUrl, '_blank');
+      }
     } else {
       app.showNotification('Проект скоро будет доступен!', 'info');
     }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ✅ НОВОЕ: ПРОВЕРКА SAFEPAL БРАУЗЕРА
+  // ═══════════════════════════════════════════════════════════════
+  isSafePalBrowser() {
+    const ua = navigator.userAgent || '';
+    return ua.includes('SafePal') || 
+           ua.includes('safepal') || 
+           (typeof window.safepal !== 'undefined');
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -554,6 +858,7 @@ const projectsModule = {
   // ═══════════════════════════════════════════════════════════════
   async refresh() {
     console.log('🔄 Refreshing projects...');
+    await this.checkUserStatus();
     this.displayProjects();
   }
 };
