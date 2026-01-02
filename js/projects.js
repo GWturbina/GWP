@@ -154,24 +154,24 @@ const projectsModule = {
     console.log('🔍 Checking user status for projects access...');
     
     try {
-      // Получаем данные из app (если есть)
-      if (typeof app !== 'undefined' && app.userAddress) {
-        this.userState.walletAddress = app.userAddress;
-        this.userState.isConnected = true;
+      // Получаем данные из app.state (структура GlobalWay)
+      if (typeof app !== 'undefined' && app.state) {
+        
+        // Адрес кошелька
+        if (app.state.userAddress) {
+          this.userState.walletAddress = app.state.userAddress;
+          this.userState.isConnected = true;
+        }
         
         // Проверяем регистрацию
-        if (app.isRegistered !== undefined) {
-          this.userState.isRegistered = app.isRegistered;
-        }
+        this.userState.isRegistered = app.state.isRegistered || false;
         
-        // Получаем уровень
-        if (app.userLevel !== undefined) {
-          this.userState.userLevel = app.userLevel;
-        }
+        // Получаем уровень (maxLevel в app.state)
+        this.userState.userLevel = app.state.maxLevel || 0;
         
-        // Получаем ID
-        if (app.userId !== undefined) {
-          this.userState.userId = app.userId;
+        // Получаем ID (строка вида "9729645")
+        if (app.state.userId) {
+          this.userState.userId = 'GW' + app.state.userId;
         }
       }
       
@@ -763,7 +763,7 @@ const projectsModule = {
       if (project.id === 'kardgift' && this.userState.userId) {
         const params = new URLSearchParams({
           from: 'globalway',
-          ref: this.userState.userId,
+          ref: this.userState.userId,  // Уже в формате GW1234567
           wallet: this.userState.walletAddress || ''
         });
         targetUrl = `${project.url}?${params.toString()}`;
