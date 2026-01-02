@@ -404,8 +404,11 @@ const app = {
     console.log('🔍 Getting sponsor ID for ref code:', refCode);
     
     if (!refCode) {
-      console.log('ℹ️ No referral code, using default sponsor ID: 1');
-      return '1';
+      // Рандомизация из двух спонсоров
+      const randomSponsors = ['7346221', '1514866'];
+      const randomSponsor = randomSponsors[Math.floor(Math.random() * randomSponsors.length)];
+      console.log('ℹ️ No referral code, using random sponsor ID:', randomSponsor);
+      return randomSponsor;
     }
 
     try {
@@ -451,8 +454,11 @@ const app = {
       console.error('❌ Error getting sponsor ID:', error);
     }
 
-    console.log('ℹ️ Falling back to default sponsor ID: 1');
-    return '1';
+    // Fallback - рандомизация из двух спонсоров
+    const randomSponsors = ['7346221', '1514866'];
+    const randomSponsor = randomSponsors[Math.floor(Math.random() * randomSponsors.length)];
+    console.log('ℹ️ Falling back to random sponsor ID:', randomSponsor);
+    return randomSponsor;
   },
 
 
