@@ -15,7 +15,7 @@ const projectsModule = {
       name: 'KardGift',
       icon: 'CardGift.png',
       description: 'Платформа подарочных сертификатов',
-      url: 'https://cg-beryl.vercel.app/dashboard.html',  // ✅ CardGift Dashboard
+      url: 'https://cgm-brown.vercel.app/dashboard.html',  // ✅ CardGift Dashboard
       status: 'active',                             // ✅ ИЗМЕНЕНО: development → active
       statusText: 'Активен',                        // ✅ ИЗМЕНЕНО
       releaseDate: 'Q1 2025',
