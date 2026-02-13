@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Configuration
 // opBNB Mainnet (Chain ID: 204)
-// Deployed: February 13, 2026 (v2.1)
+// Deployed: November 25, 2025
 // ═══════════════════════════════════════════════════════════════════
 
 const CONFIG = {
@@ -22,21 +22,20 @@ const CONFIG = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // SMART CONTRACTS ADDRESSES - ФИНАЛЬНЫЙ ДЕПЛОЙ v2.1 13.02.2026
+  // SMART CONTRACTS ADDRESSES - ФИНАЛЬНЫЙ ДЕПЛОЙ 25.11.2025
   // ═══════════════════════════════════════════════════════════════
   CONTRACTS: {
-    GWTToken: '0x933B0Cb1f43170f3F0fcf082572CC931D6e93b5F',
-    MatrixRegistry: '0xD62945edFF7605dFc77A4bF607c96Da72E03cd0C',
-    GlobalWay: '0xe8e2af46AEEec1B51B335f10C5912620B1a2707F',
-    SafeVaultGW: '0xc22592F84557e73f9e19C6B0fB13C3717E4cD92e',
-    PartnerProgram: '0x390409BA8b64052D160e259816E5B6472e51b2ae',
-    MatrixPayments: '0xDf37d4cc11a01bcB57F2e8cD56234325a6ce8EDf',
-    QuarterlyPayments: '0x10dd3Fbaf52Be26Ee3606DC5984Cb7D10f017EA4',
-    GlobalWayLeaderPool: '0x8C645586aeBEa151737cDC3E4C6adFaA9AbEABCF',
-    GlobalWayInvestment: '0xa54a71BceeDaBB743f046217535A6F0dF9C8647C',
-    GlobalWayBridge: '0x4489851e530924eB25e684E6b97c7C47364780F5',
-    GlobalWayStats: '0x1c5A63AfC7dd0b057B9dcAA3B6B47B4078a5A808',
-    GlobalWayGovernance: '0xf81FC745A4234eCaC8FBd639D45e104a4d694587'
+    GWTToken: '0x47DB57C849Fce197c812713253042533E9DE88db',
+    MatrixRegistry: '0xC12b57B8B4BcE9134788FBb2290Cf4d496c4eE4a',
+    GlobalWay: '0xc6E769A790cE87f9Dd952Dca6Ac1A9526Bc0FBe7',
+    PartnerProgram: '0x3C6E1Ab1966847EF7473fA2dD1C476A1b882Dcf8',
+    MatrixPayments: '0x6309136AE07e5691CB71678Df0701A351aF93241',
+    QuarterlyPayments: '0x62B8ce8Cf1D7d6a47214DCdeE6882a3c4ccF9b9C',
+    GlobalWayInvestment: '0x27037b88500e02C1E9f28B7b23De381c983B4092',
+    GlobalWayLeaderPool: '0xF82AD2b0A486925726d16b9c9d7ef73A2871BC1B',
+    GlobalWayGovernance: '0x432cc35E3ddc19347c9Bc1Da812D22E68C36b98F',
+    GlobalWayBridge: '0x75231309172544886f27449446A9A2a43D5Ac801',
+    GlobalWayStats: '0xa2B6e2d4B1456eabc41042c30f134847bbbf7770'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -58,8 +57,7 @@ const CONFIG = {
     GlobalWayLeaderPool: '../contracts/abis/GlobalWayLeaderPool.json',
     GlobalWayGovernance: '../contracts/abis/GlobalWayGovernance.json',
     GlobalWayStats: '../contracts/abis/GlobalWayStats.json',
-    GlobalWayBridge: '../contracts/abis/GlobalWayBridge.json',
-    SafeVaultGW: '../contracts/abis/SafeVaultGW.json'
+    GlobalWayBridge: '../contracts/abis/GlobalWayBridge.json'
   },
 
   // ═══════════════════════════════════════════════════════════════
