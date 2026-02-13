@@ -1,6 +1,6 @@
 {
   "contractName": "MatrixRegistry",
-  "address": "0xC12b57B8B4BcE9134788FBb2290Cf4d496c4eE4a",
+  "address": "0xD62945edFF7605dFc77A4bF607c96Da72E03cd0C",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -149,6 +149,37 @@
         {
           "indexed": true,
           "internalType": "uint256",
+          "name": "userId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldSponsorId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newSponsorId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "SponsorChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
           "name": "techId",
           "type": "uint256"
         },
@@ -281,6 +312,77 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "userId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "newSponsorId",
+          "type": "uint256"
+        }
+      ],
+      "name": "adminChangeSponsor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "rootAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "specificId",
+          "type": "uint256"
+        }
+      ],
+      "name": "adminRegisterRootWithId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "specificId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
+        }
+      ],
+      "name": "adminRegisterWithId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
