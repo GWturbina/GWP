@@ -1,6 +1,6 @@
 {
   "contractName": "MatrixPayments",
-  "address": "0x6309136AE07e5691CB71678Df0701A351aF93241",
+  "address": "0xDf37d4cc11a01bcB57F2e8cD56234325a6ce8EDf",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -872,6 +872,19 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "safeVault",
+      "outputs": [
+        {
+          "internalType": "contract ISafeVaultGW",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -906,6 +919,19 @@
         }
       ],
       "name": "setQuarterlyPayments",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_safeVault",
+          "type": "address"
+        }
+      ],
+      "name": "setSafeVault",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
