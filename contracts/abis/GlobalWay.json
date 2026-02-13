@@ -1,6 +1,6 @@
 {
   "contractName": "GlobalWay",
-  "address": "0xc6E769A790cE87f9Dd952Dca6Ac1A9526Bc0FBe7",
+  "address": "0xe8e2af46AEEec1B51B335f10C5912620B1a2707F",
   "network": "opBNB",
   "chainId": 204,
   "abi": [
@@ -488,6 +488,19 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "author",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -544,6 +557,19 @@
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "cardGiftTokenomics",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -974,6 +1000,32 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "safeVault",
+      "outputs": [
+        {
+          "internalType": "contract ISafeVaultGW",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_author",
+          "type": "address"
+        }
+      ],
+      "name": "setAuthor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -987,6 +1039,19 @@
         }
       ],
       "name": "setAuthorizedBridge",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_cgt",
+          "type": "address"
+        }
+      ],
+      "name": "setCardGiftTokenomics",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1091,6 +1156,19 @@
         }
       ],
       "name": "setQuarterlyPayments",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_safeVault",
+          "type": "address"
+        }
+      ],
+      "name": "setSafeVault",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
