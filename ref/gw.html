@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- OG Preview Tags - GlobalWay -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="GlobalWay Ecosystem">
+  <meta property="og:title" content="🌐 GlobalWay — Присоединяйся к децентрализованной экосистеме!">
+  <meta property="og:description" content="Построй свой бизнес в Web3 вместе с GlobalWay. 12 уровней, бинарная матрица, токены GWT. Регистрируйся по приглашению!">
+  <meta property="og:image" content="https://gwp-navy.vercel.app/assets/icons/icon-512x512.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="https://gwp-navy.vercel.app/ref/gw.html">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="🌐 GlobalWay — Децентрализованная экосистема на opBNB">
+  <meta name="twitter:description" content="Построй свой бизнес в Web3. 12 уровней, матрица, токены GWT.">
+  <meta name="twitter:image" content="">
+  
+  <!-- Telegram Preview -->
+  <meta name="telegram:channel" content="@globalway_official">
+  
+  <title>GlobalWay — Приглашение</title>
+  <link rel="icon" href="../assets/icons/favicon.ico">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+    
+    body {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0a1628 0%, #0d2847 40%, #0a4a7a 70%, #062040 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #e0f0ff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated background particles */
+    .bg-particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-particles::before,
+    .bg-particles::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      animation: float 8s infinite ease-in-out;
+    }
+    .bg-particles::before {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(0,212,255,0.15) 0%, transparent 70%);
+      top: -100px; right: -100px;
+    }
+    .bg-particles::after {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,100,255,0.1) 0%, transparent 70%);
+      bottom: -200px; left: -200px;
+      animation-delay: -4s;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    .card {
+      background: rgba(13, 25, 50, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      border-radius: 24px;
+      padding: 48px 40px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      box-shadow: 
+        0 0 60px rgba(0, 212, 255, 0.1),
+        0 20px 60px rgba(0, 0, 0, 0.4);
+      animation: cardIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(40px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .logo {
+      width: 80px; height: 80px;
+      margin: 0 auto 20px;
+      border-radius: 20px;
+      border: 2px solid rgba(0, 212, 255, 0.3);
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+      animation: glow 3s infinite ease-in-out;
+    }
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 30px rgba(0, 212, 255, 0.2); }
+      50% { box-shadow: 0 0 50px rgba(0, 212, 255, 0.4); }
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #00d4ff, #0088ff, #00d4ff);
+      background-size: 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 3s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% center; }
+      100% { background-position: -200% center; }
+    }
+
+    .subtitle { font-size: 14px; color: #7ab5d4; margin-bottom: 24px; }
+
+    .invite-info {
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid rgba(0, 212, 255, 0.15);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .invite-label { font-size: 12px; color: #5a9ab5; text-transform: uppercase; letter-spacing: 1px; }
+    .invite-id {
+      font-size: 32px;
+      font-weight: 700;
+      color: #00d4ff;
+      margin: 8px 0;
+      font-family: 'Courier New', monospace;
+    }
+    .invite-name { font-size: 16px; color: #a0d0e8; }
+
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .feature {
+      background: rgba(0, 212, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px 8px;
+      font-size: 13px;
+    }
+    .feature-icon { font-size: 20px; margin-bottom: 4px; display: block; }
+    .feature-text { color: #8ac0d8; }
+
+    .cta-btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #00d4ff, #0088ff);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s;
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+    }
+    .cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 212, 255, 0.5);
+    }
+
+    .powered {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #4a7a94;
+    }
+    .powered span { color: #00d4ff; }
+
+    .loading { display: none; }
+    body.loading .card { display: none; }
+    body.loading .loading { display: flex; align-items: center; justify-content: center; min-height: 200px; font-size: 18px; color: #5a9ab5; }
+  </style>
+</head>
+<body>
+  <div class="bg-particles"></div>
+  
+  <div class="loading">⏳ Загрузка...</div>
+  
+  <div class="card">
+    <img class="logo" src="../assets/icons/logo.png" alt="GlobalWay" onerror="this.style.display='none'">
+    
+    <h1>GlobalWay</h1>
+    <p class="subtitle">Децентрализованная экосистема на opBNB</p>
+    
+    <div class="invite-info">
+      <div class="invite-label">Вас приглашает</div>
+      <div class="invite-id" id="sponsorId">—</div>
+      <div class="invite-name" id="sponsorName"></div>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <span class="feature-icon">📊</span>
+        <span class="feature-text">12 уровней</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🔗</span>
+        <span class="feature-text">Бинарная матрица</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">💎</span>
+        <span class="feature-text">Токены GWT</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🛡️</span>
+        <span class="feature-text">Блокчейн opBNB</span>
+      </div>
+    </div>
+
+    <a id="ctaBtn" class="cta-btn" href="../index.html">
+      🚀 Присоединиться
+    </a>
+
+    <p class="powered">Работает на <span>opBNB Blockchain</span> • 98% участникам</p>
+  </div>
+
+  <script>
+    (function() {
+      // Парсинг URL параметров
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref') || params.get('id') || params.get('r');
+      const name = params.get('name') || params.get('n');
+      
+      // Определяем базовый домен
+      const baseUrl = window.location.origin;
+      
+      // Обновляем OG теги динамически (для JS-рендереров)
+      if (ref) {
+        document.getElementById('sponsorId').textContent = 'ID: ' + ref;
+        
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle) ogTitle.content = '🌐 GlobalWay — Приглашение от ID ' + ref;
+        
+        const ogUrl = document.querySelector('meta[property="og:url"]');
+        if (ogUrl) ogUrl.content = baseUrl + '/ref/gw.html?ref=' + ref;
+      }
+      
+      if (name) {
+        document.getElementById('sponsorName').textContent = name;
+        const ogDesc = document.querySelector('meta[property="og:description"]');
+        if (ogDesc) ogDesc.content = name + ' приглашает вас в GlobalWay! Построй свой бизнес в Web3. Регистрируйся!';
+      }
+      
+      // Устанавливаем OG image - используем абсолютный путь
+      const ogImages = document.querySelectorAll('meta[property="og:image"], meta[name="twitter:image"]');
+      ogImages.forEach(img => {
+        img.content = baseUrl + '/assets/icons/icon-512x512.png';
+      });
+      
+      // Устанавливаем OG URL
+      const ogUrl = document.querySelector('meta[property="og:url"]');
+      if (ogUrl) ogUrl.content = window.location.href;
+      
+      // Кнопка CTA ведёт на регистрацию с реф-параметром
+      const ctaBtn = document.getElementById('ctaBtn');
+      if (ref) {
+        ctaBtn.href = '../index.html?ref=' + ref + '#register';
+      }
+      
+      // Антибан: если домен заблокирован, пробуем следующий
+      // (работает через postMessage с основным сайтом)
+      window.addEventListener('error', function() {
+        // Fallback logic
+      });
+    })();
+  </script>
+</body>
+</html>
