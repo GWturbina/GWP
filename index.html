@@ -1,391 +1,1748 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalWay — Технические работы</title>
-    <meta name="description" content="GlobalWay — улучшаем функционал. Скоро вернёмся!">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GlobalWay - Decentralized Club</title>
+    <meta name="description" content="GlobalWay decentralized club platform on opBNB" />
     
-    <!-- OG Tags -->
-    <meta property="og:title" content="GlobalWay — Скоро вернёмся">
-    <meta property="og:description" content="Мы улучшаем функционал. Скоро вернёмся!">
-    <meta property="og:type" content="website">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#001a33" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GlobalWay" />
+    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png" />
     
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;600&display=swap');
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192x192.png" />
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/variables.css" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/landing-modals.css" />  ← НОВЫЙ!
+    <link rel="stylesheet" href="css/v2-additional.css" />
+    <link rel="stylesheet" href="css/referral-links.css" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+
+    <!-- 🔥 ИСПРАВЛЕНО: Улучшенный SafePal Deep-Link -->
+    <script>
+    (function() {
+      try {
+        const ua = navigator.userAgent || '';
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
         
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        // 🔥 УЛУЧШЕНО: Более надёжная детекция SafePal браузера
+        const isSafePalBrowser = 
+          ua.includes('SafePal') || 
+          ua.includes('safepal') || 
+          window.location.href.includes('safepal') ||
+          (typeof window.safepal !== 'undefined');
         
-        :root {
-            --deep: #000a14;
-            --navy: #001a33;
-            --accent: #00d4ff;
-            --accent2: #7b61ff;
-            --gold: #ffd700;
-            --text: #e0eaf5;
-            --muted: #5a7a9a;
+        const url = new URL(window.location.href);
+        
+        // ✅ УЖЕ в SafePal - не делаем deep-link
+        if (isSafePalBrowser) {
+          console.log('✅ Already in SafePal browser, skip deep-link');
+          return;
         }
         
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: var(--deep);
-            color: var(--text);
-            min-height: 100vh;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        // 🔥 ИСПРАВЛЕНО: Deep-link ТОЛЬКО если явный параметр openInWallet=1
+        // НЕ делаем автоматический редирект по ref параметру!
+        const shouldDeepLink = isMobile && url.searchParams.get('openInWallet') === '1';
+
+        if (!shouldDeepLink) {
+          console.log('ℹ️ Deep-link not triggered (openInWallet=1 required)');
+          return;
         }
+
+        console.log('🔗 Triggering SafePal deep-link...');
         
-        /* ═══ ANIMATED BACKGROUND ═══ */
-        .bg-grid {
-            position: fixed;
-            inset: 0;
-            background-image: 
-                linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
-            background-size: 60px 60px;
-            animation: gridShift 20s linear infinite;
-        }
+        const currentUrl = window.location.href;
+        const encoded = encodeURIComponent(currentUrl);
+        const isAndroid = /Android/i.test(ua);
         
-        @keyframes gridShift {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(60px, 60px); }
-        }
+        // 🔥 УЛУЧШЕНО: Правильные deep-link схемы для разных платформ
+        const deepLink = isAndroid
+          ? `safepalwallet://open?url=${encoded}`
+          : `safepal://wc?uri=${encoded}`;
+
+        // 🔥 ИСПРАВЛЕНО: Увеличенная задержка для безопасности
+        setTimeout(() => {
+          console.log('🚀 Opening SafePal app...');
+          window.location.href = deepLink;
+        }, 300); // 300ms вместо 120ms
+
+        // 🔥 ИСПРАВЛЕНО: Показываем инструкцию через 3 секунды (а не 2.2)
+        setTimeout(() => {
+          try {
+            const storeUrl = isAndroid
+              ? 'https://play.google.com/store/apps/details?id=io.safepal.wallet'
+              : 'https://apps.apple.com/app/safepal-wallet/id1548297139';
+    
+            const wantsInstall = confirm(
+              'To use this DApp:\n\n' +
+              '1. Install SafePal Wallet (if not installed)\n' +
+              '2. Open this link in SafePal DApp Browser\n\n' +
+              'Press OK to open app store.'
+            );
+            
+            if (wantsInstall) {
+              window.open(storeUrl, '_blank');
+            }
+          } catch (e) {
+            console.warn('Deep-link store redirect error:', e);
+          }
+        }, 3000); // 3 секунды вместо 2.2
         
-        .bg-glow {
-            position: fixed;
-            width: 600px;
-            height: 600px;
-            border-radius: 50%;
-            filter: blur(120px);
-            opacity: 0.15;
-            animation: float 8s ease-in-out infinite;
-        }
-        
-        .bg-glow.glow1 {
-            top: -200px;
-            left: -100px;
-            background: var(--accent);
-        }
-        
-        .bg-glow.glow2 {
-            bottom: -200px;
-            right: -100px;
-            background: var(--accent2);
-            animation-delay: -4s;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(30px, -20px) scale(1.1); }
-        }
-        
-        /* ═══ PARTICLES ═══ */
-        .particles {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-        }
-        
-        .particle {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: var(--accent);
-            border-radius: 50%;
-            animation: rise linear infinite;
-            opacity: 0;
-        }
-        
-        @keyframes rise {
-            0% { transform: translateY(100vh) scale(0); opacity: 0; }
-            10% { opacity: 0.8; }
-            90% { opacity: 0.3; }
-            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
-        }
-        
-        /* ═══ MAIN CONTENT ═══ */
-        .container {
-            position: relative;
-            z-index: 10;
-            text-align: center;
-            padding: 40px 24px;
-            max-width: 600px;
-        }
-        
-        /* Logo / Icon */
-        .logo-wrap {
-            margin-bottom: 40px;
-            animation: fadeInDown 1s ease-out;
-        }
-        
-        .logo-icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 16px;
-            position: relative;
-        }
-        
-        .logo-icon::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border: 2px solid var(--accent);
-            border-radius: 20px;
-            transform: rotate(45deg);
-            animation: spinSlow 12s linear infinite;
-        }
-        
-        .logo-icon::after {
-            content: '';
-            position: absolute;
-            inset: 8px;
-            border: 1.5px solid var(--accent2);
-            border-radius: 16px;
-            transform: rotate(-45deg);
-            animation: spinSlow 12s linear infinite reverse;
-        }
-        
-        .logo-inner {
-            position: absolute;
-            inset: 18px;
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            font-size: 20px;
-            color: var(--deep);
-        }
-        
-        @keyframes spinSlow {
-            to { transform: rotate(405deg); }
-        }
-        
-        .logo-text {
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: 3px;
-            background: linear-gradient(135deg, var(--accent), var(--accent2), var(--gold));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        /* Status */
-        .status {
-            animation: fadeInUp 1s ease-out 0.3s both;
-        }
-        
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 20px;
-            border: 1px solid rgba(0,212,255,0.3);
-            border-radius: 100px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 32px;
-            background: rgba(0,212,255,0.05);
-        }
-        
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--gold);
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,215,0,0.4); }
-            50% { opacity: 0.6; box-shadow: 0 0 0 8px rgba(255,215,0,0); }
-        }
-        
-        h1 {
-            font-size: clamp(28px, 5vw, 42px);
-            font-weight: 300;
-            line-height: 1.3;
-            margin-bottom: 20px;
-            animation: fadeInUp 1s ease-out 0.5s both;
-        }
-        
-        h1 strong {
-            font-weight: 800;
-            color: var(--accent);
-        }
-        
-        .subtitle {
-            font-size: 16px;
-            color: var(--muted);
-            line-height: 1.7;
-            margin-bottom: 40px;
-            animation: fadeInUp 1s ease-out 0.7s both;
-        }
-        
-        /* Progress bar */
-        .progress-wrap {
-            margin-bottom: 40px;
-            animation: fadeInUp 1s ease-out 0.9s both;
-        }
-        
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: var(--muted);
-            margin-bottom: 8px;
-            letter-spacing: 1px;
-        }
-        
-        .progress-bar {
-            height: 3px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--accent), var(--accent2));
-            border-radius: 2px;
-            animation: progressGrow 3s ease-out 1.5s forwards;
-        }
-        
-        @keyframes progressGrow {
-            to { width: 65%; }
-        }
-        
-        /* Features coming */
-        .features {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-            animation: fadeInUp 1s ease-out 1.1s both;
-        }
-        
-        .feature-tag {
-            padding: 6px 14px;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            font-size: 12px;
-            color: var(--muted);
-            background: rgba(255,255,255,0.02);
-            transition: all 0.3s;
-        }
-        
-        .feature-tag:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: rgba(0,212,255,0.05);
-        }
-        
-        /* Footer */
-        .footer {
-            position: fixed;
-            bottom: 24px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 12px;
-            color: var(--muted);
-            opacity: 0.5;
-            animation: fadeInUp 1s ease-out 1.5s both;
-        }
-        
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* Mobile */
-        @media (max-width: 480px) {
-            .features { gap: 8px; }
-            .feature-tag { font-size: 11px; padding: 5px 10px; }
-        }
-    </style>
+      } catch (e) {
+        console.warn('SafePal deep-link error:', e);
+      }
+    })();
+    </script>
 </head>
 <body>
-    <!-- Background -->
-    <div class="bg-grid"></div>
-    <div class="bg-glow glow1"></div>
-    <div class="bg-glow glow2"></div>
+
+<!-- ✅ ИСПРАВЛЕНО #7: Debug panel только в development -->
+<script>
+  // Проверяем environment
+  const isDevelopment = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' ||
+                        window.location.hostname.includes('192.168.') ||
+                        window.location.protocol === 'file:';
+
+  if (isDevelopment) {
+    // Создаем debug panel только в dev
+    document.write('<div id="debug" style="position:fixed;top:0;left:0;background:rgba(255,0,0,0.8);color:white;padding:8px 12px;z-index:9999;font-size:11px;border-radius:0 0 8px 0;max-width:90%;word-wrap:break-word;">Loading...</div>');
     
-    <!-- Particles -->
-    <div class="particles" id="particles"></div>
+    // Обработка ошибок
+    window.onerror = function(msg, url, line, col, error) {
+      const debug = document.getElementById('debug');
+      if (debug) {
+        debug.innerHTML = 
+          '❌ Error: ' + msg + 
+          '<br>📍 Line: ' + line + 
+          '<br>📄 File: ' + (url ? url.split('/').pop() : 'unknown');
+        debug.style.background = 'rgba(255,0,0,0.9)';
+      }
+      console.error('Global error:', msg, url, line, col, error);
+      return true;
+    };
     
-    <!-- Content -->
-    <div class="container">
-        <div class="logo-wrap">
-            <div class="logo-icon">
-                <div class="logo-inner">GW</div>
+    // Убираем debug panel через 2 секунды если нет ошибок
+    setTimeout(() => {
+      const debug = document.getElementById('debug');
+      if(debug) {
+        debug.innerHTML = '✅ No errors - Dev mode';
+        debug.style.background = 'rgba(0,128,0,0.8)';
+      }
+      setTimeout(() => { 
+        if(debug) debug.style.display = 'none'; 
+      }, 1500);
+    }, 2000);
+  } else {
+    // В production только логируем в консоль
+    window.onerror = function(msg, url, line, col, error) {
+      console.error('Error:', msg, 'at', url, 'line', line);
+      return false;
+    };
+  }
+</script>
+    
+    <div id="app">
+        <!-- Landing Page -->
+        <div id="landing" class="page active">
+            <div class="cosmic-bg">
+                <img src="assets/images/background.jpg" alt="Earth" class="bg-image" />
+
+                <!-- Language Switcher -->
+                <div class="lang-switch">
+                    <select id="langSelect">
+                        <option value="en">EN</option>
+                        <option value="ru">RU</option>
+                        <option value="uk">UK</option>
+                    </select>
+                </div>
+
+                <!-- Floating Planets -->
+                <div class="planets-container">
+                    <div class="planet" data-planet="club">
+                        <img src="assets/planets/planet-club.png" alt="Club" />
+                        <span class="planet-label" data-translate="planets.club">Club GlobalWay</span>
+                    </div>
+                    <div class="planet" data-planet="mission">
+                        <img src="assets/planets/planet-mission.png" alt="Mission" />
+                        <span class="planet-label" data-translate="planets.mission">Our Mission</span>
+                    </div>
+                    <div class="planet" data-planet="goals">
+                        <img src="assets/planets/planet-goals.png" alt="Goals" />
+                        <span class="planet-label" data-translate="planets.goals">Club Goals</span>
+                    </div>
+                    <div class="planet" data-planet="roadmap">
+                        <img src="assets/planets/planet-roadmap.png" alt="Roadmap" />
+                        <span class="planet-label" data-translate="planets.roadmap">Roadmap</span>
+                    </div>
+                    <div class="planet" data-planet="projects">
+                        <img src="assets/planets/planet-projects.png" alt="Projects" />
+                        <span class="planet-label" data-translate="planets.projects">Our Projects</span>
+                    </div>
+                </div>
+
+                <!-- Entry Coin -->
+                <div class="entry-coin" id="openDapp">
+                    <img src="assets/planets/gwt-coin.png" alt="GWT Coin" />
+                    <span data-translate="landing.enterDapp">Enter DApp</span>
+                </div>
             </div>
-            <div class="logo-text">GLOBALWAY</div>
+        </div>
+
+        <!-- Main DApp -->
+        <div id="dapp" class="page">
+            <!-- Header -->
+            <header class="header">
+                <div class="logo">
+                    <img src="assets/icons/logo.png" alt="GlobalWay" />
+                    <span>GlobalWay</span>
+                </div>
+                <div class="header-info">
+                    <div class="header-lang-switch">
+                        <select id="langSelectHeader">
+                            <option value="en">EN</option>
+                            <option value="ru">RU</option>
+                            <option value="uk">UK</option>
+                        </select>
+                    </div>
+                    <div class="wallet-info">
+                        <span id="walletAddress">Not connected</span>
+                        <button id="connectBtn" class="btn-connect">Connect</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Navigation -->
+            <nav class="main-nav">
+                <button class="nav-btn active" data-page="dashboard">
+                    <span data-translate="nav.dashboard">Dashboard</span>
+                </button>
+                <button class="nav-btn" data-page="partners">
+                    <span data-translate="nav.partners">Partners</span>
+                </button>
+                <button class="nav-btn" data-page="matrix">
+                    <span data-translate="nav.matrix">Matrix</span>
+                </button>
+                <button class="nav-btn" data-page="tokens">
+                    <span data-translate="nav.tokens">Tokens</span>
+                </button>
+                <button class="nav-btn" data-page="projects">
+                    <span data-translate="nav.projects">Projects</span>
+                </button>
+                <button class="nav-btn" data-page="referrals">
+                    <span>🔗 Ссылки</span>
+                </button>
+                <button class="nav-btn" data-page="exchange">
+                    <span>💱 Обменник</span>
+                </button>
+                <button class="nav-btn admin-only" data-page="admin" style="display:none;">
+                    <i class="icon-settings"></i>
+                    <span data-translate="nav.admin">Admin</span>
+                </button>
+            </nav>
+
+            <!-- Content -->
+            <!-- Content -->
+            <main class="content">
+                <!-- Dashboard -->
+                <div id="dashboard" class="page-content">
+<div class="dashboard-page">
+    <!-- Personal Cabinet -->
+    <section class="cabinet-info">
+        <h2 data-translate="dashboard.cabinet">🌌 Personal Cabinet</h2>
+        
+        <!-- Connection Status Alert -->
+        <div id="connectionAlert" class="alert" style="display:none;">
+            <div class="alert-content">
+                <span id="alertMessage"></span>
+                <button id="alertAction" class="btn-primary"></button>
+            </div>
+        </div>
+
+        <!-- ✅ СЕКЦИЯ РЕГИСТРАЦИИ (показывается если пользователь не зарегистрирован) -->
+        <div id="registrationSection" style="display: none;">
+            <div class="registration-alert" style="background: #2a2a3e; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #ffd700;">
+                <h3 style="color: #ffd700; margin-top: 0;">⚠️ Регистрация Required</h3>
+                <p style="color: #e0e0e0;">Для активации уровней необходимо зарегистрироваться в системе GlobalWay.</p>
+            </div>
+            
+            <div class="info-grid" style="margin-bottom: 30px;">
+                <div class="info-item">
+                    <label>Address</label>
+                    <span id="regUserAddress">0x000...000</span>
+                </div>
+                <div class="info-item">
+                    <label>Balance</label>
+                    <span id="regUserBalance">0.000 BNB</span>
+                </div>
+            </div>
+
+            <div class="registration-form" style="background: #1a1a2e; padding: 30px; border-radius: 12px;">
+                <label for="sponsorID" style="display: block; margin-bottom: 10px; color: #ffd700; font-weight: bold;">Sponsor ID *</label>
+                <p class="help-text" style="color: #b0b0b0; margin-bottom: 15px; font-size: 14px;">
+                    Введите 7-значный ID вашего спонсора (например: 7777777).<br>
+                    После регистрации спонсора НЕЛЬЗЯ изменить!
+                </p>
+                <input 
+                    type="text" 
+                    id="sponsorID" 
+                    placeholder="7777777"
+                    maxlength="7"
+                    pattern="[0-9]{7}"
+                    style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #3a3a4e; background: #2a2a3e; color: #fff; margin-bottom: 20px; font-family: monospace; font-size: 18px; text-align: center; letter-spacing: 2px;"
+                />
+                <button id="registerBtn" class="btn-primary" style="width: 100%; padding: 15px; font-size: 16px; font-weight: bold;">
+                    🚀 Зарегистрироваться
+                </button>
+            </div>
+        </div>
+
+        <!-- ✅ СЕКЦИЯ ИНФОРМАЦИИ (показывается после регистрации) -->
+        <div id="userInfoSection">
+        <div class="info-grid">
+            <div class="info-item">
+                <label data-translate="dashboard.address">Address</label>
+                <span id="userAddress">0x000...000</span>
+            </div>
+            <div class="info-item">
+                <label data-translate="dashboard.balance">Balance</label>
+                <span id="userBalance">0.000 BNB</span>
+            </div>
+            <div class="info-item">
+                <label data-translate="dashboard.userId">User ID</label>
+                <span id="userId">-</span>
+            </div>
+            <div class="info-item">
+                <label data-translate="dashboard.rank">Rank</label>
+                <span id="userRank">-</span>
+            </div>
         </div>
         
-        <div class="status">
-            <div class="status-badge">
-                <span class="status-dot"></span>
-                Улучшение функционала
+        <div class="referral-section">
+            <label data-translate="dashboard.refLink">Referral Link</label>
+            <div class="referral-input-group">
+                <input type="text" id="refLink" readonly>
+                <button id="copyRefLink" data-translate="common.copy">Copy</button>
+                <button id="generateQR" class="btn-secondary">QR</button>
+            </div>
+        </div>
+        </div> <!-- ✅ ЗАКРЫЛИ userInfoSection -->
+    </section>
+
+    <!-- ✅ Quarterly Activity (скрывается если не зарегистрирован) -->
+    <div id="quarterlySection">
+    <section class="quarterly-activity">
+        <h3 data-translate="dashboard.quarterly">Quarterly Activity</h3>
+        <div class="activity-info">
+            <div class="activity-item">
+                <span data-translate="dashboard.quarter">Quarter:</span>
+                <span id="currentQuarter">1</span>
+            </div>
+            <div class="activity-item">
+                <span data-translate="dashboard.lastPayment">Last Payment:</span>
+                <span id="lastPayment">-</span>
+            </div>
+            <div class="activity-item">
+                <span data-translate="dashboard.nextPayment">Next Payment:</span>
+                <span id="nextPayment">-</span>
+            </div>
+            <div class="activity-item">
+                <span data-translate="dashboard.cost">Cost:</span>
+                <span id="quarterlyCost">0.075 BNB</span>
             </div>
         </div>
         
-        <h1>Мы улучшаем<br><strong>функционал</strong></h1>
-        
-        <p class="subtitle">
-            Платформа временно недоступна.<br>
-            Все данные сохранены. Скоро вернёмся с новыми возможностями!
-        </p>
-        
-        <div class="progress-wrap">
-            <div class="progress-label">
-                <span>PROGRESS</span>
-                <span>●●●○○</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill"></div>
-            </div>
+        <!-- Payment Due Warning -->
+        <div id="paymentWarning" class="payment-warning" style="display:none;">
+            <i class="warning-icon">⚠️</i>
+            <span data-translate="dashboard.paymentDue">Payment Due in</span>
+            <span id="daysRemaining">10</span>
+            <span data-translate="dashboard.days">days</span>
         </div>
         
-        <div class="features">
-            <span class="feature-tag">⚡ Новые возможности</span>
-            <span class="feature-tag">🎁 CardGift</span>
-            <span class="feature-tag">🏠 GlobalGame</span>
-            <span class="feature-tag">📊 Улучшения</span>
+        <button id="payActivityBtn" class="btn-primary" data-translate="dashboard.payActivity">Pay Activity</button>
+    </section>
+    </div> <!-- ✅ ЗАКРЫЛИ quarterlySection -->
+
+
+    <!-- Contract Balances & Withdrawal -->
+    <section class="contract-balances">
+        <h3 data-translate="dashboard.contractBalances">💰 Available Balances</h3>
+        <div class="balances-grid">
+            <div class="balance-item">
+                <div class="balance-header">
+                    <label data-translate="dashboard.marketingPool">Marketing Pool:</label>
+                </div>
+                <div class="balance-content">
+                    <span id="marketingBalance" class="balance-amount">0.0000 BNB</span>
+                    <button class="withdraw-btn" onclick="app.withdrawFromContract('marketing')" data-translate="dashboard.withdraw">Withdraw</button>
+                </div>
+            </div>
+            <div class="balance-item">
+                <div class="balance-header">
+                    <label data-translate="dashboard.leaderPool">Leader Pool:</label>
+                </div>
+                <div class="balance-content">
+                    <span id="leaderBalance" class="balance-amount">0.0000 BNB</span>
+                    <button class="withdraw-btn" onclick="app.withdrawFromContract('leader')" data-translate="dashboard.withdraw">Withdraw</button>
+                </div>
+            </div>
+            <div class="balance-item">
+                <div class="balance-header">
+                    <label data-translate="dashboard.investmentPool">Investment Pool:</label>
+                </div>
+                <div class="balance-content">
+                    <span id="investmentBalance" class="balance-amount">0.0000 BNB</span>
+                    <button class="withdraw-btn" onclick="app.withdrawFromContract('investment')" data-translate="dashboard.withdraw">Withdraw</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ✅ Level Management (скрывается если не зарегистрирован) -->
+    <div id="levelsSection">
+    <section class="level-management">
+        <h3 data-translate="dashboard.levelMgmt">Level Management</h3>
+        
+        <div class="auto-upgrade-info">
+            <i class="info-icon">ℹ️</i>
+            <span data-translate="dashboard.autoUpgrade">Auto-upgrade starts from level 4</span>
+        </div>
+        
+        <div class="levels-grid">
+            <div class="levels-individual">
+                <h4 data-translate="dashboard.individual">Individual Purchase</h4>
+                <div class="levels-row" id="individualLevels">
+                    <!-- Generated levels 1-12 -->
+                </div>
+            </div>
+            <div class="levels-bulk" style="display:none;">
+                 <h4 data-translate="dashboard.bulk">Bulk Purchase</h4>
+                 <div class="bulk-buttons">
+                    <button class="bulk-btn" data-levels="4" data-package="2">
+                        1-4 <span class="price" data-total="0.021">0.021</span> BNB
+                    </button>
+                    <button class="bulk-btn" data-levels="7" data-package="3">
+                        1-7 <span class="price" data-total="0.117">0.117</span> BNB
+                    </button>
+                    <button class="bulk-btn" data-levels="10" data-package="4">
+                        1-10 <span class="price" data-total="0.885">0.885</span> BNB
+                    </button>
+                    <button class="bulk-btn" data-levels="12" data-package="5">
+                        1-12 <span class="price" data-total="3.957">3.957</span> BNB
+                    </button>
+                 </div>
+             </div>
+    </section>
+    </div> <!-- ✅ ЗАКРЫЛИ levelsSection -->
+    </section>
+
+    <!-- Earnings by Rank -->
+    <section class="earnings-rank">
+        <h3 data-translate="dashboard.earnings">💎 Earnings by Ranks</h3>
+        <div class="earnings-list" id="earningsRank">
+            <!-- Generated earnings -->
+        </div>
+        <div class="total-earnings">
+            <strong>
+                <span data-translate="ranks.total">Total Income</span>: 
+                <span id="totalIncome">0 BNB</span>
+            </strong>
+        </div>
+    </section>
+
+    <!-- Transaction History -->
+    <section class="transaction-history">
+        <h3 data-translate="dashboard.history">Transaction History</h3>
+        <div class="history-controls">
+            <select id="historyFilter">
+                <option value="all">All Types</option>
+                <option value="level">Level Purchase</option>
+                <option value="partner">Partner Bonus</option>
+                <option value="matrix">Matrix Bonus</option>
+                <option value="quarterly">Quarterly Activity</option>
+            </select>
+            <button id="refreshHistory" class="btn-secondary" data-translate="common.refresh">Refresh</button>
+        </div>
+        <div class="history-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th data-translate="common.number">№</th>
+                        <th data-translate="common.level">Level</th>
+                        <th data-translate="common.amount">Amount</th>
+                        <th data-translate="common.date">Date</th>
+                        <th>ID</th>
+                        <th data-translate="common.type">Type</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTable">
+                    <tr>
+                        <td colspan="6" class="no-data" data-translate="common.loading">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Tokens Summary -->
+    <section class="tokens-summary">
+        <h3 data-translate="dashboard.tokens">Tokens</h3>
+        <div class="token-info-grid">
+            <div class="token-info-item">
+                <span data-translate="tokens.amount">Amount:</span>
+                <span id="tokenAmount">0 GWT</span>
+            </div>
+            <div class="token-info-item">
+                <span data-translate="tokens.price">Price:</span>
+                <span id="tokenPrice">$0.00</span>
+            </div>
+            <div class="token-info-item">
+                <span data-translate="tokens.value">Value:</span>
+                <span id="tokenValue">$0.00</span>
+            </div>
+        </div>
+        <button class="btn-secondary" onclick="showPage('tokens')" data-translate="tokens.manage">Manage</button>
+    </section>
+
+<!-- Tokens Summary -->
+    <section class="tokens-summary">
+        <h3 data-translate="dashboard.tokens">Tokens</h3>
+        <div class="token-info-grid">
+            <div class="token-info-item">                </div>
+        </div>  <!-- ✅ ЗАКРЫЛИ token-info-grid -->
+    </section>  <!-- ✅ ЗАКРЫЛИ tokens-summary -->
+</div>  <!-- ✅ ЗАКРЫЛИ dashboard-page -->
+</div>  <!-- ✅ ЗАКРЫЛИ dashboard -->
+
+                <!-- Partners -->
+                <div id="partners" class="page-content">
+<div class="partners-page">
+    <h2 data-translate="partners.title">Partners Structure</h2>
+    
+    <div class="level-selector">
+        <div class="level-buttons" id="partnerLevels">
+            <!-- Generated 1-12 level buttons -->
         </div>
     </div>
+    <!-- Current Level Info -->
+    <section class="current-level-info">
+        <h3 data-translate="partners.currentLevel">Current Level Information</h3>
+        <div class="level-info-grid">
+            <div class="level-info-item">
+                <label data-translate="common.level">Level:</label>
+                <span id="currentLevelNum">1</span>
+            </div>
+            <div class="level-info-item">
+                <label data-translate="partners.levelCost">Level Cost:</label>
+                <span id="currentLevelCost">0.0015 BNB</span>
+            </div>
+            <div class="level-info-item">
+                <label data-translate="partners.totalEarned">Total Earned:</label>
+                <span id="levelTotalEarned">0 BNB</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Structure -->
+    <section class="team-structure">
+        <h3 data-translate="partners.structure">🔍 Team Structure</h3>
+        <div class="table-container">
+            <table class="partners-table">
+                <thead>
+                    <tr>
+                        <th data-translate="common.number">№</th>
+                        <th>ID</th>
+                        <th data-translate="common.address">Address</th>
+                        <th data-translate="partners.sponsorId">Sponsor ID</th>
+                        <th data-translate="common.date">Activation Date</th>
+                        <th data-translate="common.level">Level</th>
+                        <th data-translate="partners.team">Direct Team</th>
+                        <th data-translate="partners.qualification">Qualification</th>
+                    </tr>
+                </thead>
+                <tbody id="partnersTable">
+                    <tr>
+                        <td colspan="8" class="no-data" data-translate="common.loading">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Team Statistics -->
+    <section class="team-stats">
+        <h3 data-translate="partners.stats">📊 Team Statistics</h3>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <label data-translate="partners.personal">Personal Invites:</label>
+                <span id="personalInvites">0</span>
+            </div>
+            <div class="stat-item">
+                <label data-translate="partners.active">Active Partners:</label>
+                <span id="activePartners">0</span>
+            </div>
+            <div class="stat-item">
+                <label data-translate="partners.total">Total Team:</label>
+                <span id="totalTeam">0</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Qualification Status -->
+    <section class="qualification-status">
+        <h3 data-translate="partners.qualification">Qualification</h3>
+        <div class="qualification-badges">
+            <div class="qualification-badge bronze" id="bronzeQual">
+                <span data-translate="partners.bronze">Bronze</span>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="qualification-badge silver" id="silverQual">
+                <span data-translate="partners.silver">Silver</span>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="qualification-badge gold" id="goldQual">
+                <span data-translate="partners.gold">Gold</span>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="qualification-badge platinum" id="platinumQual">
+                <span data-translate="partners.platinum">Platinum</span>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Earnings Breakdown -->
+    <section class="earnings-breakdown">
+        <h3 data-translate="partners.totalEarned">Total Earnings</h3>
+        <div class="earnings-breakdown-list">
+            <div class="earnings-item">
+                <span data-translate="partners.directBonus">Direct Bonus:</span>
+                <span id="directBonus">0 BNB</span>
+            </div>
+            <div class="earnings-item">
+                <span data-translate="partners.partnerBonus">Partner Bonus:</span>
+                <span id="partnerBonus">0 BNB</span>
+            </div>
+            <div class="earnings-item">
+                <span data-translate="partners.matrixBonus">Matrix Bonus:</span>
+                <span id="matrixBonus">0 BNB</span>
+            </div>
+            <div class="earnings-item">
+                <span data-translate="partners.leadershipBonus">Leadership Bonus:</span>
+                <span id="leadershipBonus">0 BNB</span>
+            </div>
+            <div class="earnings-item total">
+                <strong>
+                    <span data-translate="partners.totalEarned">Total Earned:</span>
+                    <span id="totalEarned">0 BNB</span>
+                </strong>
+            </div>
+        </div>
+    </section>
+</div>                </div>
+
+                <!-- Matrix -->
+                <div id="matrix" class="page-content">
+<div class="matrix-page">
+    <h2 data-translate="matrix.title">Interactive Matrix</h2>
     
-    <div class="footer">
-        GlobalWay Decentralized Club © 2025 — opBNB Mainnet
+    <!-- Level Selector -->
+    <div class="level-selector">
+        <div class="level-buttons" id="matrixLevels">
+            <!-- Generated 1-12 level buttons -->
+        </div>
     </div>
+
+    <!-- Search by ID -->
+    <div class="matrix-search">
+        <input type="text" id="matrixSearchInput" placeholder="Search by ID" data-translate="matrix.searchPlaceholder">
+        <button id="matrixSearchBtn" class="btn-primary" data-translate="common.search">Search</button>
+    </div>
+
+    <!-- Interactive Matrix Visualization - ПРАВИЛЬНАЯ СТРУКТУРА 1-2-4 -->
+    <section class="interactive-matrix">
+        <h3 data-translate="matrix.interactive">Interactive Matrix</h3>
+        
+        <div class="matrix-container">
+            <!-- TOP POSITION - 1 позиция -->
+            <div class="matrix-level level-0">
+                <div class="matrix-position top-position" id="topPosition" data-position="0">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">GW0000000</span>
+                        <span class="position-level">Level 1</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FIRST LINE - 2 позиции -->
+            <div class="matrix-level level-1">
+                <div class="matrix-position" id="position1" data-position="1">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+                <div class="matrix-position" id="position2" data-position="2">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECOND LINE - 4 позиции -->
+            <div class="matrix-level level-2">
+                <div class="matrix-position" id="position3" data-position="3">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+                <div class="matrix-position" id="position4" data-position="4">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+                <div class="matrix-position" id="position5" data-position="5">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+                <div class="matrix-position" id="position6" data-position="6">
+                    <div class="position-avatar">?</div>
+                    <div class="position-info">
+                        <span class="position-id">Empty</span>
+                        <span class="position-type">Available</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matrix Legend -->
+        <div class="matrix-legend">
+            <div class="legend-item">
+                <div class="legend-color partner"></div>
+                <span data-translate="matrix.partner">Partner</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color charity"></div>
+                <span data-translate="matrix.charity">Charity</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color technical"></div>
+                <span data-translate="matrix.technical">Technical</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color available"></div>
+                <span data-translate="matrix.available">Available</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Matrix Table -->
+    <section class="matrix-table-section">
+        <h3 data-translate="matrix.structure">Matrix Structure</h3>
+        <div class="level-info">
+            <span>Current Level: <strong id="currentMatrixLevel">1</strong></span>
+            <span>Max Positions: <strong id="maxPositionsInfo">2</strong></span>
+        </div>
+        <div class="table-container">
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th data-translate="common.number">№</th>
+                        <th>ID</th>
+                        <th data-translate="common.address">Address</th>
+                        <th data-translate="partners.sponsorId">Sponsor ID</th>
+                        <th data-translate="common.date">Activation Date</th>
+                        <th data-translate="common.level">Level</th>
+                        <th data-translate="matrix.qualification">Qualification</th>
+                    </tr>
+                </thead>
+                <tbody id="matrixTableBody">
+                    <tr>
+                        <td colspan="7" class="no-data" data-translate="common.loading">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Matrix Statistics -->
+    <section class="matrix-statistics">
+        <h3 data-translate="matrix.stats">Matrix Statistics</h3>
+        <div class="matrix-stats-grid">
+            <div class="stat-card total">
+                <div class="stat-value" id="totalActivePositions">0</div>
+                <div class="stat-label" data-translate="matrix.totalActive">Total Active Positions</div>
+            </div>
+            <div class="stat-card partners">
+                <div class="stat-value" id="partnerPositions">0</div>
+                <div class="stat-label" data-translate="matrix.fromPartners">From Partners</div>
+            </div>
+            <div class="stat-card charity">
+                <div class="stat-value" id="charityPositions">0</div>
+                <div class="stat-label" data-translate="matrix.fromCharity">From Charity</div>
+            </div>
+            <div class="stat-card technical">
+                <div class="stat-value" id="technicalPositions">0</div>
+                <div class="stat-label" data-translate="matrix.fromTechnical">From Technical</div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Position Details Modal -->
+<div id="positionModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 id="positionModalTitle">Position Details</h3>
+        <div class="position-modal-details">
+            <div class="detail-row">
+                <label>ID:</label>
+                <span id="modalPositionId">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="partners.sponsorId">Sponsor ID:</label>
+                <span id="modalSponsorId">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="common.address">Address:</label>
+                <span id="modalAddress">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="common.level">Level:</label>
+                <span id="modalLevel">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="common.status">Status:</label>
+                <span id="modalStatus">-</span>
+            </div>
+            <div class="detail-row">
+                <label data-translate="matrix.qualification">Qualification:</label>
+                <span id="modalQualification">-</span>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button id="viewMatrixBtn" class="btn-primary" data-translate="matrix.viewMatrix">View Matrix</button>
+            <button id="closeModalBtn" class="btn-secondary" data-translate="common.close">Close</button>
+        </div>
+    </div>
+</div>                </div>
+
+                <!-- Tokens -->
+                <div id="tokens" class="page-content">
+<div class="tokens-page">
+    <h2 data-translate="tokens.title">GWT Tokens</h2>
     
+    <!-- Token Balance -->
+    <section class="token-balance">
+        <h3 data-translate="tokens.balance">Token Balance</h3>
+        <div class="balance-info">
+            <div class="balance-item">
+                <div class="balance-label" data-translate="tokens.total">Total Balance:</div>
+                <div class="balance-value" id="totalTokens">0 GWT</div>
+            </div>
+            <div class="balance-item">
+                <div class="balance-label" data-translate="tokens.value">Total Value:</div>
+                <div class="balance-value" id="totalValue">$0.00</div>
+            </div>
+            <div class="balance-item">
+                <div class="balance-label" data-translate="tokens.price">Current Price:</div>
+                <div class="balance-value" id="currentPrice">$0.00</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Token Statistics -->
+    <section class="token-stats">
+        <h3 data-translate="tokens.statistics">📈 Token Statistics</h3>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <label data-translate="tokens.totalSupply">Total Supply:</label>
+                <span id="totalSupply">1,000,000,000 GWT</span>
+            </div>
+            <div class="stat-item">
+                <label data-translate="tokens.circulation">Circulating Supply:</label>
+                <span id="circSupply">0 GWT</span>
+            </div>
+            <div class="stat-item">
+                <label data-translate="tokens.burned">Burned Tokens:</label>
+                <span id="burnedTokens">0 GWT</span>
+            </div>
+            <div class="stat-item">
+                <label data-translate="tokens.marketCap">Market Cap:</label>
+                <span id="marketCap">$0</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Token Trading -->
+    <section class="token-trading">
+        <h3 data-translate="tokens.trading">💰 Token Trading</h3>
+        <div id="tradingSection">
+            <div class="trading-status">
+                <div class="status-indicator disabled">
+                    <span data-translate="tokens.tradingStatus">Trading Status:</span>
+                    <span class="status-text">Disabled</span>
+                </div>
+                <p data-translate="tokens.tradingDisabled">Trading starts when price reaches $0.01</p>
+            </div>
+            <div class="trading-controls" style="opacity: 0.5;">
+                <div class="trading-input-group">
+                    <label>Amount (GWT):</label>
+                    <input type="number" id="tradeAmount" placeholder="0" disabled>
+                </div>
+                <div class="trading-buttons">
+                    <button class="btn-success" id="buyBtn" disabled data-translate="tokens.buy">Buy</button>
+                    <button class="btn-danger" id="sellBtn" disabled data-translate="tokens.sell">Sell</button>
+                </div>
+                <div class="trade-info">
+                    <div class="trade-info-item">
+                        <span>Cost:</span>
+                        <span id="tradeCost">0 BNB</span>
+                    </div>
+                    <div class="trade-info-item">
+                        <span>New Price:</span>
+                        <span id="newPrice">$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Token Pools -->
+    <section class="token-pools">
+        <h3 data-translate="tokens.pools">Token Pools</h3>
+        <div class="pools-grid">
+            <div class="pool-item">
+                <div class="pool-info">
+                    <span class="pool-name" data-translate="tokens.tokenomics">Tokenomics Pool</span>
+                    <span class="pool-amount">80% (800M GWT)</span>
+                </div>
+                <span class="pool-status status-soon" data-translate="common.soon">Soon</span>
+            </div>
+            <div class="pool-item">
+                <div class="pool-info">
+                    <span class="pool-name" data-translate="tokens.distribution">Distribution Pool</span>
+                    <span class="pool-amount">10% (100M GWT)</span>
+                </div>
+                <span class="pool-status status-soon" data-translate="common.soon">Soon</span>
+            </div>
+            <div class="pool-item">
+                <div class="pool-info">
+                    <span class="pool-name" data-translate="tokens.team">Team Pool</span>
+                    <span class="pool-amount">5% (50M GWT)</span>
+                </div>
+                <span class="pool-status status-locked" data-translate="common.locked">Locked</span>
+            </div>
+            <div class="pool-item">
+                <div class="pool-info">
+                    <span class="pool-name" data-translate="tokens.reserve">Reserve Pool</span>
+                    <span class="pool-amount">5% (50M GWT)</span>
+                </div>
+                <span class="pool-status status-soon" data-translate="common.soon">Soon</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Level Rewards -->
+    <section class="level-rewards">
+        <h3 data-translate="tokens.rewards">Level Rewards</h3>
+        <div class="rewards-grid" id="levelRewards">
+            <!-- Generated level rewards -->
+        </div>
+        <div class="rewards-total">
+            <strong>
+                <span>Total Possible Rewards: </span>
+                <span id="totalPossibleRewards">9,300 GWT</span>
+            </strong>
+        </div>
+    </section>
+
+    <!-- Token History -->
+    <section class="token-history">
+        <h3 data-translate="tokens.history">Token History</h3>
+        <div class="history-filters">
+            <select id="tokenHistoryFilter">
+                <option value="all">All Types</option>
+                <option value="reward">Level Rewards</option>
+                <option value="trade">Trading</option>
+                <option value="transfer">Transfers</option>
+            </select>
+            <button id="refreshTokenHistory" class="btn-secondary" data-translate="common.refresh">Refresh</button>
+        </div>
+        <div class="table-container">
+            <table class="token-history-table">
+                <thead>
+                    <tr>
+                        <th data-translate="common.date">Date</th>
+                        <th data-translate="common.type">Type</th>
+                        <th data-translate="common.level">Level</th>
+                        <th data-translate="common.amount">Amount</th>
+                        <th data-translate="common.status">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tokenHistoryTable">
+                    <tr>
+                        <td colspan="5" class="no-data" data-translate="common.loading">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Token Staking -->
+    <section class="token-staking">
+        <h3 data-translate="tokens.staking">🔒 Token Staking</h3>
+        <div class="staking-info">
+            <p data-translate="tokens.stakingDesc">Coming Soon</p>
+            <div class="staking-features">
+                <div class="feature-item">
+                    <i class="feature-icon">📈</i>
+                    <span data-translate="tokens.earnRewards">Earn Rewards</span>
+                </div>
+                <div class="feature-item">
+                    <i class="feature-icon">🗳️</i>
+                    <span data-translate="tokens.governance">Governance Rights</span>
+                    </div>
+                <div class="feature-item">
+                    <i class="feature-icon">🎯</i>
+                    <span data-translate="tokens.exclusiveAccess">Exclusive Access</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Token Utility -->
+    <section class="token-utility">
+        <h3 data-translate="tokens.utility">🛠️ Token Utility</h3>
+        <div class="utility-grid">
+            <div class="utility-item">
+                <h4 data-translate="tokens.paymentMethod">Payment Method</h4>
+                <p data-translate="tokens.paymentDesc">Use GWT for payments within ecosystem</p>
+            </div>
+            <div class="utility-item">
+                <h4 data-translate="tokens.rewardProgram">Reward Program</h4>
+                <p data-translate="tokens.rewardDesc">Earn GWT tokens for activities</p>
+            </div>
+            <div class="utility-item">
+                <h4 data-translate="tokens.governance">Governance</h4>
+                <p data-translate="tokens.governanceDesc">Vote on platform decisions</p>
+            </div>
+            <div class="utility-item">
+                <h4 data-translate="tokens.stakingRewards">Staking Rewards</h4>
+                <p data-translate="tokens.stakingRewardsDesc">Earn passive income through staking</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contract Information -->
+    <section class="contract-info">
+        <h3 data-translate="tokens.contractInfo">📄 Contract Information</h3>
+        <div class="contract-details">
+            <div class="contract-item">
+                <label data-translate="tokens.contractAddress">Contract Address:</label>
+                <span class="contract-address">0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc</span>
+                <button class="copy-btn" data-copy="0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc" data-translate="common.copy">Copy</button>
+            </div>
+            <div class="contract-item">
+                <label data-translate="tokens.tokenName">Token Name:</label>
+                <span>GlobalWay Token</span>
+            </div>
+            <div class="contract-item">
+                <label data-translate="tokens.symbol">Symbol:</label>
+                <span>GWT</span>
+            </div>
+            <div class="contract-item">
+                <label data-translate="tokens.decimals">Decimals:</label>
+                <span>18</span>
+            </div>
+            <div class="contract-item">
+                <label data-translate="tokens.network">Network:</label>
+                <span>opBNB</span>
+            </div>
+        </div>
+        <div class="contract-actions">
+            <button class="btn-secondary" id="addToWallet" data-translate="tokens.addWallet">Add to Wallet</button>
+            <button class="btn-secondary" id="viewExplorer" data-translate="tokens.viewExplorer">View on Explorer</button>
+        </div>
+    </section>
+</div>                </div>
+
+                <!-- Projects -->
+                <div id="projects" class="page-content">
+<div class="projects-page">
+    <h2 data-translate="projects.title">Our Projects</h2>
+    
+    <!-- Projects Grid -->
+    <section class="projects-section">
+        <div class="projects-grid" id="projectsGrid">
+            <!-- Generated project cards -->
+        </div>
+    </section>
+
+    <!-- Project Proposal - СРАЗУ ПОСЛЕ КАРТОЧЕК -->
+    <section class="project-proposal">
+        <h3 data-translate="projects.proposeProject">💡 Propose Project</h3>
+        <form class="proposal-form" id="proposalForm">
+            <div class="form-group">
+                <label data-translate="projects.author">Author:</label>
+                <input type="text" id="proposalAuthor" required>
+            </div>
+            <div class="form-group">
+                <label data-translate="projects.contact">Contact:</label>
+                <input type="email" id="proposalContact" required>
+            </div>
+            <div class="form-group">
+                <label data-translate="projects.sphere">Sphere of Activity:</label>
+                <select id="proposalSphere" required>
+                    <option value="">Select Category</option>
+                    <option value="defi">DeFi</option>
+                    <option value="nft">NFT</option>
+                    <option value="gaming">Gaming</option>
+                    <option value="social">Social</option>
+                    <option value="education">Education</option>
+                    <option value="marketplace">Marketplace</option>
+                    <option value="tools">Tools</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label data-translate="projects.idea">Project Idea:</label>
+                <input type="text" id="proposalIdea" required>
+            </div>
+            <div class="form-group">
+                <label data-translate="projects.description">Project Description:</label>
+                <textarea id="proposalDescription" rows="5" required></textarea>
+            </div>
+            <button type="submit" class="btn-primary" data-translate="projects.submit">Submit Proposal</button>
+        </form>
+    </section>
+
+    <!-- Project Statistics -->
+    <section class="project-stats">
+        <h3 data-translate="projects.statistics">Project Statistics</h3>
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-value" id="totalProjects">8</div>
+                <div class="stat-label" data-translate="projects.total">Total Projects</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="activeProjects">0</div>
+                <div class="stat-label" data-translate="projects.active">Active</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="devProjects">4</div>
+                <div class="stat-label" data-translate="projects.development">In Development</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="comingProjects">4</div>
+                <div class="stat-label" data-translate="projects.coming">Coming Soon</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="reviewProjects">0</div>
+                <div class="stat-label" data-translate="projects.review">Under Review</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap -->
+    <section class="roadmap">
+        <h3 data-translate="projects.roadmap">🗓️ Roadmap</h3>
+        <div class="roadmap-timeline">
+            <div class="timeline-item">
+                <div class="timeline-year">2025</div>
+                <div class="timeline-content">
+                    <h4>Phase I - Foundation</h4>
+                    <p data-translate="roadmap.2025">Platform launch and 8 projects</p>
+                    <div class="timeline-projects">
+                        <span class="project-tag">KardGift</span>
+                        <span class="project-tag">GlobalTub</span>
+                        <span class="project-tag">GlobalMarket</span>
+                        <span class="project-tag">GlobalGame</span>
+                    </div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-year">2026</div>
+                <div class="timeline-content">
+                    <h4>Phase II - Expansion</h4>
+                    <p data-translate="roadmap.2026">GWT token enters securities market</p>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-year">2027</div>
+                <div class="timeline-content">
+                    <h4>Phase III - Leadership</h4>
+                    <p data-translate="roadmap.2027">Leadership among global communities</p>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-year">2028</div>
+                <div class="timeline-content">
+                    <h4>Phase IV - Legacy</h4>
+                    <p data-translate="roadmap.2028">Building eco-settlements</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Developer Program -->
+    <section class="developer-program">
+        <h3 data-translate="projects.developerProgram">👨‍💻 Developer Program</h3>
+        <div class="program-content">
+            <div class="program-benefits">
+                <div class="benefit-item">
+                    <i class="benefit-icon">💰</i>
+                    <h4 data-translate="projects.rewards">Developer Rewards</h4>
+                    <p>Earn GWT tokens for contributing to the ecosystem</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="benefit-icon">🛠️</i>
+                    <h4 data-translate="projects.tools">Development Tools</h4>
+                    <p>Access to APIs, SDKs, and development resources</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="benefit-icon">👥</i>
+                    <h4 data-translate="projects.communitySupport">Community Support</h4>
+                    <p>Connect with other developers and get help</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="benefit-icon">📚</i>
+                    <h4 data-translate="projects.documentation">Documentation</h4>
+                    <p>Comprehensive guides and API documentation</p>
+                </div>
+            </div>
+            <div class="program-actions">
+                <button class="btn-primary" id="joinProgram" data-translate="projects.joinProgram">Join Program</button>
+                <button class="btn-secondary" id="viewDocs" data-translate="projects.viewDocs">View Documentation</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- News Section -->
+    <section class="news-section">
+        <h3 data-translate="projects.news">📰 Project News</h3>
+        <div class="news-list" id="newsList">
+            <div class="news-item">
+                <div class="news-date">2025-01-15</div>
+                <div class="news-content">
+                    <h4>GlobalWay Platform Launch</h4>
+                    <p>Official launch of the GlobalWay platform with initial project integrations.</p>
+                </div>
+            </div>
+            <div class="news-item">
+                <div class="news-date">2025-01-10</div>
+                <div class="news-content">
+                    <h4>Developer Program Opens</h4>
+                    <p>Join our developer program and start building the future of decentralized applications.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Project Details Modal -->
+<div id="projectModal" class="modal">
+    <div class="modal-content project-modal">
+        <span class="close">&times;</span>
+        <div class="modal-header">
+            <img id="projectModalLogo" src="" alt="Project Logo">
+            <div>
+                <h3 id="projectModalTitle">Project Name</h3>
+                <div id="projectModalStatus" class="project-status">Status</div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="project-description">
+                <h4 data-translate="projects.about">About Project</h4>
+                <p id="projectModalDescription">Project description...</p>
+            </div>
+            <div class="project-requirements">
+                <h4>Access Requirements</h4>
+                <p id="projectModalRequirements">Level requirements...</p>
+            </div>
+            <div class="project-prefix">
+                <h4>Project ID Prefix</h4>
+                <p id="projectModalPrefix">XX-XXXXXXX</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" id="projectModalAction" disabled data-translate="projects.openProject">Open Project</button>
+        </div>
+    </div>
+</div>                </div>
+
+                <!-- Referral Links -->
+                <div id="referrals" class="page-content">
+                  <div class="referrals-page" id="referralLinksContent">
+                    <!-- Populated by referral-links.js -->
+                  </div>
+                </div>
+
+                <!-- Exchange & P2P -->
+                <div id="exchange" class="page-content">
+                  <!-- Populated by exchange.js -->
+                </div>
+
+                <!-- Admin -->
+                <div id="admin" class="page-content">
+<div class="admin-page">
+    <h2 data-translate="admin.title">🔧 Admin Panel</h2>
+    
+    <!-- Admin Rights Check -->
+    <section class="admin-rights">
+        <h3>Access Control</h3>
+        <div class="rights-item">
+            <label data-translate="admin.currentAccount">Current Account:</label>
+            <span id="adminCurrentAccount">-</span>
+        </div>
+        <div class="rights-item">
+            <label data-translate="admin.ownerRights">Rights Level:</label>
+            <span id="adminRightsLevel">Checking...</span>
+        </div>
+    </section>
+
+    <!-- Admin Statistics -->
+    <section class="admin-stats">
+        <h3 data-translate="admin.stats">📊 Administrator Statistics</h3>
+        <div class="admin-stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="adminTotalUsers">0</div>
+                <div class="stat-label" data-translate="admin.totalUsers">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminActiveUsers">0</div>
+                <div class="stat-label" data-translate="admin.activeUsers">Active Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminContractBalance">0 BNB</div>
+                <div class="stat-label" data-translate="admin.contractBalance">Contract Balance</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminTotalVolume">0 BNB</div>
+                <div class="stat-label" data-translate="admin.totalVolume">Total Volume</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Free Activation -->
+    <section class="free-activation">
+        <h3 data-translate="admin.freeActivation">🎁 Free User Activation</h3>
+        <div class="activation-form">
+            <div class="form-group">
+                <label data-translate="admin.userAddress">User Address:</label>
+                <input type="text" id="activationAddress" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.sponsorAddress">Sponsor Address:</label>
+                <input type="text" id="activationSponsor" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.maxLevel">Max Level:</label>
+                <select id="activationLevel">
+                    <option value="3" data-translate="admin.client">Client (1-3)</option>
+                    <option value="4" data-translate="admin.miniAdmin">Mini Admin (1-4)</option>
+                    <option value="7" data-translate="admin.admin">Admin (1-7)</option>
+                    <option value="10" data-translate="admin.superAdmin">Super Admin (1-10)</option>
+                    <option value="12" data-translate="admin.manager">Manager (1-12)</option>
+                </select>
+            </div>
+            <button id="freeActivateBtn" class="btn-primary" data-translate="admin.activate">🚀 Activate User</button>
+        </div>
+    </section>
+
+    <!-- Batch Activation -->
+    <section class="batch-activation">
+        <h3 data-translate="admin.batchActivation">⚡ Batch Team Activation</h3>
+        <div class="batch-form">
+            <div class="form-group">
+                <label data-translate="admin.teamMembers">Team Members (one per line):</label>
+                <textarea id="batchMembers" rows="5" placeholder="0x...&#10;0x...&#10;0x..."></textarea>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.sponsorAddress">Sponsor Address:</label>
+                <input type="text" id="batchSponsor" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.maxLevel">Max Level:</label>
+                <select id="batchLevel">
+                    <option value="3" data-translate="admin.client">Client (1-3)</option>
+                    <option value="4" data-translate="admin.miniAdmin">Mini Admin (1-4)</option>
+                    <option value="7" data-translate="admin.admin">Admin (1-7)</option>
+                    <option value="10" data-translate="admin.superAdmin">Super Admin (1-10)</option>
+                    <option value="12" data-translate="admin.manager">Manager (1-12)</option>
+                </select>
+            </div>
+            <button id="batchActivateBtn" class="btn-primary" data-translate="admin.batchActivate">Batch Activate Team</button>
+        </div>
+    </section>
+
+    <!-- User Management -->
+    <section class="user-management">
+        <h3 data-translate="admin.authManagement">🔐 User Management</h3>
+        
+        <!-- Block User -->
+        <div class="management-section">
+            <h4 data-translate="admin.blockUser">Block User</h4>
+            <div class="management-form">
+                <input type="text" id="blockUserAddress" placeholder="User Address" data-translate="admin.userAddress">
+                <input type="text" id="tempAddress" placeholder="Temporary Address" data-translate="admin.tempAddress">
+                <textarea id="blockReason" placeholder="Block Reason" data-translate="admin.blockReason"></textarea>
+                <button id="blockUserBtn" class="btn-danger">🚫 Block User</button>
+            </div>
+        </div>
+
+        <!-- Replace Address -->
+        <div class="management-section">
+            <h4 data-translate="admin.replaceAddress">Replace User Address</h4>
+            <div class="management-form">
+                <input type="text" id="replaceOldAddress" placeholder="Current Address" data-translate="admin.userAddress">
+                <input type="text" id="replaceNewAddress" placeholder="New Address" data-translate="admin.newAddress">
+                <textarea id="replaceReason" placeholder="Reason for replacement" data-translate="admin.reason"></textarea>
+                <button id="replaceAddressBtn" class="btn-warning">🔄 Replace Address</button>
+            </div>
+        </div>
+
+        <!-- Process Inactive -->
+        <div class="management-section">
+            <h4 data-translate="admin.processInactive">Process Inactive User</h4>
+            <div class="management-form">
+                <input type="text" id="inactiveUserAddress" placeholder="User Address" data-translate="admin.userAddress">
+                <button id="processInactiveBtn" class="btn-warning" data-translate="admin.processInactiveAccount">⚠️ Process Inactive Account</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contract Management -->
+    <section class="contract-management">
+        <h3 data-translate="admin.contractMgmt">🔧 Contract Management</h3>
+        <div class="contract-controls">
+            <div class="control-group">
+                <h4>Contract Status</h4>
+                <div class="status-controls">
+                    <button id="pauseContractBtn" class="btn-danger" data-translate="admin.pause">⏸️ Pause Contract</button>
+                    <button id="unpauseContractBtn" class="btn-success" data-translate="admin.unpause">▶️ Unpause Contract</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h4>Project Integration</h4>
+                <div class="project-controls">
+                    <input type="text" id="projectContractAddress" placeholder="Project Contract Address" data-translate="admin.projectContract">
+                    <input type="text" id="projectName" placeholder="Project Name" data-translate="admin.projectName">
+                    <div class="project-actions">
+                        <button id="connectProjectBtn" class="btn-success" data-translate="admin.connectProject">🔗 Connect Project</button>
+                        <button id="disconnectProjectBtn" class="btn-danger" data-translate="admin.disconnectProject">❌ Disconnect Project</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Board Members Management -->
+    <section class="board-management">
+        <h3 data-translate="admin.boardManagement">👔 Board Members Management</h3>
+        
+        <!-- Current Board Members -->
+        <div class="board-list">
+            <h4 data-translate="admin.currentBoard">Current Board Members</h4>
+            <div id="boardMembersList" class="board-members-list">
+                <div class="loading">Loading board members...</div>
+            </div>
+            <button id="refreshBoardBtn" class="btn-secondary">🔄 Refresh List</button>
+        </div>
+
+        <!-- Add Board Member -->
+        <div class="management-section">
+            <h4 data-translate="admin.addBoardMember">Add Board Member</h4>
+            <div class="management-form">
+                <input type="text" id="addBoardAddress" placeholder="Board Member Address (0x...)" data-translate="admin.boardAddress">
+                <textarea id="addBoardReason" placeholder="Reason for adding this board member" rows="2" data-translate="admin.addReason"></textarea>
+                <div class="info-box">
+                    <small>⚠️ Adding a board member requires voting approval. They will have rights to vote on proposals.</small>
+                </div>
+                <button id="addBoardMemberBtn" class="btn-primary" data-translate="admin.addMember">➕ Add Board Member</button>
+            </div>
+        </div>
+
+        <!-- Remove Board Member -->
+        <div class="management-section">
+            <h4 data-translate="admin.removeBoardMember">Remove Board Member</h4>
+            <div class="management-form">
+                <input type="text" id="removeBoardAddress" placeholder="Board Member Address (0x...)" data-translate="admin.boardAddress">
+                <textarea id="removeBoardReason" placeholder="Reason for removing this board member" rows="2" data-translate="admin.removeReason"></textarea>
+                <div class="warning-box">
+                    <small>⚠️ Removing a board member requires voting approval. This action cannot be undone without another vote.</small>
+                </div>
+                <button id="removeBoardMemberBtn" class="btn-danger" data-translate="admin.removeMember">➖ Remove Board Member</button>
+            </div>
+        </div>
+
+        <!-- Board Statistics -->
+        <div class="board-stats">
+            <div class="stat-item">
+                <label data-translate="admin.totalBoardMembers">Total Board Members:</label>
+                <span id="totalBoardMembers">0</span>
+            </div>
+            <div class="stat-item">
+                <label data-translate="admin.votingQuorum">Voting Quorum:</label>
+                <span id="votingQuorum">5/8 (63%)</span>
+            </div>
+        </div>
+    </section>
+    <!-- Financial Management -->
+    <section class="financial-management">
+        <h3 data-translate="admin.financial">💰 Financial Management</h3>
+        
+        <!-- Pool Withdrawals -->
+        <div class="financial-section">
+            <h4 data-translate="admin.withdrawal">Withdrawal Management</h4>
+            <div class="withdrawal-form">
+                <select id="withdrawalPool" data-translate="admin.withdrawalPool">
+                    <option value="treasury">Treasury Pool</option>
+                    <option value="ops">Operations Pool</option>
+                    <option value="dev">Development Pool</option>
+                    <option value="charity">Charity Pool</option>
+                    <option value="tokenomics">Tokenomics Pool</option>
+                </select>
+                <input type="text" id="withdrawalAddress" placeholder="Withdrawal Address" data-translate="admin.withdrawalAddress">
+                <input type="number" id="withdrawalAmount" placeholder="Amount (BNB)" step="0.001" data-translate="admin.withdrawalAmount">
+                <textarea id="withdrawalNote" placeholder="Note/Reason" data-translate="admin.withdrawalNote"></textarea>
+                <div class="voting-info">
+                    <small data-translate="admin.votingRequired">⚠️ Requires 8 votes for amounts over 5 BNB</small>
+                </div>
+                <button id="withdrawalBtn" class="btn-warning" data-translate="admin.withdraw">💸 Withdraw Funds</button>
+            </div>
+        </div>
+
+        <!-- Emergency Withdrawal -->
+        <div class="financial-section emergency">
+            <h4 data-translate="admin.emergencyWithdraw">Emergency Withdrawal</h4>
+            <div class="emergency-form">
+                <input type="text" id="emergencyFromAddress" placeholder="From Address" data-translate="admin.fromAddress">
+                <input type="text" id="emergencyToAddress" placeholder="To Address" data-translate="admin.toAddress">
+                <input type="number" id="emergencyAmount" placeholder="Amount (BNB)" step="0.001" data-translate="admin.amount">
+                <textarea id="emergencyReason" placeholder="Emergency Reason" data-translate="admin.reason"></textarea>
+                <div class="danger-warning">
+                    <strong>⚠️ DANGER ZONE - Emergency Use Only</strong>
+                </div>
+                <button id="emergencyWithdrawBtn" class="btn-danger" data-translate="admin.emergencyWithdraw">🚨 Emergency Withdraw</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ID Management -->
+    <section class="id-management">
+        <h3>👥 ID Management</h3>
+        
+        <!-- Assign ID -->
+        <div class="management-section">
+            <h4>Assign ID to User</h4>
+            <div class="management-form">
+                <input type="text" id="assignIdUserAddress" placeholder="User Address">
+                <button id="assignIdBtn" class="btn-primary">🆔 Assign ID</button>
+            </div>
+        </div>
+
+        <!-- ID Statistics -->
+        <div class="id-stats">
+            <div class="stat-item">
+                <label>Total IDs Assigned:</label>
+                <span id="totalIdsAssigned">0</span>
+            </div>
+            <div class="stat-item">
+                <label>Available IDs:</label>
+                <span id="availableIds">0</span>
+            </div>
+            <div class="stat-item">
+                <label>ID Range:</label>
+                <span id="idRange">1000000 - 9999999</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Delegation Management -->
+    <section class="delegation-management">
+        <h3 data-translate="admin.delegation">👥 Delegation Management</h3>
+        <div class="delegation-form">
+            <input type="text" id="delegateAddress" placeholder="Partner Address" data-translate="admin.delegateAddress">
+            <div class="permissions-group">
+                <label data-translate="admin.permissions">Permissions:</label>
+                <div class="permission-checkboxes">
+                    <label><input type="checkbox" value="support"> Support</label>
+                    <label><input type="checkbox" value="news"> News</label>
+                    <label><input type="checkbox" value="history"> History</label>
+                    <label><input type="checkbox" value="mailings"> Mailings</label>
+                </div>
+            </div>
+            <textarea id="delegationNote" placeholder="Delegation Note" data-translate="admin.reason"></textarea>
+            <button id="delegateRightsBtn" class="btn-primary" data-translate="admin.delegateRights">✅ Delegate Rights</button>
+        </div>
+    </section>
+
+    <!-- News Management -->
+    <section class="news-management">
+        <h3 data-translate="admin.news">📰 News Management</h3>
+        <div class="news-form">
+            <input type="text" id="newsTitle" placeholder="News Title" data-translate="admin.newsTitle">
+            <textarea id="newsText" placeholder="News Content" data-translate="admin.newsText"></textarea>
+            <input type="url" id="newsLink" placeholder="Link (optional)" data-translate="admin.newsLink">
+            <input type="file" id="newsPhoto" accept="image/*" data-translate="admin.newsPhoto">
+            <button id="publishNewsBtn" class="btn-primary" data-translate="admin.publishNews">📢 Publish News</button>
+        </div>
+    </section>
+
+    <!-- User Lookup -->
+    <section class="user-lookup">
+        <h3>🔍 User Lookup</h3>
+        <div class="lookup-form">
+            <div class="form-group">
+                <label>Search by Address or ID:</label>
+                <input type="text" id="lookupInput" placeholder="0x... or GW1234567">
+                <button id="lookupBtn" class="btn-secondary">Search</button>
+            </div>
+            <div id="lookupResults" class="lookup-results" style="display: none;">
+                <div class="result-item">
+                    <label>Address:</label>
+                    <span id="resultAddress">-</span>
+                </div>
+                <div class="result-item">
+                    <label>User ID:</label>
+                    <span id="resultUserId">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Registration Status:</label>
+                    <span id="resultRegistered">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Active Levels:</label>
+                    <span id="resultLevels">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Total Earned:</label>
+                    <span id="resultEarned">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Referrals:</label>
+                    <span id="resultReferrals">-</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Voting System -->
+    <section class="voting-system" id="votingSystem" style="display:none;">
+        <h3 data-translate="admin.voting">🗳️ Voting System</h3>
+        <div id="activeVotings" class="voting-list">
+            <!-- Generated active votings -->
+        </div>
+    </section>
+
+    <!-- Danger Zone -->
+    <section class="danger-zone">
+        <h3 data-translate="admin.dangerZone">⚠️ DANGER ZONE</h3>
+        <div class="danger-actions">
+            <button id="transferMultisigBtn" class="btn-danger disabled" data-translate="admin.transferMultisig">
+                🔥 Transfer to Multisig (IRREVERSIBLE!)
+            </button>
+            <p><small>This action cannot be undone and will transfer contract ownership to multisig wallet.</small></p>
+        </div>
+    </section>
+</div>
+
+<!-- Voting Modal -->
+<div id="votingModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 id="votingTitle">Voting Required</h3>
+        <div class="voting-details">
+            <p id="votingDescription">This action requires voting approval from board members.</p>
+            <div class="voting-status">
+                <div class="votes-for">
+                    <label>Votes For: <span id="votesFor">0</span>/8</label>
+                </div>
+                <div class="votes-against">
+                    <label>Votes Against: <span id="votesAgainst">0</span>/8</label>
+                </div>
+            </div>
+            <div class="voting-actions">
+                <button id="voteForBtn" class="btn-success">✅ Vote For</button>
+                <button id="voteAgainstBtn" class="btn-danger">❌ Vote Against</button>
+                <button id="abstainBtn" class="btn-secondary">⚪ Abstain</button>
+            </div>
+        </div>
+    </div>
+</div>                </div>
+            </main>
+        </div>
+    </div>
+
+<!-- SCRIPTS -->
+    
+    <!-- Библиотеки -->
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- Базовые -->
+    <script src="js/i18n.js?v=7"></script>
+    <script src="js/web3.js?v=9"></script>
+    <script src="js/config.js?v=7"></script>
+    
+    <!-- Основной -->
+    <script src="js/app.js?v=13"></script>    <!-- ✅ ИЗМЕНЕНО: v=6 → v=7 -->
+    
+    <!-- Landing -->
+    <script src="js/landing.js?v=8"></script>    <!-- ✅ ИЗМЕНЕНО: v=6 → v=7 -->
+    
+    <!-- Страницы -->
+    <script src="js/dashboard.js?v=16"></script>
+    <script src="js/partners.js?v=13"></script>
+    <script src="js/matrix.js?v=11"></script>
+    <script src="js/tokens.js?v=7"></script>
+    <script src="js/projects.js?v=10"></script> 
+    <script src="js/referral-links.js?v=2"></script>
+    <script src="js/exchange.js?v=1"></script>
+    <script src="js/admin.js?v=22"></script>
+    
+    <!-- Инициализация -->
     <script>
-        // Generate particles
-        const container = document.getElementById('particles');
-        for (let i = 0; i < 30; i++) {
-            const p = document.createElement('div');
-            p.className = 'particle';
-            p.style.left = Math.random() * 100 + '%';
-            p.style.animationDuration = (6 + Math.random() * 8) + 's';
-            p.style.animationDelay = Math.random() * 6 + 's';
-            p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
-            container.appendChild(p);
-        }
+    document.addEventListener('DOMContentLoaded', async () => {
+        await app.init();
+    });
     </script>
 </body>
 </html>
