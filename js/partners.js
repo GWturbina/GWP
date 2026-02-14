@@ -96,40 +96,89 @@ const partnersModule = {
       const address = app.state.userAddress;
       console.log('📊 Loading team stats for', address);
       
-      // Используем getPartnersAtDepth - она ТОЧНО работает (видно из логов)
-      const depth1 = await this.getPartnersAtDepth(address, 1);
-      const personalCount = depth1.length;
-      console.log('👥 Personal invites:', personalCount);
+      // 1. Лично приглашённых - из MatrixRegistry.getDirectReferrals
+      const directReferrals = await this.contracts.matrixRegistry.getDirectReferrals(address);
+      const validDirect = directReferrals.filter(r => r && r !== ethers.constants.AddressZero);
+      const personalCount = validDirect.length;
+      console.log('👥 Direct referrals (1st line):', personalCount);
       
-      // Общая команда: суммируем по глубинам 1-7 (быстро, без перегрузки)
-      let totalTeam = personalCount;
-      for (let d = 2; d <= 7; d++) {
-        try {
-          const dPartners = await this.getPartnersAtDepth(address, d);
-          if (dPartners.length === 0) break; // Дальше пусто
-          totalTeam += dPartners.length;
-        } catch (e) { break; }
-      }
-      
-      // Активные: проверяем 1ю линию на уровень >= 1
+      // 2. Собираем ВСЮ команду по всем 12 уровням — оптимизированный BFS
+      const allTeamSet = new Set(); // Set для O(1) проверки дубликатов
       let activeCount = 0;
-      for (const refAddr of depth1) {
-        try {
-          const maxLevel = await this.contracts.globalWay.getUserMaxLevel(refAddr);
-          if (Number(maxLevel) >= 1) activeCount++;
-        } catch (e) {
-          activeCount++; // Если не удалось проверить — считаем активным
-        }
+      
+      // BFS по уровням — загружаем пакетами для скорости
+      let currentLevelAddrs = validDirect.map(a => a.toLowerCase());
+      
+      // Добавляем первую линию
+      for (const addr of currentLevelAddrs) {
+        allTeamSet.add(addr);
       }
       
-      console.log('📊 Stats: personal=' + personalCount + ' active=' + activeCount + ' total=' + totalTeam);
+      for (let depth = 1; depth <= 12; depth++) {
+        if (currentLevelAddrs.length === 0) break;
+        
+        let nextLevelAddrs = [];
+        
+        // Пакетная загрузка рефералов для текущего уровня
+        const batchSize = 5;
+        for (let i = 0; i < currentLevelAddrs.length; i += batchSize) {
+          const batch = currentLevelAddrs.slice(i, i + batchSize);
+          
+          const batchResults = await Promise.all(
+            batch.map(async (addr) => {
+              try {
+                const refs = await this.contracts.matrixRegistry.getDirectReferrals(addr);
+                return refs.filter(r => r && r !== ethers.constants.AddressZero);
+              } catch (e) {
+                return [];
+              }
+            })
+          );
+          
+          for (const refs of batchResults) {
+            for (const refAddr of refs) {
+              const lower = refAddr.toLowerCase();
+              if (!allTeamSet.has(lower)) {
+                allTeamSet.add(lower);
+                nextLevelAddrs.push(lower);
+              }
+            }
+          }
+        }
+        
+        console.log(`  Level ${depth}: ${currentLevelAddrs.length} partners, next: ${nextLevelAddrs.length}`);
+        currentLevelAddrs = nextLevelAddrs;
+      }
+      
+      // 3. Проверяем активность пакетами
+      const allAddrs = Array.from(allTeamSet);
+      const activeBatchSize = 10;
+      
+      for (let i = 0; i < allAddrs.length; i += activeBatchSize) {
+        const batch = allAddrs.slice(i, i + activeBatchSize);
+        const results = await Promise.all(
+          batch.map(async (addr) => {
+            try {
+              const maxLevel = await this.contracts.globalWay.getUserMaxLevel(addr);
+              return Number(maxLevel) >= 1;
+            } catch (e) {
+              return false;
+            }
+          })
+        );
+        activeCount += results.filter(Boolean).length;
+      }
+      
+      console.log('📊 Total team:', allTeamSet.size);
+      console.log('📊 Active partners:', activeCount);
 
       this.state.stats = {
         personal: personalCount,
         active: activeCount,
-        total: totalTeam
+        total: allTeamSet.size
       };
 
+      console.log('✅ Team stats:', this.state.stats);
       this.updateStatsUI();
       
     } catch (error) {
