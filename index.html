@@ -379,38 +379,41 @@
     </div> <!-- ✅ ЗАКРЫЛИ quarterlySection -->
 
 
-    <!-- Contract Balances & Withdrawal -->
+    <!-- Earned Statistics (v2.1: direct payments, no withdrawal needed) -->
     <section class="contract-balances">
-        <h3 data-translate="dashboard.contractBalances">💰 Available Balances</h3>
+        <h3 data-translate="dashboard.contractBalances">💰 Заработано (всего)</h3>
         <div class="balances-grid">
             <div class="balance-item">
                 <div class="balance-header">
-                    <label data-translate="dashboard.marketingPool">Marketing Pool:</label>
+                    <label>Партнерские бонусы:</label>
                 </div>
                 <div class="balance-content">
-                    <span id="marketingBalance" class="balance-amount">0.0000 BNB</span>
-                    <button class="withdraw-btn" onclick="app.withdrawFromContract('marketing')" data-translate="dashboard.withdraw">Withdraw</button>
+                    <span id="marketingBalance" class="balance-amount">0 BNB</span>
+                    <span class="badge badge-info" style="font-size:0.75em;">Напрямую</span>
                 </div>
             </div>
             <div class="balance-item">
                 <div class="balance-header">
-                    <label data-translate="dashboard.leaderPool">Leader Pool:</label>
+                    <label>Матричные бонусы:</label>
                 </div>
                 <div class="balance-content">
-                    <span id="leaderBalance" class="balance-amount">0.0000 BNB</span>
-                    <button class="withdraw-btn" onclick="app.withdrawFromContract('leader')" data-translate="dashboard.withdraw">Withdraw</button>
+                    <span id="leaderBalance" class="balance-amount">0 BNB</span>
+                    <span class="badge badge-info" style="font-size:0.75em;">Напрямую</span>
                 </div>
             </div>
             <div class="balance-item">
                 <div class="balance-header">
-                    <label data-translate="dashboard.investmentPool">Investment Pool:</label>
+                    <label>Инвестиционный пул:</label>
                 </div>
                 <div class="balance-content">
-                    <span id="investmentBalance" class="balance-amount">0.0000 BNB</span>
-                    <button class="withdraw-btn" onclick="app.withdrawFromContract('investment')" data-translate="dashboard.withdraw">Withdraw</button>
+                    <span id="investmentBalance" class="balance-amount">0 BNB</span>
+                    <span class="badge badge-info" style="font-size:0.75em;">Напрямую</span>
                 </div>
             </div>
         </div>
+        <p style="color: rgba(255,255,255,0.4); font-size: 0.82em; margin-top: 10px; text-align: center;">
+            💡 В v2.1 все выплаты идут напрямую на ваш кошелёк автоматически
+        </p>
     </section>
 
     <!-- ✅ Level Management (скрывается если не зарегистрирован) -->
@@ -1729,12 +1732,12 @@
     <script src="js/landing.js?v=8"></script>    <!-- ✅ ИЗМЕНЕНО: v=6 → v=7 -->
     
     <!-- Страницы -->
-    <script src="js/dashboard.js?v=16"></script>
-    <script src="js/partners.js?v=13"></script>
-    <script src="js/matrix.js?v=11"></script>
+    <script src="js/dashboard.js?v=17"></script>
+    <script src="js/partners.js?v=14"></script>
+    <script src="js/matrix.js?v=12"></script>
     <script src="js/tokens.js?v=7"></script>
     <script src="js/projects.js?v=10"></script> 
-    <script src="js/referral-links.js?v=2"></script>
+    <script src="js/referral-links.js?v=3"></script>
     <script src="js/exchange.js?v=1"></script>
     <script src="js/admin.js?v=22"></script>
     
