@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Configuration
 // opBNB Mainnet (Chain ID: 204)
-// Deployed: November 25, 2025
+// Deployed: February 13, 2026 (v2.1)
 // ═══════════════════════════════════════════════════════════════════
 
 const CONFIG = {
@@ -22,20 +22,21 @@ const CONFIG = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // SMART CONTRACTS ADDRESSES - ФИНАЛЬНЫЙ ДЕПЛОЙ 25.11.2025
+  // SMART CONTRACTS ADDRESSES - GWP v2.1 ДЕПЛОЙ 13.02.2026
   // ═══════════════════════════════════════════════════════════════
   CONTRACTS: {
-    GWTToken: '0x47DB57C849Fce197c812713253042533E9DE88db',
-    MatrixRegistry: '0xC12b57B8B4BcE9134788FBb2290Cf4d496c4eE4a',
-    GlobalWay: '0xc6E769A790cE87f9Dd952Dca6Ac1A9526Bc0FBe7',
-    PartnerProgram: '0x3C6E1Ab1966847EF7473fA2dD1C476A1b882Dcf8',
-    MatrixPayments: '0x6309136AE07e5691CB71678Df0701A351aF93241',
-    QuarterlyPayments: '0x62B8ce8Cf1D7d6a47214DCdeE6882a3c4ccF9b9C',
-    GlobalWayInvestment: '0x27037b88500e02C1E9f28B7b23De381c983B4092',
-    GlobalWayLeaderPool: '0xF82AD2b0A486925726d16b9c9d7ef73A2871BC1B',
-    GlobalWayGovernance: '0x432cc35E3ddc19347c9Bc1Da812D22E68C36b98F',
-    GlobalWayBridge: '0x75231309172544886f27449446A9A2a43D5Ac801',
-    GlobalWayStats: '0xa2B6e2d4B1456eabc41042c30f134847bbbf7770'
+    GWTToken: '0x933B0Cb1f43170f3F0fcf082572CC931D6e93b5F',
+    MatrixRegistry: '0xD62945edFF7605dFc77A4bF607c96Da72E03cd0C',
+    GlobalWay: '0xe8e2af46AEEec1B51B335f10C5912620B1a2707F',
+    SafeVaultGW: '0xc22592F84557e73f9e19C6B0fB13C3717E4cD92e',
+    PartnerProgram: '0x390409BA8b64052D160e259816E5B6472e51b2ae',
+    MatrixPayments: '0xDf37d4cc11a01bcB57F2e8cD56234325a6ce8EDf',
+    QuarterlyPayments: '0x10dd3Fbaf52Be26Ee3606DC5984Cb7D10f017EA4',
+    GlobalWayLeaderPool: '0x8C645586aeBEa151737cDC3E4C6adFaA9AbEABCF',
+    GlobalWayInvestment: '0xa54a71BceeDaBB743f046217535A6F0dF9C8647C',
+    GlobalWayBridge: '0x4489851e530924eB25e684E6b97c7C47364780F5',
+    GlobalWayStats: '0x1c5A63AfC7dd0b057B9dcAA3B6B47B4078a5A808',
+    GlobalWayGovernance: '0xf81FC745A4234eCaC8FBd639D45e104a4d694587'
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -51,6 +52,7 @@ const CONFIG = {
     MatrixRegistry: '../contracts/abis/MatrixRegistry.json',
     MatrixPayments: '../contracts/abis/MatrixPayments.json',
     GlobalWay: '../contracts/abis/GlobalWay.json',
+    SafeVaultGW: '../contracts/abis/SafeVaultGW.json',
     PartnerProgram: '../contracts/abis/PartnerProgram.json',
     QuarterlyPayments: '../contracts/abis/QuarterlyPayments.json',
     GlobalWayInvestment: '../contracts/abis/GlobalWayInvestment.json',
@@ -117,7 +119,7 @@ const CONFIG = {
   // ADMIN
   // ═══════════════════════════════════════════════════════════════
   ADMIN: {
-    owner: '0x7bCD1753868895971E12448412cB3216d47884c8',
+    owner: '0x2dac0b8bf4846CcC44258a23AcB4f2B1Dd6Db5cE',
     
     guardians: [
       '0x48635e0ad72cf5e8e8ad722fd7d823ec7cb197d1',
@@ -194,6 +196,74 @@ const CONFIG = {
     requiredVotesBridge: 4,
     votingPeriod: 7 * 24 * 60 * 60,
     quorum: 3
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // REFERRAL SYSTEM - Directions, Domains, Anti-Ban
+  // ═══════════════════════════════════════════════════════════════
+  REFERRAL: {
+    // Направления экосистемы (добавляй новые по мере роста)
+    directions: {
+      gw: {
+        name: 'GlobalWay',
+        shortName: 'GW',
+        icon: '🌐',
+        color: '#00d4ff',
+        gradient: 'linear-gradient(135deg, #0a1628 0%, #0d2847 50%, #0a4a7a 100%)',
+        description: 'Decentralized MLM Platform on opBNB',
+        descriptionRu: 'Децентрализованная платформа на opBNB',
+        landingPage: 'ref/gw.html',
+        logo: 'assets/icons/logo.png'
+      },
+      cg: {
+        name: 'CardGift',
+        shortName: 'CG',
+        icon: '🎴',
+        color: '#ff6b9d',
+        gradient: 'linear-gradient(135deg, #1a0a2e 0%, #3d1552 50%, #6b2fa0 100%)',
+        description: 'Digital Greeting Cards Platform',
+        descriptionRu: 'Платформа цифровых открыток',
+        landingPage: 'ref/cg.html',
+        logo: 'assets/icons/CardGift.png'
+      },
+      nss: {
+        name: 'NSS',
+        shortName: 'NSS',
+        icon: '💱',
+        color: '#00ff88',
+        gradient: 'linear-gradient(135deg, #0a2818 0%, #0d4730 50%, #0a7a4a 100%)',
+        description: 'Crypto Exchange & P2P Platform',
+        descriptionRu: 'Криптообменник и P2P платформа',
+        landingPage: 'ref/nss.html',
+        logo: 'assets/icons/GlobalBank.png'
+      }
+    },
+
+    // DApp домены для антибана (добавляй по мере создания)
+    // Формат: домен -> активен/нет
+    domains: [
+      { url: 'https://gwp-navy.vercel.app', active: true, primary: true },
+      // Добавь DApp домены после создания:
+      // { url: 'https://globalway.on.fleek.co', active: true },
+      // { url: 'https://gw-dapp.eth.limo', active: true },
+      // { url: 'https://globalway.ipfs.io', active: true },
+    ],
+
+    // Настройки антибана
+    antiBan: {
+      enabled: true,
+      rotateOnShare: true,        // Менять домен при каждом шаринге
+      maxLinksPerDomain: 50,      // Макс ссылок на один домен
+      fallbackDomain: 'https://gwp-navy.vercel.app'
+    },
+
+    // OG Preview настройки
+    ogDefaults: {
+      siteName: 'GlobalWay Ecosystem',
+      image: 'assets/icons/icon-512x512.png',
+      imageWidth: 1200,
+      imageHeight: 630
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════
