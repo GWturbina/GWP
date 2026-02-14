@@ -279,7 +279,8 @@ const matrixModule = {
           isTechAccount: rootData[8],
           type: this.getPositionTypeSync(rootData[2], rootData[8])
         },
-        positions: []
+        positions: [],
+        _addedIds: new Set() // Защита от дублей
       };
 
       // Стратегия 1: getUserBinaryTree(id, 5) для быстрой загрузки
@@ -375,9 +376,12 @@ const matrixModule = {
   // Построение из кешированных данных (без RPC вызовов)
   async buildFromCache(structure, childId, depth, position, side) {
     if (depth > 12 || childId === '0') return;
+    if (structure._addedIds.has(childId)) return;
     
     const childData = this._nodeCache[childId];
     if (!childData || !childData[7]) return;
+    
+    structure._addedIds.add(childId);
 
     const maxLevel = await this.getUserMaxLevel(childData[1]);
 
@@ -408,10 +412,13 @@ const matrixModule = {
   // Полная рекурсия — ВСЕГДА до 12 уровней
   async buildTreeRecursive(structure, childId, depth, position, side) {
     if (depth > 12 || childId.toString() === '0') return;
+    if (structure._addedIds.has(childId.toString())) return;
     
     try {
       const nodeData = await this.getNodeData(childId);
       if (!nodeData || !nodeData[7]) return;
+      
+      structure._addedIds.add(childId.toString());
       
       const userMaxLevel = await this.getUserMaxLevel(nodeData[1]);
       
