@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- OG Preview Tags - NSS -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NSS by GlobalWay">
+  <meta property="og:title" content="💱 NSS — Децентрализованный обменник и P2P платформа">
+  <meta property="og:description" content="Меняй, продавай, покупай крипту. Децентрализованный обменник с P2P торговлей. Присоединяйся!">
+  <meta property="og:image" content="https://gwp-navy.vercel.app/assets/icons/icon-512x512.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="https://gwp-navy.vercel.app/ref/nss.html">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="💱 NSS — Обменник и P2P от GlobalWay">
+  <meta name="twitter:description" content="Децентрализованный обмен крипты. P2P торговля без посредников.">
+  <meta name="twitter:image" content="">
+  
+  <title>NSS — Приглашение</title>
+  <link rel="icon" href="../assets/icons/favicon.ico">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+    
+    body {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0a2818 0%, #0d4730 40%, #0a7a4a 70%, #062820 100%);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #e0fff0; overflow: hidden; position: relative;
+    }
+    .bg-particles { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+    .bg-particles::before, .bg-particles::after {
+      content: ''; position: absolute; border-radius: 50%;
+      animation: float 8s infinite ease-in-out;
+    }
+    .bg-particles::before {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(0,255,136,0.15) 0%, transparent 70%);
+      top: -100px; right: -100px;
+    }
+    .bg-particles::after {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,200,100,0.1) 0%, transparent 70%);
+      bottom: -200px; left: -200px; animation-delay: -4s;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+    .card {
+      background: rgba(10, 30, 20, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      border-radius: 24px; padding: 48px 40px;
+      max-width: 480px; width: 90%; text-align: center;
+      position: relative; z-index: 1;
+      box-shadow: 0 0 60px rgba(0, 255, 136, 0.1), 0 20px 60px rgba(0, 0, 0, 0.4);
+      animation: cardIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(40px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .logo {
+      width: 80px; height: 80px; margin: 0 auto 20px;
+      border-radius: 20px; border: 2px solid rgba(0, 255, 136, 0.3);
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+      animation: glow 3s infinite ease-in-out;
+    }
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 30px rgba(0, 255, 136, 0.2); }
+      50% { box-shadow: 0 0 50px rgba(0, 255, 136, 0.4); }
+    }
+    h1 {
+      font-size: 28px; font-weight: 800; margin-bottom: 8px;
+      background: linear-gradient(135deg, #00ff88, #00cc66, #00ff88);
+      background-size: 200%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: shimmer 3s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% center; } 100% { background-position: -200% center; } }
+    .subtitle { font-size: 14px; color: #7ab5a4; margin-bottom: 24px; }
+    .invite-info {
+      background: rgba(0, 255, 136, 0.08);
+      border: 1px solid rgba(0, 255, 136, 0.15);
+      border-radius: 16px; padding: 20px; margin-bottom: 24px;
+    }
+    .invite-label { font-size: 12px; color: #5ab59a; text-transform: uppercase; letter-spacing: 1px; }
+    .invite-id { font-size: 32px; font-weight: 700; color: #00ff88; margin: 8px 0; font-family: 'Courier New', monospace; }
+    .invite-name { font-size: 16px; color: #a0e8d0; }
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 28px; }
+    .feature {
+      background: rgba(0, 255, 136, 0.05);
+      border: 1px solid rgba(0, 255, 136, 0.1);
+      border-radius: 12px; padding: 12px 8px; font-size: 13px;
+    }
+    .feature-icon { font-size: 20px; margin-bottom: 4px; display: block; }
+    .feature-text { color: #8ac0b8; }
+    .cta-btn {
+      display: block; width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #00ff88, #00aa55);
+      color: #fff; border: none; border-radius: 14px;
+      font-size: 18px; font-weight: 700; cursor: pointer; text-decoration: none;
+      transition: all 0.3s; box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+    }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0, 255, 136, 0.5); }
+    .powered { margin-top: 20px; font-size: 12px; color: #4a9474; }
+    .powered span { color: #00ff88; }
+  </style>
+</head>
+<body>
+  <div class="bg-particles"></div>
+  <div class="card">
+    <img class="logo" src="../assets/icons/GlobalBank.png" alt="NSS" onerror="this.style.display='none'">
+    <h1>NSS Exchange</h1>
+    <p class="subtitle">Децентрализованный обменник и P2P</p>
+    
+    <div class="invite-info">
+      <div class="invite-label">Вас приглашает</div>
+      <div class="invite-id" id="sponsorId">—</div>
+      <div class="invite-name" id="sponsorName"></div>
+    </div>
+
+    <div class="features">
+      <div class="feature"><span class="feature-icon">💱</span><span class="feature-text">Обменник</span></div>
+      <div class="feature"><span class="feature-icon">🤝</span><span class="feature-text">P2P торговля</span></div>
+      <div class="feature"><span class="feature-icon">🔐</span><span class="feature-text">Без посредников</span></div>
+      <div class="feature"><span class="feature-icon">⚡</span><span class="feature-text">Мгновенно</span></div>
+    </div>
+
+    <a id="ctaBtn" class="cta-btn" href="../index.html">💱 Начать обмен</a>
+    <p class="powered">Часть экосистемы <span>GlobalWay</span></p>
+  </div>
+
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref') || params.get('id') || params.get('r');
+      const name = params.get('name') || params.get('n');
+      const baseUrl = window.location.origin;
+      
+      if (ref) {
+        document.getElementById('sponsorId').textContent = 'ID: ' + ref;
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle) ogTitle.content = '💱 NSS — Приглашение от ID ' + ref;
+      }
+      if (name) {
+        document.getElementById('sponsorName').textContent = name;
+      }
+      
+      const ogImages = document.querySelectorAll('meta[property="og:image"], meta[name="twitter:image"]');
+      ogImages.forEach(img => { img.content = baseUrl + '/assets/icons/GlobalBank.png'; });
+      
+      const ctaBtn = document.getElementById('ctaBtn');
+      if (ref) {
+        ctaBtn.href = '../index.html?ref=' + ref + '&dir=nss#register';
+      }
+    })();
+  </script>
+</body>
+</html>
