@@ -158,7 +158,12 @@ const matrixModule = {
   async goHome() {
     console.log(`🏠 Going home to GW${this.state.currentUserId}`);
     this.state.navigationHistory = [];
-    await this.loadMatrixData(this.state.currentUserId, this.state.currentLevel, false);
+    this.state.currentLevel = 1;
+    // Reset level button UI
+    document.querySelectorAll('#matrixLevels .level-btn').forEach((btn, index) => {
+      btn.classList.toggle('active', index === 0);
+    });
+    await this.loadMatrixData(this.state.currentUserId, 1, false);
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -166,6 +171,14 @@ const matrixModule = {
   // ═══════════════════════════════════════════════════════════════
 
   async loadMatrixData(userId, level, addToHistory = false) {
+    // Guard: предотвращаем дубликаты
+    const loadKey = `${userId}_${level}`;
+    if (this._loadingKey === loadKey) {
+      console.log('⚠️ Already loading this matrix, skipping duplicate');
+      return;
+    }
+    this._loadingKey = loadKey;
+    
     try {
       console.log(`📊 Loading matrix: GW${userId}, level ${level}`);
 
@@ -196,8 +209,10 @@ const matrixModule = {
       this.updateNavigationUI();
 
       console.log('✅ Matrix loaded: GW' + userId);
+      this._loadingKey = null;
       
     } catch (error) {
+      this._loadingKey = null;
       console.error('❌ loadMatrixData error:', error);
       app.showNotification('Ошибка загрузки матрицы', 'error');
     }
@@ -270,8 +285,10 @@ const matrixModule = {
   },
 
   async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side) {
-    // Останавливаемся после 12 уровня (depth > 12)
-    if (depth > 12 || childId.toString() === '0') return;
+    // Показываем только 2 уровня глубины (root + 2 линии = 7 позиций)
+    // Для таблицы подгружаем до currentLevel
+    const maxDepth = Math.max(2, this.state.currentLevel);
+    if (depth > maxDepth || childId.toString() === '0') return;
     
     try {
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
@@ -713,9 +730,16 @@ const matrixModule = {
     }
   },
 
+  _maxLevelCache: {},
+  
   async getUserMaxLevel(address) {
     try {
-      return Number(await this.contracts.globalWay.getUserMaxLevel(address));
+      // Cache to avoid duplicate RPC calls
+      const key = address.toLowerCase();
+      if (this._maxLevelCache[key] !== undefined) return this._maxLevelCache[key];
+      const level = Number(await this.contracts.globalWay.getUserMaxLevel(address));
+      this._maxLevelCache[key] = level;
+      return level;
     } catch (error) {
       return 0;
     }
