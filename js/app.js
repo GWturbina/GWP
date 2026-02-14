@@ -243,7 +243,21 @@ const app = {
     const refFromURL = urlParams.get('ref') || urlParams.get('sponsor');
     const refFromHash = hashParams.get('ref') || hashParams.get('sponsor');
     
-    return refFromURL || refFromHash || null;
+    // Поддержка хеш-ссылок: /#/ref/gw/123456
+    let refFromHashPath = null;
+    const hashPath = window.location.hash;
+    const hashMatch = hashPath.match(/#\/ref\/(\w+)\/(\d+)/);
+    if (hashMatch) {
+      refFromHashPath = hashMatch[2]; // ID
+      // Сохраняем направление для аналитики
+      this.state.refDirection = hashMatch[1]; // gw, cg, nss
+    }
+    
+    // Сохраняем направление из URL параметров
+    const dir = urlParams.get('dir') || hashParams.get('dir');
+    if (dir) this.state.refDirection = dir;
+    
+    return refFromURL || refFromHash || refFromHashPath || null;
   },
 
 
