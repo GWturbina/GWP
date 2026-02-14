@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- OG Tags (will be overridden by JS) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="GlobalWay Ecosystem">
+  <meta property="og:title" content="🌐 Присоединяйтесь к GlobalWay!">
+  <meta property="og:description" content="Децентрализованная экосистема на opBNB blockchain">
+  <meta property="og:image" content="https://gwp-navy.vercel.app/assets/icons/icon-512x512.png">
+  
+  <title>GlobalWay — Перенаправление</title>
+  <link rel="icon" href="../assets/icons/favicon.ico">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: #0a0e27;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .redirect-box {
+      text-align: center;
+      padding: 40px;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: #00d4ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 15px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    p { color: rgba(255,255,255,0.5); }
+  </style>
+</head>
+<body>
+  <div class="redirect-box">
+    <div class="spinner"></div>
+    <p>⏳ Перенаправление...</p>
+  </div>
+  
+  <script>
+    (function() {
+      // Формат короткого кода: DIRECTION + BASE36(userId) + RANDOM
+      // Пример: GW7B3KAB → direction=GW, userId=base36decode("7B3K"), random="AB"
+      
+      const path = window.location.pathname;
+      const code = path.split('/').pop();
+      
+      if (!code || code.length < 3) {
+        window.location.href = '/';
+        return;
+      }
+
+      // Определяем направление по префиксу
+      const dirPrefixes = { 'GW': 'gw', 'CG': 'cg', 'NSS': 'nss' };
+      let direction = null;
+      let idPart = null;
+
+      for (const [prefix, dir] of Object.entries(dirPrefixes)) {
+        if (code.startsWith(prefix)) {
+          direction = dir;
+          // Убираем префикс и последние 2 символа (random)
+          idPart = code.substring(prefix.length, code.length - 2);
+          break;
+        }
+      }
+
+      if (!direction || !idPart) {
+        // Fallback: перенаправляем на главную
+        window.location.href = '/';
+        return;
+      }
+
+      // Декодируем userId из base36
+      const userId = parseInt(idPart, 36);
+      
+      if (isNaN(userId)) {
+        window.location.href = '/';
+        return;
+      }
+
+      // Перенаправляем на landing page
+      const domain = window.location.origin;
+      const targetUrl = `${domain}/ref/${direction}.html?id=${userId}`;
+      
+      window.location.href = targetUrl;
+    })();
+  </script>
+</body>
+</html>
