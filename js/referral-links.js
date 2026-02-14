@@ -20,8 +20,8 @@ const referralsModule = {
     console.log('🔗 Referrals module init');
     this.render();
     
-    if (window.GWApp?.state?.address) {
-      this.state.userAddress = window.GWApp.state.address;
+    if (app?.state?.address) {
+      this.state.userAddress = app.state.userAddress;
       await this.loadUserData();
     }
     
@@ -33,7 +33,7 @@ const referralsModule = {
   // ═══════════════════════════════════════════════════════════════
   async loadUserData() {
     try {
-      const matrixRegistry = await window.GWApp.getContract('MatrixRegistry');
+      const matrixRegistry = await app.getContract('MatrixRegistry');
       if (matrixRegistry) {
         const userId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
         this.state.userId = userId.toString();
@@ -43,8 +43,8 @@ const referralsModule = {
     } catch (err) {
       console.error('❌ Error loading user data:', err);
       // Fallback: try getting from state
-      if (window.GWApp?.state?.userId) {
-        this.state.userId = window.GWApp.state.userId;
+      if (app?.state?.userId) {
+        this.state.userId = app.state.userId;
         this.updateUI();
       }
     }
@@ -295,7 +295,7 @@ const referralsModule = {
   // ═══════════════════════════════════════════════════════════════
   generateLink() {
     if (!this.state.userId) {
-      window.GWApp?.showNotification?.('Подключите кошелёк!', 'error');
+      app?.showNotification?.('Подключите кошелёк!', 'error');
       return;
     }
 
@@ -604,7 +604,7 @@ const referralsModule = {
 
     try {
       await navigator.clipboard.writeText(el.textContent);
-      window.GWApp?.showNotification?.('✅ Скопировано!', 'success');
+      app?.showNotification?.('✅ Скопировано!', 'success');
     } catch (err) {
       // Fallback
       const textarea = document.createElement('textarea');
@@ -613,7 +613,7 @@ const referralsModule = {
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      window.GWApp?.showNotification?.('✅ Скопировано!', 'success');
+      app?.showNotification?.('✅ Скопировано!', 'success');
     }
   },
 
@@ -709,7 +709,7 @@ const referralsModule = {
   async copyText(text) {
     try {
       await navigator.clipboard.writeText(text);
-      window.GWApp?.showNotification?.('✅ Скопировано!', 'success');
+      app?.showNotification?.('✅ Скопировано!', 'success');
     } catch (e) {
       console.warn('Copy failed:', e);
     }
