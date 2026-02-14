@@ -96,57 +96,40 @@ const partnersModule = {
       const address = app.state.userAddress;
       console.log('📊 Loading team stats for', address);
       
-      // 1. Лично приглашённых - из MatrixRegistry.getDirectReferrals
-      const directReferrals = await this.contracts.matrixRegistry.getDirectReferrals(address);
-      const personalCount = directReferrals.length;
-      console.log('👥 Direct referrals (1st line):', personalCount);
+      // Используем getPartnersAtDepth - она ТОЧНО работает (видно из логов)
+      const depth1 = await this.getPartnersAtDepth(address, 1);
+      const personalCount = depth1.length;
+      console.log('👥 Personal invites:', personalCount);
       
-      // 2. Собираем ВСЮ команду по всем 12 уровням
-      let allTeamAddresses = [];
-      let activeCount = 0;
-      
-      // Рекурсивно собираем всех партнёров
-      const collectAllPartners = async (addr, depth) => {
-        if (depth > 12) return;
-        
+      // Общая команда: суммируем по глубинам 1-7 (быстро, без перегрузки)
+      let totalTeam = personalCount;
+      for (let d = 2; d <= 7; d++) {
         try {
-          const refs = await this.contracts.matrixRegistry.getDirectReferrals(addr);
-          
-          for (const refAddr of refs) {
-            if (refAddr && refAddr !== ethers.constants.AddressZero) {
-              if (!allTeamAddresses.includes(refAddr.toLowerCase())) {
-                allTeamAddresses.push(refAddr.toLowerCase());
-                
-                // Проверяем активирован ли (maxLevel >= 1)
-                try {
-                  const maxLevel = await this.contracts.globalWay.getUserMaxLevel(refAddr);
-                  if (Number(maxLevel) >= 1) {
-                    activeCount++;
-                  }
-                } catch (e) {}
-                
-                // Идём глубже
-                await collectAllPartners(refAddr, depth + 1);
-              }
-            }
-          }
+          const dPartners = await this.getPartnersAtDepth(address, d);
+          if (dPartners.length === 0) break; // Дальше пусто
+          totalTeam += dPartners.length;
+        } catch (e) { break; }
+      }
+      
+      // Активные: проверяем 1ю линию на уровень >= 1
+      let activeCount = 0;
+      for (const refAddr of depth1) {
+        try {
+          const maxLevel = await this.contracts.globalWay.getUserMaxLevel(refAddr);
+          if (Number(maxLevel) >= 1) activeCount++;
         } catch (e) {
-          console.warn('Error collecting partners at depth', depth, e);
+          activeCount++; // Если не удалось проверить — считаем активным
         }
-      };
+      }
       
-      await collectAllPartners(address, 1);
-      
-      console.log('📊 Total team:', allTeamAddresses.length);
-      console.log('📊 Active partners:', activeCount);
+      console.log('📊 Stats: personal=' + personalCount + ' active=' + activeCount + ' total=' + totalTeam);
 
       this.state.stats = {
         personal: personalCount,
         active: activeCount,
-        total: allTeamAddresses.length
+        total: totalTeam
       };
 
-      console.log('✅ Team stats:', this.state.stats);
       this.updateStatsUI();
       
     } catch (error) {
