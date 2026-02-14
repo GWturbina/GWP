@@ -122,6 +122,7 @@ const CONFIG = {
     owner: '0x2dac0b8bf4846CcC44258a23AcB4f2B1Dd6Db5cE',
     
     guardians: [
+      '0x7bCD1753868895971E12448412cB3216d47884c8',
       '0x48635e0ad72cf5e8e8ad722fd7d823ec7cb197d1',
       '0xde4fb5fb406c6356247bea6b4822b9b2e2c7fccf',
       '0x5e2572d9a414667babcd5c7b59ca643b09e48e46'
