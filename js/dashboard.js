@@ -115,7 +115,7 @@ const dashboardModule = {
       // 2. Проверка регистрации - 🔥 FIX: используем MatrixRegistry как в app.js
       // Также проверяем app.state.isRegistered как fallback
       try {
-        this.userData.isRegistered = await this.contracts.matrixRegistry.isUserRegistered(address);
+        this.userData.isRegistered = await this.contracts.matrixRegistry.isRegistered(address);
         console.log('📋 Dashboard registration check (MatrixRegistry):', this.userData.isRegistered);
       } catch (e) {
         console.warn('⚠️ MatrixRegistry check failed, using app.state:', e.message);
@@ -324,7 +324,7 @@ async loadQuarterlyInfo() {
       
         // ✅ Пенсия отдельно из QuarterlyPayments
         try {
-          const pension = await this.contracts.quarterly.getPensionBalance(address);
+          const pension = await this.contracts.quarterlyPayments.getPensionBalance(address);
           this.userData.balances.pension = ethers.utils.formatEther(pension);
         } catch (e) {
           this.userData.balances.pension = '0';
@@ -558,21 +558,11 @@ async loadQuarterlyInfo() {
     const events = [];
   
     try {
-      // opBNB: пробуем от начала, если RPC ограничивает — уменьшаем
-      let BLOCKS_BACK = 2000000;
-      
-      // Попробуем получить текущий блок для расчёта
-      let fromBlock;
-      try {
-        const currentBlock = await this.contracts.globalWay.provider.getBlockNumber();
-        fromBlock = Math.max(0, currentBlock - BLOCKS_BACK);
-      } catch (e) {
-        fromBlock = 0; // От начала
-      }
+      const BLOCKS_BACK = 2000000; // opBNB генерирует блоки быстро
       
       try {
         const levelFilter = this.contracts.globalWay.filters.LevelActivated(address);
-        const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, fromBlock);
+        const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, -BLOCKS_BACK);
         
         for (const event of levelEvents) {
           events.push({
@@ -591,7 +581,7 @@ async loadQuarterlyInfo() {
       
       try {
         const sponsorFilter = this.contracts.partnerProgram.filters.SponsorPaid(null, address);
-        const sponsorEvents = await this.contracts.partnerProgram.queryFilter(sponsorFilter, fromBlock);
+        const sponsorEvents = await this.contracts.partnerProgram.queryFilter(sponsorFilter, -BLOCKS_BACK);
         
         for (const event of sponsorEvents) {
           events.push({
@@ -606,7 +596,7 @@ async loadQuarterlyInfo() {
         }
         
         const uplineFilter = this.contracts.partnerProgram.filters.UplinePaid(null, address);
-        const uplineEvents = await this.contracts.partnerProgram.queryFilter(uplineFilter, fromBlock);
+        const uplineEvents = await this.contracts.partnerProgram.queryFilter(uplineFilter, -BLOCKS_BACK);
       
         for (const event of uplineEvents) {
           events.push({
@@ -625,7 +615,7 @@ async loadQuarterlyInfo() {
     
       try {
         const matrixFilter = this.contracts.matrixPayments.filters.MatrixPaymentSent(null, address);
-        const matrixEvents = await this.contracts.matrixPayments.queryFilter(matrixFilter, fromBlock);
+        const matrixEvents = await this.contracts.matrixPayments.queryFilter(matrixFilter, -BLOCKS_BACK);
         
         for (const event of matrixEvents) {
           events.push({
@@ -644,7 +634,7 @@ async loadQuarterlyInfo() {
     
       try {
         const quarterlyFilter = this.contracts.quarterlyPayments.filters.QuarterlyPaid(address);
-        const quarterlyEvents = await this.contracts.quarterlyPayments.queryFilter(quarterlyFilter, fromBlock);
+        const quarterlyEvents = await this.contracts.quarterlyPayments.queryFilter(quarterlyFilter, -BLOCKS_BACK);
       
         for (const event of quarterlyEvents) {
           events.push({
