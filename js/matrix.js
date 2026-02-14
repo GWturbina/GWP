@@ -285,10 +285,8 @@ const matrixModule = {
   },
 
   async buildMatrixTreeFromNodes(structure, childId, level, depth, position, side) {
-    // Показываем только 2 уровня глубины (root + 2 линии = 7 позиций)
-    // Для таблицы подгружаем до currentLevel
-    const maxDepth = Math.max(2, this.state.currentLevel);
-    if (depth > maxDepth || childId.toString() === '0') return;
+    // Полный обход бинарного дерева до depth 12
+    if (depth > 12 || childId.toString() === '0') return;
     
     try {
       const nodeData = await this.contracts.matrixRegistry.matrixNodes(childId);
