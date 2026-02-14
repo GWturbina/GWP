@@ -558,11 +558,21 @@ async loadQuarterlyInfo() {
     const events = [];
   
     try {
-      const BLOCKS_BACK = 10000;
+      // opBNB: пробуем от начала, если RPC ограничивает — уменьшаем
+      let BLOCKS_BACK = 2000000;
+      
+      // Попробуем получить текущий блок для расчёта
+      let fromBlock;
+      try {
+        const currentBlock = await this.contracts.globalWay.provider.getBlockNumber();
+        fromBlock = Math.max(0, currentBlock - BLOCKS_BACK);
+      } catch (e) {
+        fromBlock = 0; // От начала
+      }
       
       try {
         const levelFilter = this.contracts.globalWay.filters.LevelActivated(address);
-        const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, -BLOCKS_BACK);
+        const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, fromBlock);
         
         for (const event of levelEvents) {
           events.push({
@@ -581,7 +591,7 @@ async loadQuarterlyInfo() {
       
       try {
         const sponsorFilter = this.contracts.partnerProgram.filters.SponsorPaid(null, address);
-        const sponsorEvents = await this.contracts.partnerProgram.queryFilter(sponsorFilter, -BLOCKS_BACK);
+        const sponsorEvents = await this.contracts.partnerProgram.queryFilter(sponsorFilter, fromBlock);
         
         for (const event of sponsorEvents) {
           events.push({
@@ -596,7 +606,7 @@ async loadQuarterlyInfo() {
         }
         
         const uplineFilter = this.contracts.partnerProgram.filters.UplinePaid(null, address);
-        const uplineEvents = await this.contracts.partnerProgram.queryFilter(uplineFilter, -BLOCKS_BACK);
+        const uplineEvents = await this.contracts.partnerProgram.queryFilter(uplineFilter, fromBlock);
       
         for (const event of uplineEvents) {
           events.push({
@@ -615,7 +625,7 @@ async loadQuarterlyInfo() {
     
       try {
         const matrixFilter = this.contracts.matrixPayments.filters.MatrixPaymentSent(null, address);
-        const matrixEvents = await this.contracts.matrixPayments.queryFilter(matrixFilter, -BLOCKS_BACK);
+        const matrixEvents = await this.contracts.matrixPayments.queryFilter(matrixFilter, fromBlock);
         
         for (const event of matrixEvents) {
           events.push({
@@ -634,7 +644,7 @@ async loadQuarterlyInfo() {
     
       try {
         const quarterlyFilter = this.contracts.quarterlyPayments.filters.QuarterlyPaid(address);
-        const quarterlyEvents = await this.contracts.quarterlyPayments.queryFilter(quarterlyFilter, -BLOCKS_BACK);
+        const quarterlyEvents = await this.contracts.quarterlyPayments.queryFilter(quarterlyFilter, fromBlock);
       
         for (const event of quarterlyEvents) {
           events.push({
