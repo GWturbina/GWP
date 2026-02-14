@@ -22,8 +22,8 @@ const exchangeModule = {
     console.log('💱 Exchange module init');
     this.render();
     
-    if (window.GWApp?.state?.address) {
-      this.state.userAddress = window.GWApp.state.address;
+    if (app?.state?.userAddress) {
+      this.state.userAddress = app.state.userAddress;
       await this.loadBalances();
     }
     
@@ -37,7 +37,7 @@ const exchangeModule = {
   async loadBalances() {
     try {
       // GWT баланс
-      const gwtToken = await window.GWApp?.getContract?.('GWTToken');
+      const gwtToken = await app?.getContract?.('GWTToken');
       if (gwtToken) {
         const balance = await gwtToken.balanceOf(this.state.userAddress);
         this.state.gwtBalance = window.ethers 
@@ -46,8 +46,8 @@ const exchangeModule = {
       }
 
       // BNB баланс
-      if (window.GWApp?.state?.provider) {
-        const bnb = await window.GWApp.state.provider.getBalance(this.state.userAddress);
+      if (window.web3Manager?.provider) {
+        const bnb = await window.web3Manager.provider.getBalance(this.state.userAddress);
         this.state.bnbBalance = window.ethers
           ? window.ethers.utils.formatEther(bnb)
           : (parseInt(bnb) / 1e18).toFixed(6);
@@ -55,7 +55,7 @@ const exchangeModule = {
 
       // Цена GWT (из контракта если доступно)
       try {
-        const gwtContract = await window.GWApp?.getContract?.('GWTToken');
+        const gwtContract = await app?.getContract?.('GWTToken');
         if (gwtContract?.tokenPrice) {
           const price = await gwtContract.tokenPrice();
           this.state.gwtPrice = window.ethers
@@ -420,7 +420,7 @@ const exchangeModule = {
   // ═══════════════════════════════════════════════════════════════
   createP2POrder() {
     if (!this.state.userAddress) {
-      window.GWApp?.showNotification?.('Подключите кошелёк!', 'error');
+      app?.showNotification?.('Подключите кошелёк!', 'error');
       return;
     }
 
@@ -430,15 +430,15 @@ const exchangeModule = {
     const contact = document.getElementById('p2pContact')?.value?.trim() || '';
 
     if (!amount || amount <= 0) {
-      window.GWApp?.showNotification?.('Укажите количество GWT', 'error');
+      app?.showNotification?.('Укажите количество GWT', 'error');
       return;
     }
     if (!price || price <= 0) {
-      window.GWApp?.showNotification?.('Укажите цену', 'error');
+      app?.showNotification?.('Укажите цену', 'error');
       return;
     }
     if (!contact) {
-      window.GWApp?.showNotification?.('Укажите контакт для связи', 'error');
+      app?.showNotification?.('Укажите контакт для связи', 'error');
       return;
     }
 
@@ -464,7 +464,7 @@ const exchangeModule = {
     document.getElementById('p2pPrice').value = '';
     document.getElementById('p2pContact').value = '';
 
-    window.GWApp?.showNotification?.('✅ Объявление создано!', 'success');
+    app?.showNotification?.('✅ Объявление создано!', 'success');
   },
 
   loadP2POrders() {
@@ -546,7 +546,7 @@ const exchangeModule = {
       this.state.p2pOrders[idx].status = 'cancelled';
       this.saveP2POrders();
       this.renderP2POrders();
-      window.GWApp?.showNotification?.('❌ Объявление отменено', 'info');
+      app?.showNotification?.('❌ Объявление отменено', 'info');
     }
   }
 };
