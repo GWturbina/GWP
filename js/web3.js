@@ -148,12 +148,6 @@ class Web3Manager {
       }
     }
 
-    // 🔥 ДОБАВЛЕНО: Fallback если provider ещё не готов
-     else if (this.isSafePalBrowser && !this.connected) {
-       console.log('⚠️ SafePal provider not ready, trying autoConnect anyway...');
-       await this.autoConnect();
-     }
-
     // Auto-connect если сохранён кошелёк
     const savedAddress = localStorage.getItem('walletAddress');
     const walletConnected = localStorage.getItem('walletConnected');
@@ -604,9 +598,9 @@ async connect() {
       await this.provider.send('wallet_addEthereumChain', [{
         chainId: chainIdHex,
         chainName: CONFIG.NETWORK.name,
-        nativeCurrency: CONFIG.NETWORK.currency,
+        nativeCurrency: CONFIG.NETWORK.nativeCurrency,
         rpcUrls: [CONFIG.NETWORK.rpcUrl],
-        blockExplorerUrls: [CONFIG.NETWORK.explorer]
+        blockExplorerUrls: [CONFIG.NETWORK.blockExplorer]
       }]);
       console.log('✅ Network added to wallet');
     } catch (error) {
