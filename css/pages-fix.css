@@ -1,0 +1,112 @@
+/* ═══════════════════════════════════════════════════════════════
+   ФИКС: Плотные фоны для Ссылки / Обменник / SafeVault
+   Чтобы секции выглядели как на Dashboard — непрозрачный
+   тёмно-синий фон, золотые бордеры, не просвечивает земля
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══ ОБЩИЙ СТИЛЬ СЕКЦИЙ — как Dashboard ═══ */
+/* Referral page sections */
+.referrals-page .ref-directions,
+.referrals-page .ref-generator,
+.referrals-page .ref-result,
+.referrals-page .ref-history,
+/* Exchange page sections */
+.exch-container,
+.exch-section,
+.exch-tabs,
+.exch-balance-card,
+.exch-swap-form,
+.exch-orders,
+.exch-p2p-section,
+.exch-card,
+/* SafeVault page sections */
+.sv-status-card,
+.sv-stats,
+.sv-setup,
+.sv-manage,
+.sv-pending,
+.sv-locked {
+  background: rgba(0, 26, 51, 0.92) !important;
+  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ═══ Ещё плотнее для карточек внутри секций ═══ */
+.sv-manage .sv-card,
+.exch-order-item,
+.exch-pair-card,
+.ref-messenger-preview .ref-msg-body,
+.ref-preview-container,
+.ref-link-box {
+  background: rgba(0, 20, 45, 0.85) !important;
+  border: 1px solid rgba(255, 215, 0, 0.1) !important;
+  border-radius: 12px;
+}
+
+/* ═══ Input поля — плотный фон ═══ */
+.ref-input,
+.sv-input,
+.sv-select,
+.exch-input,
+.exch-select,
+#exchange input,
+#exchange select,
+#referrals input,
+#safevault input,
+#safevault select {
+  background: rgba(0, 10, 25, 0.9) !important;
+  border-color: rgba(255, 215, 0, 0.25) !important;
+  color: #ffffff !important;
+}
+#exchange input::placeholder,
+#referrals input::placeholder,
+#safevault input::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* ═══ Текст — чёткий белый ═══ */
+#exchange,
+#referrals,
+#safevault {
+  color: #ffffff;
+}
+#exchange label,
+#referrals label,
+#safevault label,
+#exchange h3,
+#referrals h3,
+#safevault h3,
+#exchange h4,
+#referrals h4,
+#safevault h4,
+#exchange p,
+#referrals p,
+#safevault p,
+#exchange span,
+#referrals span,
+#safevault span {
+  color: #e8ecf0;
+}
+/* Заголовки секций — золото */
+#exchange h3,
+#referrals h3,
+#safevault h3,
+.ref-header h2,
+.sv-header h2 {
+  color: #ffd700 !important;
+}
+
+/* ═══ Кнопки — видимые ═══ */
+#exchange .exch-tab.active,
+.direction-card.active {
+  border-color: #ffd700 !important;
+  background: rgba(255, 215, 0, 0.1) !important;
+}
+
+/* ═══ Stat карточки SafeVault ═══ */
+.sv-stat {
+  background: rgba(0, 20, 45, 0.9) !important;
+  border: 1px solid rgba(255, 215, 0, 0.15) !important;
+}
