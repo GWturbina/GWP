@@ -1,0 +1,260 @@
+/* ═══════════════════════════════════════════════════════════════
+   GlobalWay — Unified Ref Landing Pages
+   Единая стилистика для gw.html, cg.html, nss.html
+   Cosmic Gold Theme с акцентами направлений
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Direction-specific accents set via data-dir on <body> */
+:root {
+  --ref-accent: #ffd700;
+  --ref-accent-dim: #c8a800;
+  --ref-glow: rgba(255, 215, 0, 0.2);
+  --ref-glow-strong: rgba(255, 215, 0, 0.35);
+  --ref-bg-gradient: linear-gradient(170deg, #000d1a 0%, #001a33 30%, #0d2040 60%, #001a33 100%);
+  --ref-particle1: rgba(255, 215, 0, 0.08);
+  --ref-particle2: rgba(255, 215, 0, 0.05);
+}
+
+body[data-dir="gw"] {
+  --ref-accent: #00d4ff;
+  --ref-accent-dim: #0099cc;
+  --ref-glow: rgba(0, 212, 255, 0.2);
+  --ref-glow-strong: rgba(0, 212, 255, 0.35);
+  --ref-particle1: rgba(0, 212, 255, 0.08);
+  --ref-particle2: rgba(0, 100, 255, 0.05);
+}
+
+body[data-dir="cg"] {
+  --ref-accent: #ff6b9d;
+  --ref-accent-dim: #d44a7a;
+  --ref-glow: rgba(255, 107, 157, 0.2);
+  --ref-glow-strong: rgba(255, 107, 157, 0.35);
+  --ref-particle1: rgba(255, 107, 157, 0.08);
+  --ref-particle2: rgba(180, 60, 200, 0.05);
+}
+
+body[data-dir="nss"] {
+  --ref-accent: #00ff88;
+  --ref-accent-dim: #00cc6a;
+  --ref-glow: rgba(0, 255, 136, 0.2);
+  --ref-glow-strong: rgba(0, 255, 136, 0.35);
+  --ref-particle1: rgba(0, 255, 136, 0.08);
+  --ref-particle2: rgba(0, 200, 100, 0.05);
+}
+
+/* ═══ BASE ═══ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--ref-bg-gradient);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #e0e8f0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ═══ ANIMATED BACKGROUND ═══ */
+.bg-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.bg-particles::before,
+.bg-particles::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  animation: float 10s infinite ease-in-out;
+}
+.bg-particles::before {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, var(--ref-particle1) 0%, transparent 70%);
+  top: -100px; right: -100px;
+}
+.bg-particles::after {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, var(--ref-particle2) 0%, transparent 70%);
+  bottom: -200px; left: -200px;
+  animation-delay: -5s;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-25px) scale(1.03); }
+}
+
+/* ═══ Subtle gold gridlines in background ═══ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 215, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 215, 0, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══ CARD ═══ */
+.card {
+  background: rgba(0, 20, 42, 0.88);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 20px;
+  padding: 40px 32px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    0 0 40px rgba(255, 215, 0, 0.06),
+    0 16px 48px rgba(0, 0, 0, 0.4);
+  animation: cardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ═══ LOGO ═══ */
+.logo {
+  width: 72px; height: 72px;
+  margin: 0 auto 16px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 215, 0, 0.25);
+  box-shadow: 0 0 24px var(--ref-glow);
+  animation: glow 4s infinite ease-in-out;
+}
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 24px var(--ref-glow); }
+  50% { box-shadow: 0 0 40px var(--ref-glow-strong); }
+}
+
+/* ═══ TITLE ═══ */
+h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: #ffd700;
+  letter-spacing: -0.5px;
+}
+/* Subtle direction accent on title */
+h1 .dir-accent {
+  background: linear-gradient(135deg, var(--ref-accent), var(--ref-accent-dim));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #8b949e;
+  margin-bottom: 20px;
+}
+
+/* ═══ INVITE INFO ═══ */
+.invite-info {
+  background: rgba(255, 215, 0, 0.06);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.invite-label {
+  font-size: 11px;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+.invite-id {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffd700;
+  margin: 6px 0;
+  font-family: 'Courier New', monospace;
+}
+.invite-name {
+  font-size: 14px;
+  color: var(--ref-accent);
+  font-weight: 500;
+}
+
+/* ═══ FEATURES ═══ */
+.features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.feature {
+  background: rgba(255, 215, 0, 0.04);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-size: 12px;
+}
+.feature-icon {
+  font-size: 18px;
+  margin-bottom: 3px;
+  display: block;
+}
+.feature-text { color: #8b949e; }
+
+/* ═══ CTA BUTTON ═══ */
+.cta-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #ffd700, #c8a800);
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.2);
+  letter-spacing: 0.3px;
+}
+.cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(255, 215, 0, 0.35);
+}
+
+/* ═══ POWERED BY ═══ */
+.powered {
+  margin-top: 16px;
+  font-size: 11px;
+  color: #5a6a7e;
+}
+.powered span { color: #ffd700; font-weight: 600; }
+
+/* ═══ LOADING ═══ */
+.loading { display: none; }
+body.loading .card { display: none; }
+body.loading .loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  font-size: 16px;
+  color: #8b949e;
+}
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 400px) {
+  .card { padding: 28px 20px; }
+  h1 { font-size: 22px; }
+  .invite-id { font-size: 24px; }
+  .cta-btn { font-size: 15px; padding: 13px; }
+}
