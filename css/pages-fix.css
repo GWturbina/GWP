@@ -1,13 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════
-   GlobalWay — Pages Fix v3
-   1. Компактный мобильный навбар (жёсткий override)
-   2. Плотные фоны для новых страниц
-   3. Гамбургер-меню
+   GlobalWay — Pages Fix v4
    ═══════════════════════════════════════════════════════════════ */
 
-/* ═══════════════════════════════════════
-   1. ПЛОТНЫЕ ФОНЫ — Ссылки/Обменник/SafeVault
-   ═══════════════════════════════════════ */
+/* ═══ ПЛОТНЫЕ ФОНЫ ═══ */
 .referrals-page .ref-directions,
 .referrals-page .ref-generator,
 .referrals-page .ref-result,
@@ -33,67 +28,50 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
-.sv-status-card,
-.sv-setup,
-.sv-manage,
-.sv-pending,
-.sv-locked {
+.sv-status-card, .sv-setup, .sv-manage, .sv-pending, .sv-locked {
   background: rgba(0, 26, 51, 0.92);
   border: 1px solid rgba(255, 215, 0, 0.2);
   border-radius: 14px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
-.sv-manage .sv-card,
-#exchange .exch-order-item,
-.ref-messenger-preview .ref-msg-body,
-.ref-link-box {
+.sv-manage .sv-card, #exchange .exch-order-item,
+.ref-messenger-preview .ref-msg-body, .ref-link-box {
   background: rgba(0, 20, 45, 0.85);
   border: 1px solid rgba(255, 215, 0, 0.1);
   border-radius: 12px;
 }
-.ref-input,
-.sv-input,
-.sv-select,
-#exchange input[type="number"],
-#exchange input[type="text"],
-#exchange select {
+.ref-input, .sv-input, .sv-select,
+#exchange input[type="number"], #exchange input[type="text"], #exchange select {
   background: rgba(0, 10, 25, 0.9);
   border-color: rgba(255, 215, 0, 0.25);
   color: #ffffff;
 }
-#exchange label,
-#referrals label,
-#safevault label { color: #e8ecf0; }
-.ref-header h2,
-.sv-header h2 { color: #ffd700; }
+#exchange label, #referrals label, #safevault label { color: #e8ecf0; }
+.ref-header h2, .sv-header h2 { color: #ffd700; }
 
-/* ═══════════════════════════════════════
-   2. ГАМБУРГЕР — скрыт на десктопе
-   ═══════════════════════════════════════ */
+/* ═══ Гамбургер — скрыт на десктопе ═══ */
 .nav-more-btn { display: none; }
 .nav-overflow { display: none; }
 
 /* ═══════════════════════════════════════
-   3. МОБИЛЬНЫЙ НАВБАР — жёсткий override
+   МОБИЛЬНЫЙ НАВБАР — ЖЁСТКО БЕЗ safe-area
    ═══════════════════════════════════════ */
 @media (max-width: 768px) {
 
-  /* ═══ Навбар — компактный ═══ */
   .main-nav {
     min-height: 0 !important;
     height: auto !important;
-    padding: 5px 3px 5px 3px !important;
-    padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 4px 4px 4px 4px !important;
     gap: 3px !important;
-    box-sizing: border-box !important;
+    border-radius: 8px 8px 0 0 !important;
   }
 
-  /* ═══ Кнопки навигации — маленькие ═══ */
   .main-nav .nav-btn {
     min-width: 50px !important;
-    min-height: 40px !important;
-    height: 40px !important;
+    min-height: 42px !important;
+    height: 42px !important;
+    max-height: 42px !important;
     padding: 3px 2px !important;
     font-size: 9px !important;
     gap: 1px !important;
@@ -104,12 +82,10 @@
     line-height: 1 !important;
   }
 
-  /* Прячем 5+ кнопку */
   .main-nav .nav-btn:nth-child(n+5) {
     display: none !important;
   }
 
-  /* ═══ Кнопка "Ещё" ═══ */
   .nav-more-btn {
     display: flex !important;
     flex-direction: column;
@@ -117,8 +93,9 @@
     justify-content: center;
     min-width: 50px !important;
     width: 50px !important;
-    min-height: 40px !important;
-    height: 40px !important;
+    min-height: 42px !important;
+    height: 42px !important;
+    max-height: 42px !important;
     padding: 3px !important;
     background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.08));
     border: 2px solid rgba(255, 215, 0, 0.3);
@@ -130,32 +107,19 @@
     order: 99;
     margin: 0 !important;
   }
-  .nav-more-btn .more-icon {
-    font-size: 16px;
-    line-height: 1;
-    color: #ffd700;
-  }
-  .nav-more-btn .more-label {
-    font-size: 8px;
-    font-weight: 600;
-    color: #fff;
-    line-height: 1;
-  }
+  .nav-more-btn .more-icon { font-size: 16px; line-height: 1; color: #ffd700; }
+  .nav-more-btn .more-label { font-size: 8px; font-weight: 600; color: #fff; line-height: 1; }
   .nav-more-btn.active {
     background: linear-gradient(135deg, #ffd700, #ffed4e);
     border-color: #ffd700;
   }
   .nav-more-btn.active .more-icon,
-  .nav-more-btn.active .more-label {
-    color: #000;
-  }
+  .nav-more-btn.active .more-label { color: #000; }
 
-  /* ═══ Выпадающее меню ═══ */
   .nav-overflow {
     position: fixed;
-    bottom: calc(55px + env(safe-area-inset-bottom, 0px));
-    left: 8px;
-    right: 8px;
+    bottom: 54px;
+    left: 8px; right: 8px;
     background: rgba(0, 20, 45, 0.97);
     border: 2px solid #ffd700;
     border-radius: 16px;
@@ -197,15 +161,12 @@
     gap: 4px;
     transition: all 0.2s;
   }
-  .nav-overflow-btn:hover,
-  .nav-overflow-btn:active {
+  .nav-overflow-btn:hover, .nav-overflow-btn:active {
     background: rgba(255, 215, 0, 0.2);
     border-color: #ffd700;
     color: #ffd700;
   }
-  .nav-overflow-btn .ov-icon {
-    font-size: 18px;
-  }
+  .nav-overflow-btn .ov-icon { font-size: 18px; }
   .nav-overlay {
     display: none;
     position: fixed;
@@ -213,16 +174,13 @@
     background: rgba(0, 0, 0, 0.4);
     z-index: 9999;
   }
-  .nav-overlay.open {
-    display: block;
-  }
+  .nav-overlay.open { display: block; }
 
-  /* ═══ Контент — отступ под компактный навбар ═══ */
   .content {
-    padding-bottom: calc(55px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 55px !important;
   }
   #dapp {
-    padding-bottom: calc(55px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 55px !important;
   }
 }
 
