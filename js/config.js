@@ -107,14 +107,12 @@ const CONFIG = {
   // ═══════════════════════════════════════════════════════════════
   // RANK LEVELS
   // ═══════════════════════════════════════════════════════════════
-  // RANKS — синхронизировано с MatrixPayments.sol:
-  // NO_RANK_MAX_LEVEL = 9, SILVER = 10, GOLD = 11, PLATINUM = 12
-  // Bronze удалён (в контракте Bronze = NoRank = 9, без отличий)
   RANKS: {
-    NONE: { id: 0, name: 'No Rank', maxLevel: 9, requirements: 'No requirements' },
-    SILVER: { id: 2, name: 'Silver 🥈', maxLevel: 10, requirements: '3 referrals with L6+' },
-    GOLD: { id: 3, name: 'Gold 🥇', maxLevel: 11, requirements: '4 referrals with L7+' },
-    PLATINUM: { id: 4, name: 'Platinum 💎', maxLevel: 12, requirements: '5 referrals with L8+' }
+    NONE: { id: 0, name: 'Никто', maxLevel: 0 },
+    BRONZE: { id: 1, name: 'Бронза 🥉', maxLevel: 4 },
+    SILVER: { id: 2, name: 'Серебро 🥈', maxLevel: 7 },
+    GOLD: { id: 3, name: 'Золото 🥇', maxLevel: 10 },
+    PLATINUM: { id: 4, name: 'Платина 💎', maxLevel: 12 }
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -170,14 +168,9 @@ const CONFIG = {
   // ═══════════════════════════════════════════════════════════════
   GAS: {
     register: 1000000,
-    buyLevel: 3500000,
-    payQuarterly: 2000000,
+    buyLevel: 3500000,      // Было 800000 → теперь 1000000
+    payQuarterly: 2000000,  // Тоже увеличь на всякий случай
     withdraw: 300000,
-    buyTokens: 500000,
-    createSellOrder: 300000,
-    buyFromOrder: 500000,
-    cancelOrder: 200000,
-    approve: 100000,
     defaultGasPrice: "0.001",
     maxGasPrice: "0.01"
   },
@@ -207,68 +200,89 @@ const CONFIG = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // REFERRAL SYSTEM - Directions, Domains, Anti-Ban
+  // REFERRAL SYSTEM - Directions, Domains, Anti-Ban, OG Previews
   // ═══════════════════════════════════════════════════════════════
   REFERRAL: {
-    // Направления экосистемы (добавляй новые по мере роста)
+    // Направления экосистемы
+    // dirCode — 1 символ для коротких ссылок: domain.com/r/{dirCode}{base36userId}
     directions: {
       gw: {
         name: 'GlobalWay',
         shortName: 'GW',
+        dirCode: 'g',           // Для коротких ссылок: /r/g1
         icon: '🌐',
         color: '#00d4ff',
         gradient: 'linear-gradient(135deg, #0a1628 0%, #0d2847 50%, #0a4a7a 100%)',
         description: 'Decentralized MLM Platform on opBNB',
-        descriptionRu: 'Decentralized platform on opBNB',
+        descriptionRu: 'Децентрализованная платформа на opBNB',
         landingPage: 'ref/gw.html',
         logo: 'assets/icons/logo.png'
       },
       cg: {
         name: 'CardGift',
         shortName: 'CG',
+        dirCode: 'c',           // Для коротких ссылок: /r/c1
         icon: '🎴',
         color: '#ff6b9d',
         gradient: 'linear-gradient(135deg, #1a0a2e 0%, #3d1552 50%, #6b2fa0 100%)',
         description: 'Digital Greeting Cards Platform',
-        descriptionRu: 'Digital greeting cards platform',
+        descriptionRu: 'Платформа цифровых открыток',
         landingPage: 'ref/cg.html',
         logo: 'assets/icons/CardGift.png'
       },
       nss: {
         name: 'NSS',
         shortName: 'NSS',
+        dirCode: 'n',           // Для коротких ссылок: /r/n1
         icon: '💱',
         color: '#00ff88',
         gradient: 'linear-gradient(135deg, #0a2818 0%, #0d4730 50%, #0a7a4a 100%)',
         description: 'Crypto Exchange & P2P Platform',
-        descriptionRu: 'Crypto exchange and P2P platform',
+        descriptionRu: 'Криптообменник и P2P платформа',
         landingPage: 'ref/nss.html',
         logo: 'assets/icons/GlobalBank.png'
       }
     },
 
+    // ═══ OG PREVIEW КАРТИНКИ ═══
+    // Загружаются админом в assets/og/
+    // Формат файла: {direction}-{index}.png  (1200x630 px)
+    // index=0 → дефолт ({direction}-default.png)
+    // Управление: Админка → секция "Превью для ссылок"
+    previewImages: {
+      gw: [
+        { index: 0, name: 'Стандарт', file: 'gw-default.png' },
+        // Добавляй через админку:
+        // { index: 1, name: 'Космос', file: 'gw-1.png' },
+        // { index: 2, name: 'Матрица', file: 'gw-2.png' },
+      ],
+      cg: [
+        { index: 0, name: 'Стандарт', file: 'cg-default.png' },
+      ],
+      nss: [
+        { index: 0, name: 'Стандарт', file: 'nss-default.png' },
+      ]
+    },
+
     // DApp домены для антибана (добавляй по мере создания)
-    // Формат: домен -> активен/нет
     domains: [
       { url: 'https://gwp-navy.vercel.app', active: true, primary: true },
       // Добавь DApp домены после создания:
       // { url: 'https://globalway.on.fleek.co', active: true },
       // { url: 'https://gw-dapp.eth.limo', active: true },
-      // { url: 'https://globalway.ipfs.io', active: true },
     ],
 
     // Настройки антибана
     antiBan: {
       enabled: true,
-      rotateOnShare: true,        // Менять домен при каждом шаринге
-      maxLinksPerDomain: 50,      // Макс ссылок на один домен
+      rotateOnShare: true,
+      maxLinksPerDomain: 50,
       fallbackDomain: 'https://gwp-navy.vercel.app'
     },
 
-    // OG Preview настройки
+    // OG Preview настройки (для серверной функции api/r.js)
     ogDefaults: {
       siteName: 'GlobalWay Ecosystem',
-      image: 'assets/icons/icon-512x512.png',
       imageWidth: 1200,
       imageHeight: 630
     }
@@ -319,8 +333,9 @@ CONFIG.getTokenReward = function(level) {
 
 CONFIG.getRankByLevel = function(maxLevel) {
   if (maxLevel >= 12) return this.RANKS.PLATINUM;
-  if (maxLevel >= 11) return this.RANKS.GOLD;
-  if (maxLevel >= 10) return this.RANKS.SILVER;
+  if (maxLevel >= 10) return this.RANKS.GOLD;
+  if (maxLevel >= 7) return this.RANKS.SILVER;
+  if (maxLevel >= 4) return this.RANKS.BRONZE;
   return this.RANKS.NONE;
 };
 
