@@ -107,12 +107,14 @@ const CONFIG = {
   // ═══════════════════════════════════════════════════════════════
   // RANK LEVELS
   // ═══════════════════════════════════════════════════════════════
+  // RANKS — синхронизировано с MatrixPayments.sol:
+  // NO_RANK_MAX_LEVEL = 9, SILVER = 10, GOLD = 11, PLATINUM = 12
+  // Bronze удалён (в контракте Bronze = NoRank = 9, без отличий)
   RANKS: {
-    NONE: { id: 0, name: 'Никто', maxLevel: 0 },
-    BRONZE: { id: 1, name: 'Бронза 🥉', maxLevel: 4 },
-    SILVER: { id: 2, name: 'Серебро 🥈', maxLevel: 7 },
-    GOLD: { id: 3, name: 'Золото 🥇', maxLevel: 10 },
-    PLATINUM: { id: 4, name: 'Платина 💎', maxLevel: 12 }
+    NONE: { id: 0, name: 'Без ранга', maxLevel: 9, requirements: 'Нет требований' },
+    SILVER: { id: 2, name: 'Серебро 🥈', maxLevel: 10, requirements: '3 реферала с L6+' },
+    GOLD: { id: 3, name: 'Золото 🥇', maxLevel: 11, requirements: '4 реферала с L7+' },
+    PLATINUM: { id: 4, name: 'Платина 💎', maxLevel: 12, requirements: '5 рефералов с L8+' }
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -168,9 +170,14 @@ const CONFIG = {
   // ═══════════════════════════════════════════════════════════════
   GAS: {
     register: 1000000,
-    buyLevel: 3500000,      // Было 800000 → теперь 1000000
-    payQuarterly: 2000000,  // Тоже увеличь на всякий случай
+    buyLevel: 3500000,
+    payQuarterly: 2000000,
     withdraw: 300000,
+    buyTokens: 500000,
+    createSellOrder: 300000,
+    buyFromOrder: 500000,
+    cancelOrder: 200000,
+    approve: 100000,
     defaultGasPrice: "0.001",
     maxGasPrice: "0.01"
   },
@@ -312,9 +319,8 @@ CONFIG.getTokenReward = function(level) {
 
 CONFIG.getRankByLevel = function(maxLevel) {
   if (maxLevel >= 12) return this.RANKS.PLATINUM;
-  if (maxLevel >= 10) return this.RANKS.GOLD;
-  if (maxLevel >= 7) return this.RANKS.SILVER;
-  if (maxLevel >= 4) return this.RANKS.BRONZE;
+  if (maxLevel >= 11) return this.RANKS.GOLD;
+  if (maxLevel >= 10) return this.RANKS.SILVER;
   return this.RANKS.NONE;
 };
 
