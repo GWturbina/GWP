@@ -111,10 +111,10 @@ const CONFIG = {
   // NO_RANK_MAX_LEVEL = 9, SILVER = 10, GOLD = 11, PLATINUM = 12
   // Bronze удалён (в контракте Bronze = NoRank = 9, без отличий)
   RANKS: {
-    NONE: { id: 0, name: 'Без ранга', maxLevel: 9, requirements: 'Нет требований' },
-    SILVER: { id: 2, name: 'Серебро 🥈', maxLevel: 10, requirements: '3 реферала с L6+' },
-    GOLD: { id: 3, name: 'Золото 🥇', maxLevel: 11, requirements: '4 реферала с L7+' },
-    PLATINUM: { id: 4, name: 'Платина 💎', maxLevel: 12, requirements: '5 рефералов с L8+' }
+    NONE: { id: 0, name: 'No Rank', maxLevel: 9, requirements: 'No requirements' },
+    SILVER: { id: 2, name: 'Silver 🥈', maxLevel: 10, requirements: '3 referrals with L6+' },
+    GOLD: { id: 3, name: 'Gold 🥇', maxLevel: 11, requirements: '4 referrals with L7+' },
+    PLATINUM: { id: 4, name: 'Platinum 💎', maxLevel: 12, requirements: '5 referrals with L8+' }
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -219,7 +219,7 @@ const CONFIG = {
         color: '#00d4ff',
         gradient: 'linear-gradient(135deg, #0a1628 0%, #0d2847 50%, #0a4a7a 100%)',
         description: 'Decentralized MLM Platform on opBNB',
-        descriptionRu: 'Децентрализованная платформа на opBNB',
+        descriptionRu: 'Decentralized platform on opBNB',
         landingPage: 'ref/gw.html',
         logo: 'assets/icons/logo.png'
       },
@@ -230,7 +230,7 @@ const CONFIG = {
         color: '#ff6b9d',
         gradient: 'linear-gradient(135deg, #1a0a2e 0%, #3d1552 50%, #6b2fa0 100%)',
         description: 'Digital Greeting Cards Platform',
-        descriptionRu: 'Платформа цифровых открыток',
+        descriptionRu: 'Digital greeting cards platform',
         landingPage: 'ref/cg.html',
         logo: 'assets/icons/CardGift.png'
       },
@@ -241,7 +241,7 @@ const CONFIG = {
         color: '#00ff88',
         gradient: 'linear-gradient(135deg, #0a2818 0%, #0d4730 50%, #0a7a4a 100%)',
         description: 'Crypto Exchange & P2P Platform',
-        descriptionRu: 'Криптообменник и P2P платформа',
+        descriptionRu: 'Crypto exchange and P2P platform',
         landingPage: 'ref/nss.html',
         logo: 'assets/icons/GlobalBank.png'
       }
