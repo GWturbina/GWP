@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GlobalWay — Mobile Nav Preview</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { 
+    background: linear-gradient(180deg, #0a0a1a 0%, #0d1b2a 50%, #1b2838 100%);
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(0,20,45,0.95);
+    border-bottom: 2px solid rgba(255,215,0,0.4);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { color: #ffd700; font-weight: 800; font-size: 18px; display:flex; align-items:center; gap:8px; }
+  .logo-icon { font-size: 24px; }
+  .lang-switch {
+    background: rgba(255,215,0,0.1);
+    border: 1px solid rgba(255,215,0,0.3);
+    color: #ffd700;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* Content */
+  .content {
+    padding: 16px;
+    padding-bottom: 90px;
+  }
+  .page-title {
+    color: #ffd700;
+    font-size: 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card {
+    background: linear-gradient(135deg, rgba(255,215,0,0.06), rgba(255,215,0,0.02));
+    border: 1px solid rgba(255,215,0,0.15);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-label { color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .card-value { color: #ffd700; font-size: 22px; font-weight: 700; }
+  .card-row { display: flex; justify-content: space-between; margin-top: 8px; }
+  .card-row span { color: rgba(255,255,255,0.6); font-size: 12px; }
+  .card-row strong { color: #fff; font-size: 13px; }
+
+  .active-page-label {
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255,255,255,0.3);
+    font-size: 14px;
+  }
+  .active-page-label .icon { font-size: 48px; display: block; margin-bottom: 8px; }
+
+  /* ═══════════════════════════════════════
+     BOTTOM NAV
+     ═══════════════════════════════════════ */
+  .main-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 8px));
+    min-height: 64px;
+    background: linear-gradient(180deg, rgba(0,20,45,0.98), rgba(0,12,30,0.99));
+    border-top: 2px solid rgba(255,215,0,0.6);
+    border-radius: 16px 16px 0 0;
+    z-index: 9990;
+    backdrop-filter: blur(25px);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+  }
+
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 72px;
+    min-height: 52px;
+    padding: 4px 2px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+
+  .nav-icon {
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    margin-bottom: 2px;
+    transition: transform 0.2s ease;
+  }
+
+  .nav-btn span:last-child {
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .nav-btn.active {
+    color: #ffd700;
+    background: rgba(255,215,0,0.12);
+  }
+  .nav-btn.active .nav-icon { transform: scale(1.15); }
+  .nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ffd700;
+  }
+  .nav-btn:active { transform: scale(0.92); }
+
+  /* More button */
+  .nav-more-btn.drawer-open { color: #ffd700; }
+  .nav-more-btn.drawer-open .nav-icon { transform: rotate(90deg); }
+
+  /* ═══════════════════════════════════════
+     DRAWER OVERLAY
+     ═══════════════════════════════════════ */
+  .nav-drawer-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 9991;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  .nav-drawer-overlay.active { opacity: 1; visibility: visible; }
+
+  /* ═══════════════════════════════════════
+     SLIDE-UP DRAWER
+     ═══════════════════════════════════════ */
+  .nav-drawer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 9992;
+    background: linear-gradient(180deg, #0a1e3d 0%, #06142b 100%);
+    border-top: 2px solid rgba(255,215,0,0.5);
+    border-radius: 20px 20px 0 0;
+    padding: 12px 16px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 8px));
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+  }
+  .nav-drawer.active { transform: translateY(0); }
+
+  .nav-drawer-handle {
+    width: 36px;
+    height: 4px;
+    background: rgba(255,215,0,0.4);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+
+  .nav-drawer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .nav-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.03));
+    border: 1px solid rgba(255,215,0,0.15);
+    border-radius: 14px;
+    color: rgba(255,255,255,0.85);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-drawer-item:active {
+    transform: scale(0.96);
+    background: rgba(255,215,0,0.15);
+  }
+  .nav-drawer-item.active {
+    background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.1));
+    border-color: rgba(255,215,0,0.4);
+    color: #ffd700;
+  }
+  .nav-drawer-item-icon { font-size: 22px; flex-shrink: 0; }
+
+  /* Hint label */
+  .hint {
+    background: rgba(255,215,0,0.08);
+    border: 1px dashed rgba(255,215,0,0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: rgba(255,215,0,0.7);
+    font-size: 12px;
+    text-align: center;
+    margin: 16px 0;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo"><span class="logo-icon">🌌</span> GlobalWay</div>
+    <div class="lang-switch">EN ▾</div>
+  </div>
+
+  <div class="content">
+    <div id="page-dashboard" class="page">
+      <h2 class="page-title">🌌 Personal Cabinet</h2>
+      <div class="card">
+        <div class="card-label">Your Balance</div>
+        <div class="card-value">0.0842 BNB</div>
+        <div class="card-row"><span>User ID</span> <strong>GW7777777</strong></div>
+        <div class="card-row"><span>Rank</span> <strong>Bronze 🥉</strong></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Quarterly Fee</div>
+        <div class="card-value" style="font-size:16px; color: #4ade80;">✅ Active</div>
+        <div class="card-row"><span>Last Payment</span> <strong>Feb 10, 2026</strong></div>
+        <div class="card-row"><span>Next Payment</span> <strong>Available in 82d</strong></div>
+      </div>
+      <div class="hint">
+        👆 Try tapping <strong>"More"</strong> button (☰) in the bottom nav<br>
+        to see the slide-up drawer with additional pages
+      </div>
+    </div>
+    
+    <div id="page-other" class="page" style="display:none;">
+      <div class="active-page-label">
+        <span class="icon" id="activeIcon">🚀</span>
+        <span id="activeLabel">Page</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="main-nav">
+    <button class="nav-btn active" data-page="dashboard" onclick="showPage('dashboard',this)">
+      <i class="nav-icon">📊</i>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-btn" data-page="partners" onclick="showPage('partners',this)">
+      <i class="nav-icon">👥</i>
+      <span>Partners</span>
+    </button>
+    <button class="nav-btn" data-page="matrix" onclick="showPage('matrix',this)">
+      <i class="nav-icon">🌐</i>
+      <span>Matrix</span>
+    </button>
+    <button class="nav-btn" data-page="tokens" onclick="showPage('tokens',this)">
+      <i class="nav-icon">💎</i>
+      <span>Tokens</span>
+    </button>
+    <button class="nav-btn nav-more-btn" id="navMoreBtn" onclick="toggleDrawer()">
+      <i class="nav-icon">☰</i>
+      <span>More</span>
+    </button>
+  </nav>
+
+  <!-- Drawer -->
+  <div class="nav-drawer-overlay" id="overlay" onclick="closeDrawer()"></div>
+  <div class="nav-drawer" id="drawer">
+    <div class="nav-drawer-handle"></div>
+    <div class="nav-drawer-grid">
+      <div class="nav-drawer-item" onclick="selectDrawer('projects','🚀','Projects')">
+        <span class="nav-drawer-item-icon">🚀</span>
+        <span>Projects</span>
+      </div>
+      <div class="nav-drawer-item" onclick="selectDrawer('referrals','🔗','Links')">
+        <span class="nav-drawer-item-icon">🔗</span>
+        <span>Links</span>
+      </div>
+      <div class="nav-drawer-item" onclick="selectDrawer('safevault','🛡️','SafeVault')">
+        <span class="nav-drawer-item-icon">🛡️</span>
+        <span>SafeVault</span>
+      </div>
+      <div class="nav-drawer-item" onclick="selectDrawer('exchange','💱','Exchange')">
+        <span class="nav-drawer-item-icon">💱</span>
+        <span>Exchange</span>
+      </div>
+      <div class="nav-drawer-item" onclick="selectDrawer('admin','⚙️','Admin')">
+        <span class="nav-drawer-item-icon">⚙️</span>
+        <span>Admin</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const drawer = document.getElementById('drawer');
+  const overlay = document.getElementById('overlay');
+  const moreBtn = document.getElementById('navMoreBtn');
+
+  function toggleDrawer() {
+    const isOpen = drawer.classList.contains('active');
+    if (isOpen) closeDrawer();
+    else openDrawer();
+  }
+
+  function openDrawer() {
+    drawer.classList.add('active');
+    overlay.classList.add('active');
+    moreBtn.classList.add('drawer-open');
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('active');
+    overlay.classList.remove('active');
+    moreBtn.classList.remove('drawer-open');
+  }
+
+  function showPage(name, btn) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    moreBtn.classList.remove('active');
+    
+    document.querySelectorAll('.nav-drawer-item').forEach(i => i.classList.remove('active'));
+    
+    if (name === 'dashboard') {
+      document.getElementById('page-dashboard').style.display = '';
+      document.getElementById('page-other').style.display = 'none';
+    } else {
+      document.getElementById('page-dashboard').style.display = 'none';
+      document.getElementById('page-other').style.display = '';
+      const icons = {partners:'👥',matrix:'🌐',tokens:'💎',projects:'🚀',referrals:'🔗',safevault:'🛡️',exchange:'💱',admin:'⚙️'};
+      document.getElementById('activeIcon').textContent = icons[name] || '📄';
+      document.getElementById('activeLabel').textContent = name.charAt(0).toUpperCase() + name.slice(1) + ' Page';
+    }
+    closeDrawer();
+  }
+
+  function selectDrawer(name, icon, label) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    moreBtn.classList.add('active');
+    
+    document.querySelectorAll('.nav-drawer-item').forEach(i => {
+      i.classList.toggle('active', i.textContent.trim().includes(label));
+    });
+    
+    document.getElementById('page-dashboard').style.display = 'none';
+    document.getElementById('page-other').style.display = '';
+    document.getElementById('activeIcon').textContent = icon;
+    document.getElementById('activeLabel').textContent = label + ' Page';
+    closeDrawer();
+  }
+</script>
+
+</body>
+</html>
