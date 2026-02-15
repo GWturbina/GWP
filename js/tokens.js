@@ -47,7 +47,7 @@ const tokensModule = {
       console.log('✅ Tokens loaded');
     } catch (error) {
       console.error('❌ Tokens init error:', error);
-      app.showNotification('Ошибка загрузки токенов', 'error');
+      app.showNotification(_t('notifications.tokensError'), 'error');
     }
   },
 
@@ -293,10 +293,10 @@ const tokensModule = {
 
       container.innerHTML = defaultRewards.map(r => `
         <div class="reward-card ${r.unlocked ? 'unlocked' : ''}">
-          <div class="reward-level">Уровень ${r.level}</div>
+          <div class="reward-level">Level ${r.level}</div>
           <div class="reward-amount">${r.amount} GWT</div>
           ${r.unlocked ? '<div class="reward-check">✓</div>' : ''}
-          <div class="reward-status">${r.unlocked ? 'РАЗБЛОКИРОВАН' : 'ЗАБЛОКИРОВАН'}</div>
+          <div class="reward-status">${r.unlocked ? 'UNLOCKED' : 'LOCKED'}</div>
         </div>
       `).join('');
 
@@ -312,10 +312,10 @@ const tokensModule = {
     // Рендерим награды
     container.innerHTML = levels.map(r => `
       <div class="reward-card ${r.unlocked ? 'unlocked' : ''}">
-        <div class="reward-level">Уровень ${r.level}</div>
+        <div class="reward-level">Level ${r.level}</div>
         <div class="reward-amount">${r.amount} GWT</div>
         ${r.unlocked ? '<div class="reward-check">✓</div>' : ''}
-        <div class="reward-status">${r.unlocked ? 'РАЗБЛОКИРОВАН' : 'ЗАБЛОКИРОВАН'}</div>
+        <div class="reward-status">${r.unlocked ? 'UNLOCKED' : 'LOCKED'}</div>
       </div>
     `).join('');
 
@@ -368,11 +368,11 @@ const tokensModule = {
         events.push({
           date: new Date(block.timestamp * 1000).toLocaleDateString(),
           type: isReward ? 'reward' : 'transfer',
-          typeLabel: isReward ? 'Награда' : 'Перевод',
+          typeLabel: isReward ? 'Reward' : 'Transfer',
           level: isReward ? this.getLevelByReward(amount) : '-',
           amount: `${app.formatNumber(amount, 2)} GWT`,
           status: 'success',
-          statusLabel: 'Завершено'
+          statusLabel: 'Completed'
         });
       }
 
@@ -392,7 +392,7 @@ const tokensModule = {
     if (!tableBody) return;
 
     if (!this.state.history || this.state.history.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="5" class="no-data">Нет транзакций</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="5" class="no-data">No transactions</td></tr>';
       return;
     }
 
@@ -414,24 +414,24 @@ const tokensModule = {
     if (!await app.checkNetwork()) return;
     
     if (!this.state.tradingEnabled) {
-      app.showNotification('Торговля еще не активна. Цена должна достичь $0.01', 'error');
+      app.showNotification('Trading not active yet. Price must reach $0.01', 'error');
       return;
     }
 
     const amountInput = document.getElementById('tradeAmount');
     if (!amountInput || !amountInput.value) {
-      app.showNotification('Введите количество токенов', 'error');
+      app.showNotification('Enter token amount', 'error');
       return;
     }
 
     const amount = parseFloat(amountInput.value);
     if (amount <= 0) {
-      app.showNotification('Неверное количество', 'error');
+      app.showNotification('Invalid amount', 'error');
       return;
     }
 
     try {
-      app.showNotification('Покупка токенов...', 'info');
+      app.showNotification('Buying tokens...', 'info');
 
       // Расчет стоимости
       const cost = (amount * parseFloat(this.state.price)).toFixed(6);
@@ -446,23 +446,23 @@ const tokensModule = {
           gasLimit: CONFIG.GAS.transaction
         });
       } catch (e) {
-        app.showNotification('Функция покупки недоступна', 'error');
+        app.showNotification('Buy function not available', 'error');
         return;
       }
 
-      app.showNotification('Ожидание подтверждения...', 'info');
+      app.showNotification('Waiting for confirmation...', 'info');
       await tx.wait();
 
-      app.showNotification('Токены куплены! 🎉', 'success');
+      app.showNotification('Tokens bought! 🎉', 'success');
       
       await this.refresh();
       
     } catch (error) {
       console.error('Buy tokens error:', error);
       if (error.code === 4001) {
-        app.showNotification('Транзакция отклонена', 'error');
+        app.showNotification(_t ? _t('notifications.txRejected') : 'Transaction rejected', 'error');
       } else {
-        app.showNotification('Ошибка покупки', 'error');
+        app.showNotification(_t ? _t('notifications.buyError') : 'Purchase error', 'error');
       }
     }
   },
@@ -471,29 +471,29 @@ const tokensModule = {
     if (!await app.checkNetwork()) return;
     
     if (!this.state.tradingEnabled) {
-      app.showNotification('Торговля еще не активна. Цена должна достичь $0.01', 'error');
+      app.showNotification('Trading not active yet. Price must reach $0.01', 'error');
       return;
     }
 
     const amountInput = document.getElementById('tradeAmount');
     if (!amountInput || !amountInput.value) {
-      app.showNotification('Введите количество токенов', 'error');
+      app.showNotification('Enter token amount', 'error');
       return;
     }
 
     const amount = parseFloat(amountInput.value);
     if (amount <= 0) {
-      app.showNotification('Неверное количество', 'error');
+      app.showNotification('Invalid amount', 'error');
       return;
     }
 
     if (amount > parseFloat(this.state.balance)) {
-      app.showNotification('Недостаточно токенов', 'error');
+      app.showNotification('Insufficient tokens', 'error');
       return;
     }
 
     try {
-      app.showNotification('Продажа токенов...', 'info');
+      app.showNotification('Selling tokens...', 'info');
 
       const contract = await app.getSignedContract('GWTToken');
       
@@ -505,23 +505,23 @@ const tokensModule = {
           { gasLimit: CONFIG.GAS.transaction }
         );
       } catch (e) {
-        app.showNotification('Функция продажи недоступна', 'error');
+        app.showNotification('Sell function not available', 'error');
         return;
       }
 
-      app.showNotification('Ожидание подтверждения...', 'info');
+      app.showNotification('Waiting for confirmation...', 'info');
       await tx.wait();
 
-      app.showNotification('Токены проданы! 🎉', 'success');
+      app.showNotification('Tokens sold! 🎉', 'success');
       
       await this.refresh();
       
     } catch (error) {
       console.error('Sell tokens error:', error);
       if (error.code === 4001) {
-        app.showNotification('Транзакция отклонена', 'error');
+        app.showNotification(_t ? _t('notifications.txRejected') : 'Transaction rejected', 'error');
       } else {
-        app.showNotification('Ошибка продажи', 'error');
+        app.showNotification('Sell error', 'error');
       }
     }
   },
@@ -543,7 +543,7 @@ const tokensModule = {
       }
       
       if (statusTextEl) {
-        statusTextEl.textContent = 'Активна';
+        statusTextEl.textContent = 'Active';
       }
       
       if (buyBtn) buyBtn.disabled = false;
@@ -557,7 +557,7 @@ const tokensModule = {
       }
       
       if (statusTextEl) {
-        statusTextEl.textContent = 'Неактивна';
+        statusTextEl.textContent = 'Inactive';
       }
       
       if (buyBtn) buyBtn.disabled = true;
@@ -624,22 +624,22 @@ const tokensModule = {
 
     container.innerHTML = `
       <div class="pool-item">
-        <span class="pool-name">Пул токеномики 80% (800M GWT)</span>
+        <span class="pool-name">Tokenomics Pool 80% (800M GWT)</span>
         <span class="pool-status status-soon">Soon</span>
       </div>
       
       <div class="pool-item">
-        <span class="pool-name">Пул раздачи 10% (100M GWT)</span>
+        <span class="pool-name">Distribution Pool 10% (100M GWT)</span>
         <span class="pool-status status-soon">Soon</span>
       </div>
       
       <div class="pool-item">
-        <span class="pool-name">Командный пул 5% (50M GWT)</span>
+        <span class="pool-name">Team Pool 5% (50M GWT)</span>
         <span class="pool-status status-locked">Locked</span>
       </div>
       
       <div class="pool-item">
-        <span class="pool-name">Резервный пул 5% (50M GWT)</span>
+        <span class="pool-name">Reserve Pool 5% (50M GWT)</span>
         <span class="pool-status status-soon">Soon</span>
       </div>
     `;
@@ -668,7 +668,7 @@ const tokensModule = {
   async addTokenToWallet() {
     try {
       if (!window.ethereum) {
-        app.showNotification('Кошелек не найден', 'error');
+        app.showNotification('Wallet not found', 'error');
         return;
       }
 
@@ -685,11 +685,11 @@ const tokensModule = {
         }
       });
 
-      app.showNotification('Токен добавлен в кошелек! ✓', 'success');
+      app.showNotification('Token added to wallet! ✓', 'success');
       
     } catch (error) {
       console.error('Error adding token:', error);
-      app.showNotification('Ошибка добавления токена', 'error');
+      app.showNotification('Error adding token', 'error');
     }
   },
 
