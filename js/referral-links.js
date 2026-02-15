@@ -20,7 +20,7 @@ const referralsModule = {
     console.log('🔗 Referrals module init');
     this.render();
     
-    if (app?.state?.address) {
+    if (app?.state?.userAddress) {
       this.state.userAddress = app.state.userAddress;
       await this.loadUserData();
     }
@@ -711,7 +711,22 @@ const referralsModule = {
       await navigator.clipboard.writeText(text);
       app?.showNotification?.('✅ Скопировано!', 'success');
     } catch (e) {
-      console.warn('Copy failed:', e);
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      app?.showNotification?.('✅ Скопировано!', 'success');
+    }
+  },
+
+  // Refresh для app module system
+  async refresh() {
+    if (app?.state?.userAddress) {
+      this.state.userAddress = app.state.userAddress;
+      await this.loadUserData();
     }
   }
 };
