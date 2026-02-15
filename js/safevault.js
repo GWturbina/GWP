@@ -1,595 +1,288 @@
-/* ═══════════════════════════════════════════════════════════════════
-   SAFEVAULT - Cold Wallet Protection Page
-   Design: Gold/Cosmic theme matching GlobalWay
-   v1.0 - February 15, 2026
-   ═══════════════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════════════
+// GlobalWay DApp - SafeVault Module v1.1
+// i18n: data-translate keys → safevault.*
+// February 15, 2026
+// ═══════════════════════════════════════════════════════════════════
 
-.sv-page { padding: 10px; }
+const safevaultModule = {
+  state: { userAddress: null, configured: false, config: null, security: null, stats: null, loading: false },
 
-.sv-header {
-  text-align: center;
-  margin-bottom: 25px;
-}
-.sv-header h2 {
-  color: var(--gold);
-  font-size: 1.6em;
-  margin-bottom: 5px;
-  text-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
-}
-.sv-subtitle {
-  color: rgba(255,255,255,0.6);
-  font-size: 0.95em;
-}
+  MODE_NAMES: {
+    0: { key: 'disabled', icon: '⚪' },
+    1: { key: 'modeFull', icon: '🔒' },
+    2: { key: 'modeSplit', icon: '📊' },
+    3: { key: 'modeThreshold', icon: '📏' }
+  },
 
-/* ═══════════════════════════════════════════════════════════════
-   STATUS CARD
-   ═══════════════════════════════════════════════════════════════ */
-.sv-status-card {
-  background: rgba(10, 20, 50, 0.85);
-  border: 2px solid var(--border-gold);
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-}
-.sv-status-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--gold), transparent);
-}
-.sv-status-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: var(--font-size-md);
-}
-.sv-status-row:last-child { border-bottom: none; }
-.sv-status-row > span:first-child {
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-.sv-status-row > span:last-child {
-  color: var(--text-light);
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
-  font-size: var(--font-size-sm);
-}
+  async init() {
+    console.log('🔒 SafeVault module init');
+    this.render();
+    this.bindEvents();
+    if (app?.state?.userAddress) { this.state.userAddress = app.state.userAddress; await this.loadData(); }
+  },
 
-/* ═══════════════════════════════════════════════════════════════
-   STATISTICS
-   ═══════════════════════════════════════════════════════════════ */
-.sv-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.sv-stat {
-  text-align: center;
-  padding: 14px 10px;
-  background: rgba(10, 20, 50, 0.75);
-  border: 1px solid rgba(255, 215, 0, 0.15);
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-.sv-stat:hover {
-  border-color: var(--gold);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-gold);
-}
-.sv-stat-label {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 0.8em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-  letter-spacing: 0.5px;
-}
-.sv-stat-val {
-  display: block;
-  color: var(--gold);
-  font-size: 1.15em;
-  font-weight: 700;
-  font-family: 'Courier New', monospace;
-}
-.sv-stat-unit {
-  display: block;
-  color: rgba(255,255,255,0.3);
-  font-size: 0.75em;
-  margin-top: 2px;
-}
+  async loadData() {
+    try {
+      const sv = await app?.getContract?.('SafeVaultGW');
+      if (!sv || !this.state.userAddress) return;
+      try {
+        const cfg = await sv.getUserConfig(this.state.userAddress);
+        this.state.config = { mode: parseInt((cfg.mode ?? cfg[0]).toString()), coldWallet: cfg.coldWallet || cfg[1], splitPercentBP: parseInt((cfg.splitPercentBP ?? cfg[2]).toString()), thresholdAmount: cfg.thresholdAmount || cfg[3], hotBalance: cfg.hotBalance || cfg[4], configured: cfg.configured ?? cfg[5] };
+        this.state.configured = this.state.config.configured;
+      } catch (e) {
+        try {
+          const c = await sv.configs(this.state.userAddress);
+          this.state.config = { mode: parseInt((c.mode ?? c[0]).toString()), coldWallet: c.coldWallet || c[1], splitPercentBP: parseInt((c.splitPercentBP ?? c[2]).toString()), thresholdAmount: c.thresholdAmount || c[3], hotBalance: c.hotBalance || c[4], configured: c.configured ?? c[5] };
+          this.state.configured = this.state.config.configured;
+        } catch (e2) { this.state.configured = false; }
+      }
+      try {
+        const sec = await sv.getSecurityStatus(this.state.userAddress);
+        this.state.security = { hasPin: sec.hasPin ?? sec[0], hasGuardian: sec.hasGuardian ?? sec[1], guardian: sec.guardian || sec[2], locked: sec.locked ?? sec[3], failedAttempts: parseInt((sec.failedAttempts ?? sec[4]).toString()), lockUntil: parseInt((sec.lockUntil ?? sec[5]).toString()), pendingDisable: parseInt((sec.disableRequestTime ?? sec[6]).toString()) > 0, pendingColdChange: parseInt((sec.coldChangeTime ?? sec[7]).toString()) > 0, pendingColdWallet: sec.pendingColdWallet || sec[8] };
+      } catch (e) { this.state.security = null; }
+      try {
+        const stats = await sv.getUserStats(this.state.userAddress);
+        this.state.stats = { totalReceivedBNB: this.fmt(stats.totalReceivedBNB || stats[0]), totalToColdBNB: this.fmt(stats.totalToColdBNB || stats[1]), totalToHotBNB: this.fmt(stats.totalToHotBNB || stats[2]) };
+      } catch (e) {
+        try {
+          const r = await sv.totalReceivedBNB(this.state.userAddress); const c = await sv.totalToColdBNB(this.state.userAddress); const h = await sv.totalToHotBNB(this.state.userAddress);
+          this.state.stats = { totalReceivedBNB: this.fmt(r), totalToColdBNB: this.fmt(c), totalToHotBNB: this.fmt(h) };
+        } catch (e2) { this.state.stats = { totalReceivedBNB: '0', totalToColdBNB: '0', totalToHotBNB: '0' }; }
+      }
+      this.updateUI();
+    } catch (err) { console.error('❌ SafeVault loadData error:', err); }
+  },
 
-/* ═══════════════════════════════════════════════════════════════
-   PENDING ACTIONS
-   ═══════════════════════════════════════════════════════════════ */
-.sv-pending {
-  background: rgba(255, 152, 0, 0.08);
-  border: 1px solid rgba(255, 152, 0, 0.25);
-  border-left: 3px solid #FF9800;
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-}
-.sv-pending h3 {
-  color: #FF9800;
-  font-size: 1em;
-  margin-bottom: 8px;
-}
+  async generateProof(pin) {
+    const ethers = window.ethers;
+    const pinHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(pin));
+    const sv = await app?.getContract?.('SafeVaultGW');
+    const nonce = await sv.getNonce(this.state.userAddress);
+    return { proof: ethers.utils.keccak256(ethers.utils.solidityPack(['bytes32', 'uint256'], [pinHash, nonce])), pinHash };
+  },
 
-/* ═══════════════════════════════════════════════════════════════
-   SETUP & MANAGE SECTIONS
-   ═══════════════════════════════════════════════════════════════ */
-.sv-setup,
-.sv-manage {
-  background: rgba(10, 20, 50, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  padding: 24px 20px;
-  margin-bottom: 20px;
-}
-.sv-setup h3,
-.sv-manage h3 {
-  color: var(--gold);
-  font-size: 1.15em;
-  margin-bottom: 6px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.15);
-}
-.sv-hint {
-  color: rgba(255,255,255,0.5);
-  font-size: 0.88em;
-  margin-bottom: 16px;
-  line-height: 1.5;
-}
+  async doInitialSetup() {
+    if (!this.state.userAddress) return;
+    const pin = document.getElementById('svSetupPin')?.value?.trim();
+    const pinConfirm = document.getElementById('svSetupPinConfirm')?.value?.trim();
+    const coldWallet = document.getElementById('svSetupCold')?.value?.trim();
+    const mode = parseInt(document.getElementById('svSetupMode')?.value || '1');
+    const param = document.getElementById('svSetupParam')?.value?.trim();
+    if (!pin || pin.length < 4) { app?.showNotification?.('PIN: min 4', 'error'); return; }
+    if (pin !== pinConfirm) { app?.showNotification?.('PIN mismatch', 'error'); return; }
+    if (!coldWallet || !coldWallet.startsWith('0x') || coldWallet.length !== 42) { app?.showNotification?.('Invalid address', 'error'); return; }
+    if (coldWallet.toLowerCase() === this.state.userAddress.toLowerCase()) { app?.showNotification?.('Cold ≠ Hot', 'error'); return; }
+    let splitOrThreshold = 0;
+    if (mode === 2) { const pct = parseInt(param); if (!pct || pct < 1 || pct > 99) { app?.showNotification?.('1-99%', 'error'); return; } splitOrThreshold = pct * 100; }
+    else if (mode === 3) { const thresh = parseFloat(param); if (!thresh || thresh <= 0) return; splitOrThreshold = window.ethers.utils.parseEther(thresh.toString()); }
+    this.setLoading(true);
+    try {
+      const pinHash = window.ethers.utils.keccak256(window.ethers.utils.toUtf8Bytes(pin));
+      const sv = await app?.getSignedContract?.('SafeVaultGW');
+      const tx = await sv.initialSetup(pinHash, coldWallet, mode, splitOrThreshold, { gasLimit: 500000 });
+      await tx.wait();
+      app?.showNotification?.('✅ SafeVault OK!', 'success');
+      document.getElementById('svSetupPin').value = '';
+      document.getElementById('svSetupPinConfirm').value = '';
+      await this.loadData();
+    } catch (err) { app?.showNotification?.('❌ ' + this.parseError(err), 'error'); }
+    finally { this.setLoading(false); }
+  },
 
-/* ═══════════════════════════════════════════════════════════════
-   FORM ELEMENTS
-   ═══════════════════════════════════════════════════════════════ */
-.sv-form { margin-top: 16px; }
+  async doChangeMode() {
+    const pin = await this.askPin(); if (!pin) return;
+    const mode = parseInt(document.getElementById('svChangeMode')?.value || '1');
+    const param = document.getElementById('svChangeModeParam')?.value?.trim();
+    let splitOrThreshold = 0;
+    if (mode === 2) { const pct = parseInt(param); if (!pct || pct < 1 || pct > 99) return; splitOrThreshold = pct * 100; }
+    else if (mode === 3) { const thresh = parseFloat(param); if (!thresh || thresh <= 0) return; splitOrThreshold = window.ethers.utils.parseEther(thresh.toString()); }
+    this.setLoading(true);
+    try { const { proof } = await this.generateProof(pin); const sv = await app?.getSignedContract?.('SafeVaultGW'); const tx = await sv.changeMode(proof, mode, splitOrThreshold, { gasLimit: 300000 }); await tx.wait(); app?.showNotification?.('✅', 'success'); await this.loadData(); }
+    catch (err) { app?.showNotification?.('❌ ' + this.parseError(err), 'error'); }
+    finally { this.setLoading(false); }
+  },
 
-.sv-form-row {
-  margin-bottom: 14px;
-}
-.sv-form-row label {
-  display: block;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9em;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-.sv-input {
-  width: 100%;
-  padding: 12px 14px;
-  background: rgba(20, 35, 70, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 1em;
-  font-family: var(--font-family);
-  outline: none;
-  box-sizing: border-box;
-  transition: all 0.3s ease;
-}
-.sv-input:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-  background: rgba(25, 40, 80, 0.95);
-}
-.sv-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+  async doRequestColdChange() {
+    const pin = await this.askPin(); if (!pin) return;
+    const newCold = document.getElementById('svNewColdWallet')?.value?.trim();
+    if (!newCold || !newCold.startsWith('0x') || newCold.length !== 42) return;
+    this.setLoading(true);
+    try { const { proof } = await this.generateProof(pin); const sv = await app?.getSignedContract?.('SafeVaultGW'); const tx = await sv.requestColdWalletChange(proof, newCold, { gasLimit: 300000 }); await tx.wait(); app?.showNotification?.('✅ 48h...', 'success'); await this.loadData(); }
+    catch (err) { app?.showNotification?.('❌ ' + this.parseError(err), 'error'); } finally { this.setLoading(false); }
+  },
+  async doConfirmColdChange() {
+    const pin = await this.askPin(); if (!pin) return;
+    this.setLoading(true);
+    try { const { proof } = await this.generateProof(pin); const sv = await app?.getSignedContract?.('SafeVaultGW'); const tx = await sv.confirmColdWalletChange(proof, { gasLimit: 300000 }); await tx.wait(); app?.showNotification?.('✅', 'success'); await this.loadData(); }
+    catch (err) { app?.showNotification?.('❌ ' + this.parseError(err), 'error'); } finally { this.setLoading(false); }
+  },
+  async doCancelColdChange() {
+    const pin = await this.askPin(); if (!pin) return;
+    this.setLoading(true);
+    try { const { proof } = await this.generateProof(pin); const sv = await app?.getSignedContract?.('SafeVaultGW'); const tx = await sv.cancelColdWalletChange(proof, { gasLimit: 200000 }); await tx.wait(); app?.showNotification?.('✅', 'success'); await this.loadData(); }
+    catch (err) { app?.showNotification?.('❌ ' + this.parseError(err), 'error'); } finally { this.setLoading(false); }
+  },
+  async doRequestDisable() {
+    const pin = await this.askPin(); if (!pin) return;
+    this.setLoading(true);
+    try { const { proof } = await this.generateProof(pin); const sv = await app?.getSignedContract?.('SafeVaultGW'); const tx = await sv.requestDisable(proof, { gasLimit: 300000 }); await tx.wait(); app?.showNotification?.('✅ 48h...', 'success'); await this.loadData(); }
+    catch (err) { app?.showNotification?.('❌ ' + this.parseError(err), 'error'); } finally { this.setLoading(false); }
+  },
+  async doSetGuardian() {
+    const pin = await this.askPin(); if (!pin) return;
+    const guardian = document.getElementById('svGuardianAddr')?.value?.trim();
+    if (!guardian || guardian.length !== 42) return;
+    this.setLoading(true);
+    try { const { proof } = await this.generateProof(pin); const sv = await app?.getSignedContract?.('SafeVaultGW'); const tx = await sv.setGuardian(proof, guardian, { gasLimit: 300000 }); await tx.wait(); app?.showNotification?.('✅', 'success'); await this.loadData(); }
+    catch (err) { app?.showNotification?.('❌ ' + this.parseError(err), 'error'); } finally { this.setLoading(false); }
+  },
+  async doChangePIN() {
+    const pin = await this.askPin(); if (!pin) return;
+    const newPin = prompt('New PIN:'); if (!newPin || newPin.length < 4) return;
+    const newPin2 = prompt('Confirm:'); if (newPin !== newPin2) return;
+    this.setLoading(true);
+    try { const { proof } = await this.generateProof(pin); const newPinHash = window.ethers.utils.keccak256(window.ethers.utils.toUtf8Bytes(newPin)); const sv = await app?.getSignedContract?.('SafeVaultGW'); const tx = await sv.changePIN(proof, newPinHash, { gasLimit: 200000 }); await tx.wait(); app?.showNotification?.('✅ PIN OK', 'success'); }
+    catch (err) { app?.showNotification?.('❌ ' + this.parseError(err), 'error'); } finally { this.setLoading(false); }
+  },
+  async askPin() { const pin = prompt('SafeVault PIN:'); return pin || null; },
 
-.sv-select {
-  width: 100%;
-  padding: 12px 14px;
-  background: rgba(20, 35, 70, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 1em;
-  font-family: var(--font-family);
-  outline: none;
-  box-sizing: border-box;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ffd700' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 36px;
-  transition: all 0.3s ease;
-}
-.sv-select:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-}
-.sv-select option {
-  background: #0a1628;
-  color: #fff;
-}
+  render() {
+    const container = document.getElementById('safevault');
+    if (!container) return;
+    container.innerHTML = `
+<div class="sv-page">
+  <div class="sv-header">
+    <h2 data-translate="safevault.title">🔒 SafeVault — Income Protection</h2>
+    <p class="sv-subtitle" data-translate="safevault.subtitle">Auto-redirect to cold wallet with PIN protection</p>
+  </div>
+  <div class="sv-status-card" id="svStatusCard">
+    <div class="sv-status-row"><span data-translate="safevault.status">Status</span><span id="svStatusText" data-translate="safevault.notConfigured">Not configured</span></div>
+    <div class="sv-status-row"><span data-translate="safevault.mode">Mode</span><span id="svModeText">—</span></div>
+    <div class="sv-status-row"><span data-translate="safevault.coldWallet">Cold wallet</span><span id="svColdAddr">—</span></div>
+    <div class="sv-status-row"><span data-translate="safevault.guardian">Guardian</span><span id="svGuardianText" data-translate="safevault.guardianNotSet">Not set</span></div>
+  </div>
+  <div class="sv-stats" id="svStats" style="display:none;">
+    <div class="sv-stat"><span class="sv-stat-label" data-translate="safevault.totalReceived">Total received</span><span class="sv-stat-val" id="svTotalReceived">0</span><span class="sv-stat-unit">BNB</span></div>
+    <div class="sv-stat"><span class="sv-stat-label" data-translate="safevault.toCold">To cold</span><span class="sv-stat-val" id="svTotalCold">0</span><span class="sv-stat-unit">BNB</span></div>
+    <div class="sv-stat"><span class="sv-stat-label" data-translate="safevault.toHot">To hot</span><span class="sv-stat-val" id="svTotalHot">0</span><span class="sv-stat-unit">BNB</span></div>
+  </div>
+  <div class="sv-pending" id="svPending" style="display:none;"><h3>⏳ Pending</h3><div id="svPendingContent"></div></div>
+  <div class="sv-setup" id="svSetupSection">
+    <h3 data-translate="safevault.setupTitle">⚡ Initial Setup</h3>
+    <p class="sv-hint" data-translate="safevault.setupHint">Set a PIN code and choose redirect mode.</p>
+    <div class="sv-form">
+      <div class="sv-form-row"><label data-translate="safevault.pinLabel">PIN code (min 4 chars)</label><input type="password" id="svSetupPin" placeholder="PIN" class="sv-input" autocomplete="off"></div>
+      <div class="sv-form-row"><label data-translate="safevault.pinConfirm">Confirm PIN</label><input type="password" id="svSetupPinConfirm" placeholder="PIN" class="sv-input" autocomplete="off"></div>
+      <div class="sv-form-row"><label data-translate="safevault.coldLabel">Cold wallet address</label><input type="text" id="svSetupCold" placeholder="0x..." class="sv-input" autocomplete="off"></div>
+      <div class="sv-form-row"><label data-translate="safevault.modeLabel">Mode</label>
+        <select id="svSetupMode" class="sv-select">
+          <option value="1" data-translate="safevault.modeFull">🔒 Full redirect (100%)</option>
+          <option value="2" data-translate="safevault.modeSplit">📊 Percentage (X% to cold)</option>
+          <option value="3" data-translate="safevault.modeThreshold">📏 Threshold (above N BNB)</option>
+        </select>
+      </div>
+      <div class="sv-form-row" id="svSetupParamRow" style="display:none;"><label id="svSetupParamLabel" data-translate="safevault.paramPercent">Percent to cold (1-99)</label><input type="number" id="svSetupParam" placeholder="" class="sv-input" step="any"></div>
+      <button class="sv-btn sv-btn-primary" id="svSetupBtn"><span>🔒</span> <span data-translate="safevault.setupBtn">Configure SafeVault</span></button>
+    </div>
+  </div>
+  <div class="sv-manage" id="svManageSection" style="display:none;">
+    <h3 data-translate="safevault.manageTitle">⚙️ Management</h3>
+    <div class="sv-card"><h4 data-translate="safevault.changeMode">📊 Change mode</h4>
+      <div class="sv-form-row"><select id="svChangeMode" class="sv-select"><option value="1" data-translate="safevault.modeFull">🔒 Full (100%)</option><option value="2" data-translate="safevault.modeSplit">📊 Percentage</option><option value="3" data-translate="safevault.modeThreshold">📏 Threshold</option></select></div>
+      <div class="sv-form-row" id="svChangeModeParamRow" style="display:none;"><input type="number" id="svChangeModeParam" placeholder="" class="sv-input" step="any"></div>
+      <button class="sv-btn" id="svChangeModeBtn" data-translate="safevault.changeMode">Change mode</button>
+    </div>
+    <div class="sv-card"><h4 data-translate="safevault.changeCold">🔄 Change cold wallet</h4><p class="sv-hint" data-translate="safevault.changeColdHint">48 hour delay for security</p>
+      <div class="sv-form-row"><input type="text" id="svNewColdWallet" placeholder="0x..." class="sv-input"></div>
+      <button class="sv-btn" id="svRequestColdBtn" data-translate="safevault.requestChange">Request change</button>
+      <button class="sv-btn sv-btn-confirm" id="svConfirmColdBtn" style="display:none;" data-translate="safevault.confirmChange">✅ Confirm</button>
+      <button class="sv-btn sv-btn-cancel" id="svCancelColdBtn" style="display:none;" data-translate="safevault.cancelChange">❌ Cancel</button>
+    </div>
+    <div class="sv-card"><h4 data-translate="safevault.guardianTitle">🛡️ Guardian</h4><p class="sv-hint" data-translate="safevault.guardianHint">Guardian can lock your account if phone is stolen</p>
+      <div class="sv-form-row"><input type="text" id="svGuardianAddr" placeholder="0x..." class="sv-input"></div>
+      <button class="sv-btn" id="svSetGuardianBtn" data-translate="safevault.setGuardian">Set Guardian</button>
+    </div>
+    <div class="sv-card"><h4 data-translate="safevault.securityTitle">🔑 Security</h4>
+      <button class="sv-btn" id="svChangePinBtn" data-translate="safevault.changePin">Change PIN</button>
+      <button class="sv-btn sv-btn-danger" id="svDisableBtn" data-translate="safevault.disableVault">Disable SafeVault (48h)</button>
+    </div>
+  </div>
+  <div class="sv-locked" id="svLockedSection" style="display:none;"><h3 data-translate="safevault.lockedTitle">🚫 Account Locked</h3><p data-translate="safevault.lockedDesc">SafeVault locked by Guardian.</p></div>
+  <div class="sv-loading" id="svLoading" style="display:none;"><div class="exch-loading-spinner"></div><p id="svLoadingText">...</p></div>
+</div>`;
+    if (window.i18n?.translatePage) window.i18n.translatePage();
+  },
 
-/* ═══════════════════════════════════════════════════════════════
-   BUTTONS
-   ═══════════════════════════════════════════════════════════════ */
-.sv-btn {
-  padding: 12px 24px;
-  border-radius: 10px;
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(20, 40, 80, 0.7);
-  color: var(--text-light);
-  font-family: var(--font-family);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  margin-right: 8px;
-}
-.sv-btn:hover {
-  background: rgba(30, 55, 100, 0.8);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-}
-.sv-btn-primary {
-  width: 100%;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--gold), #ffed4e);
-  color: var(--cosmic-black);
-  border: none;
-  font-size: 1.05em;
-  padding: 14px 24px;
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.25);
-}
-.sv-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(255, 215, 0, 0.4);
-}
-.sv-btn-confirm {
-  background: linear-gradient(135deg, var(--success), #45a049);
-  color: white;
-  border: none;
-}
-.sv-btn-confirm:hover {
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-}
-.sv-btn-cancel {
-  background: rgba(255, 68, 68, 0.12);
-  color: #ff4444;
-  border: 1px solid rgba(255, 68, 68, 0.2);
-}
-.sv-btn-cancel:hover {
-  background: rgba(255, 68, 68, 0.25);
-}
-.sv-btn-danger {
-  background: rgba(255, 68, 68, 0.1);
-  color: #ff6666;
-  border: 1px solid rgba(255, 68, 68, 0.15);
-}
-.sv-btn-danger:hover {
-  background: rgba(255, 68, 68, 0.2);
-  border-color: rgba(255, 68, 68, 0.3);
-}
+  bindEvents() {
+    document.getElementById('svSetupBtn')?.addEventListener('click', () => this.doInitialSetup());
+    document.getElementById('svChangeModeBtn')?.addEventListener('click', () => this.doChangeMode());
+    document.getElementById('svRequestColdBtn')?.addEventListener('click', () => this.doRequestColdChange());
+    document.getElementById('svConfirmColdBtn')?.addEventListener('click', () => this.doConfirmColdChange());
+    document.getElementById('svCancelColdBtn')?.addEventListener('click', () => this.doCancelColdChange());
+    document.getElementById('svSetGuardianBtn')?.addEventListener('click', () => this.doSetGuardian());
+    document.getElementById('svChangePinBtn')?.addEventListener('click', () => this.doChangePIN());
+    document.getElementById('svDisableBtn')?.addEventListener('click', () => this.doRequestDisable());
+    document.getElementById('svSetupMode')?.addEventListener('change', () => {
+      const mode = document.getElementById('svSetupMode')?.value;
+      const row = document.getElementById('svSetupParamRow');
+      const label = document.getElementById('svSetupParamLabel');
+      const input = document.getElementById('svSetupParam');
+      if (mode === '2') { if (row) row.style.display = 'block'; if (label) label.setAttribute('data-translate', 'safevault.paramPercent'); if (input) input.placeholder = '80'; }
+      else if (mode === '3') { if (row) row.style.display = 'block'; if (label) label.setAttribute('data-translate', 'safevault.paramThreshold'); if (input) input.placeholder = '0.1'; }
+      else { if (row) row.style.display = 'none'; }
+      if (window.i18n?.translatePage) window.i18n.translatePage();
+    });
+    document.getElementById('svChangeMode')?.addEventListener('change', () => {
+      const mode = document.getElementById('svChangeMode')?.value;
+      const row = document.getElementById('svChangeModeParamRow');
+      const input = document.getElementById('svChangeModeParam');
+      if (mode === '2') { if (row) row.style.display = 'block'; if (input) input.placeholder = '80'; }
+      else if (mode === '3') { if (row) row.style.display = 'block'; if (input) input.placeholder = '0.1 BNB'; }
+      else { if (row) row.style.display = 'none'; }
+    });
+  },
 
-/* ═══════════════════════════════════════════════════════════════
-   MANAGE CARDS
-   ═══════════════════════════════════════════════════════════════ */
-.sv-card {
-  background: rgba(5, 12, 30, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 18px;
-  margin-bottom: 14px;
-  transition: all 0.3s ease;
-}
-.sv-card:hover {
-  border-color: rgba(255, 215, 0, 0.2);
-}
-.sv-card h4 {
-  color: var(--text-light);
-  font-size: 1em;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
+  updateUI() {
+    const cfg = this.state.config; const sec = this.state.security; const stats = this.state.stats;
+    const statusText = document.getElementById('svStatusText');
+    const modeText = document.getElementById('svModeText');
+    const coldAddr = document.getElementById('svColdAddr');
+    const guardianText = document.getElementById('svGuardianText');
+    if (this.state.configured && cfg) {
+      const modeInfo = this.MODE_NAMES[cfg.mode] || this.MODE_NAMES[0];
+      if (statusText) { statusText.textContent = '✅ ' + this.t('safevault.active'); statusText.removeAttribute('data-translate'); statusText.style.color = '#00ff88'; }
+      let modeDesc = modeInfo.icon + ' ' + this.t('safevault.' + modeInfo.key);
+      if (cfg.mode === 2) modeDesc += ' (' + (cfg.splitPercentBP / 100) + '%)';
+      if (cfg.mode === 3) modeDesc += ' (' + this.fmt(cfg.thresholdAmount) + ' BNB)';
+      if (modeText) modeText.textContent = modeDesc;
+      if (coldAddr) { const addr = cfg.coldWallet; coldAddr.textContent = addr ? (addr.slice(0, 8) + '...' + addr.slice(-6)) : '—'; }
+      const setup = document.getElementById('svSetupSection');
+      const manage = document.getElementById('svManageSection');
+      if (setup) setup.style.display = 'none';
+      if (manage) manage.style.display = 'block';
+    } else {
+      if (statusText) statusText.style.color = '#888';
+      const setup = document.getElementById('svSetupSection');
+      const manage = document.getElementById('svManageSection');
+      if (setup) setup.style.display = 'block';
+      if (manage) manage.style.display = 'none';
+    }
+    if (sec) {
+      if (guardianText && sec.hasGuardian) { guardianText.textContent = '✅ ' + (sec.guardian?.slice(0, 8) + '...' + sec.guardian?.slice(-4)); guardianText.removeAttribute('data-translate'); }
+      if (sec.locked) { const locked = document.getElementById('svLockedSection'); if (locked) locked.style.display = 'block'; }
+      if (sec.pendingColdChange) { const c = document.getElementById('svConfirmColdBtn'); const x = document.getElementById('svCancelColdBtn'); if (c) c.style.display = 'inline-block'; if (x) x.style.display = 'inline-block'; }
+    }
+    if (stats) {
+      const el = document.getElementById('svStats'); if (el) el.style.display = 'flex';
+      const s = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = parseFloat(v).toFixed(6); };
+      s('svTotalReceived', stats.totalReceivedBNB); s('svTotalCold', stats.totalToColdBNB); s('svTotalHot', stats.totalToHotBNB);
+    }
+  },
 
-/* ═══════════════════════════════════════════════════════════════
-   LOCKED STATE
-   ═══════════════════════════════════════════════════════════════ */
-.sv-locked {
-  text-align: center;
-  padding: 40px 20px;
-  background: rgba(255, 68, 68, 0.06);
-  border: 2px solid rgba(255, 68, 68, 0.2);
-  border-radius: 14px;
-  margin-bottom: 20px;
-}
-.sv-locked h3 {
-  color: #ff4444;
-  font-size: 1.3em;
-  margin-bottom: 12px;
-}
-.sv-locked p {
-  color: rgba(255,255,255,0.6);
-  line-height: 1.6;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   LOADING
-   ═══════════════════════════════════════════════════════════════ */
-.sv-loading {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 10, 25, 0.85);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  z-index: var(--z-modal);
-  backdrop-filter: blur(4px);
-}
-.sv-loading p {
-  color: var(--gold);
-  font-weight: 600;
-  font-size: 1em;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EXCHANGE - MISSING CLASSES (supplement to referral-links.css)
-   ═══════════════════════════════════════════════════════════════ */
-
-.exch-status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background: rgba(10, 20, 50, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.exch-status-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.88em;
-  color: rgba(255, 255, 255, 0.6);
-}
-.status-dot { font-size: 0.7em; }
-.status-label { font-weight: 500; }
-
-.exch-info-note {
-  margin-top: 14px;
-  padding: 12px 16px;
-  background: rgba(0, 212, 255, 0.06);
-  border: 1px solid rgba(0, 212, 255, 0.12);
-  border-radius: 10px;
-}
-.exch-info-note p {
-  color: rgba(255,255,255,0.55);
-  font-size: 0.85em;
-  margin: 4px 0;
-  line-height: 1.5;
-}
-
-.exch-loading-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 10, 25, 0.85);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  z-index: var(--z-modal);
-  backdrop-filter: blur(4px);
-}
-.exch-loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 215, 0, 0.2);
-  border-top-color: var(--gold);
-  border-radius: 50%;
-  animation: sv-spin 0.8s linear infinite;
-}
-.exch-loading-overlay p,
-.sv-loading p {
-  color: var(--gold);
-  font-weight: 600;
-}
-@keyframes sv-spin {
-  to { transform: rotate(360deg); }
-}
-
-.exch-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.exch-stats-grid .stat-card {
-  text-align: center;
-  padding: 14px 10px;
-  background: rgba(10, 20, 50, 0.75);
-  border: 1px solid rgba(255, 215, 0, 0.12);
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-.exch-stats-grid .stat-card:hover {
-  border-color: var(--gold);
-  transform: translateY(-2px);
-}
-.exch-stats-grid .stat-label {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 0.78em;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-.exch-stats-grid .stat-value {
-  display: block;
-  color: var(--gold);
-  font-size: 1.1em;
-  font-weight: 700;
-  font-family: 'Courier New', monospace;
-}
-.exch-stats-grid .stat-sub {
-  display: block;
-  color: rgba(255,255,255,0.3);
-  font-size: 0.72em;
-  margin-top: 2px;
-}
-
-/* P2P Supplements */
-.p2p-input-wrap {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.p2p-input-wrap .p2p-input { flex: 1; }
-
-.p2p-max-btn,
-.p2p-market-btn {
-  padding: 8px 14px;
-  background: rgba(0, 212, 255, 0.12);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 8px;
-  color: #00d4ff;
-  font-size: 0.85em;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-.p2p-max-btn:hover,
-.p2p-market-btn:hover {
-  background: rgba(0, 212, 255, 0.25);
-}
-
-.p2p-orders-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.p2p-orders-header h3 { margin-bottom: 0; }
-
-.p2p-refresh-btn {
-  padding: 6px 14px;
-  background: rgba(0, 212, 255, 0.1);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 8px;
-  color: #00d4ff;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: all 0.2s;
-}
-.p2p-refresh-btn:hover { background: rgba(0, 212, 255, 0.25); }
-
-.p2p-buy-btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.85em;
-  cursor: pointer;
-  border: none;
-  white-space: nowrap;
-  background: linear-gradient(135deg, #00ff88, #00cc6a);
-  color: #000;
-  font-weight: 700;
-  transition: all 0.2s;
-}
-.p2p-buy-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 12px rgba(0, 255, 136, 0.3);
-}
-
-.p2p-order-card {
-  flex-direction: column;
-  align-items: stretch;
-}
-.p2p-order-card.my-order {
-  border-color: rgba(255, 215, 0, 0.25);
-  background: rgba(255, 215, 0, 0.03);
-}
-
-.p2p-order-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-.p2p-order-id {
-  color: var(--text-secondary);
-  font-family: monospace;
-  font-size: 0.85em;
-}
-.p2p-order-seller {
-  color: rgba(255,255,255,0.5);
-  font-family: monospace;
-  font-size: 0.82em;
-}
-.p2p-order-body {
-  display: flex;
-  gap: 16px;
-  align-items: baseline;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-.p2p-big {
-  font-size: 1.2em;
-  font-weight: 700;
-  color: #fff;
-}
-.p2p-unit {
-  color: var(--text-secondary);
-  font-size: 0.85em;
-}
-.p2p-label {
-  color: rgba(255,255,255,0.4);
-  font-size: 0.82em;
-}
-.p2p-val {
-  color: rgba(255,255,255,0.7);
-  font-family: monospace;
-  font-size: 0.88em;
-}
-.p2p-order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-.p2p-total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  background: rgba(0, 255, 136, 0.05);
-  border-radius: 8px;
-}
-.p2p-total-row span:first-child { color: rgba(255,255,255,0.5); }
-.p2p-commission-note {
-  color: rgba(255,255,255,0.35);
-  font-size: 0.8em;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 600px) {
-  .sv-stats { grid-template-columns: 1fr; }
-  .sv-status-row { flex-direction: column; gap: 2px; align-items: flex-start; }
-  .exch-status-bar { flex-direction: column; align-items: flex-start; }
-  .exch-stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .p2p-order-body { flex-direction: column; gap: 4px; }
-}
+  setLoading(on) { const el = document.getElementById('svLoading'); if (el) el.style.display = on ? 'flex' : 'none'; },
+  t(key) { if (window.i18n?.t) return window.i18n.t(key); const parts = key.split('.'); let val = (window.translations || {})[window.currentLang || 'en']; for (const p of parts) { val = val?.[p]; } return val || key; },
+  fmt(val) { try { if (window.ethers?.utils?.formatEther) return window.ethers.utils.formatEther(val); return (parseInt(val.toString()) / 1e18).toString(); } catch (e) { return '0'; } },
+  parseError(err) { const msg = err?.reason || err?.data?.message || err?.message || 'Error'; if (msg.includes('Invalid proof')) return 'Invalid PIN'; if (msg.includes('Account locked')) return 'Locked'; if (msg.includes('Too many')) return '24h lockout'; if (msg.includes('Delay not')) return '48h wait'; if (msg.includes('user rejected') || msg.includes('denied')) return 'Cancelled'; return msg.length > 80 ? msg.slice(0, 80) + '...' : msg; },
+  async refresh() { if (app?.state?.userAddress) { this.state.userAddress = app.state.userAddress; await this.loadData(); } }
+};
+window.safevaultModule = safevaultModule;
