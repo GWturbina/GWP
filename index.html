@@ -258,7 +258,34 @@
                     <i class="icon-settings"></i>
                     <span data-translate="nav.admin">Admin</span>
                 </button>
+                <!-- Мобильная кнопка "Ещё" -->
+                <button class="nav-more-btn" id="navMoreBtn">
+                    <span class="more-icon">☰</span>
+                    <span class="more-label">Ещё</span>
+                </button>
             </nav>
+
+            <!-- Выпадающее меню (мобильное) -->
+            <div class="nav-overlay" id="navOverlay"></div>
+            <div class="nav-overflow" id="navOverflow">
+                <div class="nav-overflow-grid">
+                    <button class="nav-overflow-btn" data-goto="projects">
+                        <span class="ov-icon">📁</span>Projects
+                    </button>
+                    <button class="nav-overflow-btn" data-goto="referrals">
+                        <span class="ov-icon">🔗</span>Ссылки
+                    </button>
+                    <button class="nav-overflow-btn" data-goto="exchange">
+                        <span class="ov-icon">💱</span>Обменник
+                    </button>
+                    <button class="nav-overflow-btn" data-goto="safevault">
+                        <span class="ov-icon">🔒</span>SafeVault
+                    </button>
+                    <button class="nav-overflow-btn admin-only" data-goto="admin" style="display:none;">
+                        <span class="ov-icon">⚙️</span>Admin
+                    </button>
+                </div>
+            </div>
 
             <!-- Content -->
             <!-- Content -->
@@ -1719,6 +1746,42 @@
     <script>
     document.addEventListener('DOMContentLoaded', async () => {
         await app.init();
+        
+        // ═══ Мобильное меню "Ещё" ═══
+        const moreBtn = document.getElementById('navMoreBtn');
+        const overflow = document.getElementById('navOverflow');
+        const overlay = document.getElementById('navOverlay');
+        
+        if (moreBtn && overflow && overlay) {
+            moreBtn.addEventListener('click', () => {
+                const isOpen = overflow.classList.contains('open');
+                overflow.classList.toggle('open', !isOpen);
+                overlay.classList.toggle('open', !isOpen);
+                moreBtn.classList.toggle('active', !isOpen);
+            });
+            
+            overlay.addEventListener('click', () => {
+                overflow.classList.remove('open');
+                overlay.classList.remove('open');
+                moreBtn.classList.remove('active');
+            });
+            
+            // Кнопки в выпадающем меню
+            document.querySelectorAll('.nav-overflow-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const page = btn.dataset.goto;
+                    if (page) {
+                        // Используем существующую навигацию app
+                        const navBtn = document.querySelector(`.nav-btn[data-page="${page}"]`);
+                        if (navBtn) navBtn.click();
+                        // Закрываем меню
+                        overflow.classList.remove('open');
+                        overlay.classList.remove('open');
+                        moreBtn.classList.remove('active');
+                    }
+                });
+            });
+        }
     });
     </script>
 </body>
