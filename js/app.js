@@ -857,6 +857,110 @@ const app = {
 
     this.state.navigationInitialized = true;
     console.log('✅ Navigation initialized');
+
+    // Initialize mobile drawer
+    this.initMobileDrawer();
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // MOBILE MORE DRAWER
+  // ═══════════════════════════════════════════════════════════════
+  initMobileDrawer() {
+    const moreBtn = document.getElementById('navMoreBtn');
+    const drawer = document.getElementById('navDrawer');
+    const overlay = document.getElementById('navDrawerOverlay');
+    const grid = document.getElementById('navDrawerGrid');
+    
+    if (!moreBtn || !drawer || !grid) return;
+
+    // Build drawer items from nav-secondary buttons
+    const secondaryBtns = document.querySelectorAll('.nav-btn.nav-secondary');
+    grid.innerHTML = '';
+    
+    secondaryBtns.forEach(btn => {
+      // Skip hidden admin button for non-admins
+      if (btn.style.display === 'none') return;
+      
+      const page = btn.getAttribute('data-page');
+      const icon = btn.querySelector('.nav-icon')?.textContent || '📄';
+      const label = btn.querySelector('span[data-translate]')?.textContent || btn.querySelector('span:last-child')?.textContent || page;
+      
+      const item = document.createElement('div');
+      item.className = 'nav-drawer-item';
+      item.setAttribute('data-page', page);
+      item.innerHTML = `<span class="nav-drawer-item-icon">${icon}</span><span class="nav-drawer-item-label">${label}</span>`;
+      
+      item.addEventListener('click', () => {
+        this.showPage(page);
+        this.closeMobileDrawer();
+      });
+      
+      grid.appendChild(item);
+    });
+
+    // More button toggle
+    moreBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (drawer.classList.contains('active')) {
+        this.closeMobileDrawer();
+      } else {
+        this.openMobileDrawer();
+      }
+    });
+
+    // Overlay close
+    if (overlay) {
+      overlay.addEventListener('click', () => this.closeMobileDrawer());
+    }
+
+    // Observe admin button visibility changes
+    const adminBtn = document.querySelector('.nav-btn.nav-secondary[data-page="admin"]');
+    if (adminBtn) {
+      const observer = new MutationObserver(() => {
+        if (adminBtn.style.display !== 'none') {
+          // Check if admin already in drawer
+          if (!grid.querySelector('[data-page="admin"]')) {
+            const icon = adminBtn.querySelector('.nav-icon')?.textContent || '⚙️';
+            const label = adminBtn.querySelector('span[data-translate]')?.textContent || 'Admin';
+            const item = document.createElement('div');
+            item.className = 'nav-drawer-item';
+            item.setAttribute('data-page', 'admin');
+            item.innerHTML = `<span class="nav-drawer-item-icon">${icon}</span><span class="nav-drawer-item-label">${label}</span>`;
+            item.addEventListener('click', () => {
+              this.showPage('admin');
+              this.closeMobileDrawer();
+            });
+            grid.appendChild(item);
+          }
+        }
+      });
+      observer.observe(adminBtn, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    console.log('✅ Mobile drawer initialized');
+  },
+
+  openMobileDrawer() {
+    const drawer = document.getElementById('navDrawer');
+    const overlay = document.getElementById('navDrawerOverlay');
+    const moreBtn = document.getElementById('navMoreBtn');
+    
+    // Update active states in drawer
+    const currentPage = this.state.currentPage;
+    document.querySelectorAll('.nav-drawer-item').forEach(item => {
+      item.classList.toggle('active', item.getAttribute('data-page') === currentPage);
+    });
+    
+    drawer?.classList.add('active');
+    overlay?.classList.add('active');
+    moreBtn?.classList.add('drawer-open');
+  },
+
+  closeMobileDrawer() {
+    document.getElementById('navDrawer')?.classList.remove('active');
+    document.getElementById('navDrawerOverlay')?.classList.remove('active');
+    document.getElementById('navMoreBtn')?.classList.remove('drawer-open');
   },
 
   async showPage(pageName) {
@@ -887,6 +991,21 @@ const app = {
         }
       });
 
+      // Highlight "More" button if secondary page is active
+      const moreBtn = document.getElementById('navMoreBtn');
+      const isSecondaryPage = document.querySelector(`.nav-btn.nav-secondary[data-page="${pageName}"]`);
+      if (moreBtn) {
+        moreBtn.classList.toggle('active', !!isSecondaryPage);
+      }
+      
+      // Update drawer item active states
+      document.querySelectorAll('.nav-drawer-item').forEach(item => {
+        item.classList.toggle('active', item.getAttribute('data-page') === pageName);
+      });
+
+      // Close drawer on navigation
+      this.closeMobileDrawer?.();
+
       window.location.hash = pageName;
       this.state.currentPage = pageName;
 
@@ -894,7 +1013,7 @@ const app = {
 
     } catch (error) {
       console.error(`❌ Error showing page ${pageName}:`, error);
-      this.showNotification('Ошибка загрузки страницы', 'error');
+      this.showNotification('Page loading error', 'error');
     }
   },
 
