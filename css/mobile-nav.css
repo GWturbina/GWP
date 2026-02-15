@@ -1,0 +1,301 @@
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE NAVIGATION — "More" Drawer Pattern
+   5 primary buttons + More → slide-up panel with rest
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Nav Icons (visible on both desktop & mobile) ─── */
+.nav-icon {
+  font-style: normal;
+  font-size: 16px;
+  line-height: 1;
+  display: none; /* Hidden on desktop by default */
+}
+
+/* ─── More button — hidden on desktop ─── */
+.nav-more-btn {
+  display: none !important;
+}
+
+/* ─── Drawer — hidden on desktop ─── */
+.nav-drawer-overlay,
+.nav-drawer {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE: ≤768px
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Show icons on mobile */
+  .nav-icon {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+
+  /* ─── Bottom Nav Bar ─── */
+  .main-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 6px 4px !important;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 8px)) !important;
+    min-height: 64px !important;
+    background: linear-gradient(180deg, rgba(0, 20, 45, 0.98), rgba(0, 12, 30, 0.99)) !important;
+    border-top: 2px solid rgba(255, 215, 0, 0.6) !important;
+    border-bottom: none !important;
+    border-radius: 16px 16px 0 0 !important;
+    z-index: 9990 !important;
+    backdrop-filter: blur(25px) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(255, 215, 0, 0.2) !important;
+    overflow: visible !important;
+    flex-wrap: nowrap !important;
+  }
+
+  /* ─── Hide secondary buttons from bottom bar ─── */
+  .nav-btn.nav-secondary {
+    display: none !important;
+  }
+
+  /* ─── Show More button ─── */
+  .nav-more-btn {
+    display: flex !important;
+    order: 99;
+  }
+
+  /* ─── Nav Buttons — compact mobile style ─── */
+  .nav-btn {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 72px !important;
+    min-height: 52px !important;
+    padding: 4px 2px !important;
+    border: none !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+    cursor: pointer;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
+    position: relative;
+  }
+
+  .nav-btn span {
+    display: block !important;
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    margin-top: 1px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 64px !important;
+    color: inherit !important;
+  }
+
+  .nav-btn .nav-icon {
+    color: inherit !important;
+    transition: transform 0.2s ease;
+  }
+
+  /* ─── Active state ─── */
+  .nav-btn.active {
+    color: #ffd700 !important;
+    background: rgba(255, 215, 0, 0.12) !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .nav-btn.active .nav-icon {
+    transform: scale(1.15);
+  }
+
+  /* ─── Tap/hover feedback ─── */
+  .nav-btn:active {
+    transform: scale(0.92) !important;
+    background: rgba(255, 215, 0, 0.08) !important;
+  }
+
+  .nav-btn:hover {
+    background: rgba(255, 215, 0, 0.06) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* ─── More button specific ─── */
+  .nav-more-btn .nav-icon {
+    font-size: 22px !important;
+    transition: transform 0.3s ease;
+  }
+
+  .nav-more-btn.drawer-open {
+    color: #ffd700 !important;
+  }
+  
+  .nav-more-btn.drawer-open .nav-icon {
+    transform: rotate(90deg);
+  }
+
+  /* ─── Active indicator dot ─── */
+  .nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ffd700;
+  }
+
+  /* ─── Content padding for bottom nav ─── */
+  .content {
+    padding-bottom: 80px !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     DRAWER OVERLAY
+     ═══════════════════════════════════════════════════════════ */
+  .nav-drawer-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 9991;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .nav-drawer-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SLIDE-UP DRAWER
+     ═══════════════════════════════════════════════════════════ */
+  .nav-drawer {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9992;
+    background: linear-gradient(180deg, #0a1e3d 0%, #06142b 100%);
+    border-top: 2px solid rgba(255, 215, 0, 0.5);
+    border-radius: 20px 20px 0 0;
+    padding: 12px 16px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 8px)); /* Space for bottom nav */
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.6);
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+
+  .nav-drawer.active {
+    transform: translateY(0);
+  }
+
+  /* ─── Drag handle ─── */
+  .nav-drawer-handle {
+    width: 36px;
+    height: 4px;
+    background: rgba(255, 215, 0, 0.4);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+
+  /* ─── Drawer Grid — 2 columns ─── */
+  .nav-drawer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .nav-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.03));
+    border: 1px solid rgba(255, 215, 0, 0.15);
+    border-radius: 14px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .nav-drawer-item:active {
+    transform: scale(0.96);
+    background: rgba(255, 215, 0, 0.15);
+  }
+
+  .nav-drawer-item.active {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1));
+    border-color: rgba(255, 215, 0, 0.4);
+    color: #ffd700;
+  }
+
+  .nav-drawer-item-icon {
+    font-size: 22px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .nav-drawer-item-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXTRA SMALL: ≤380px — even more compact
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 380px) {
+  .nav-btn {
+    max-width: 62px !important;
+    min-height: 48px !important;
+  }
+
+  .nav-btn .nav-icon {
+    font-size: 18px !important;
+  }
+
+  .nav-btn span {
+    font-size: 8px !important;
+  }
+
+  .nav-drawer-grid {
+    gap: 8px;
+  }
+
+  .nav-drawer-item {
+    padding: 12px 12px;
+    font-size: 12px;
+  }
+}
