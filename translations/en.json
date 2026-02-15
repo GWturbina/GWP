@@ -9,7 +9,8 @@
     "admin": "Admin",
     "referrals": "Links",
     "exchange": "Exchange",
-    "safevault": "SafeVault"
+    "safevault": "SafeVault",
+    "more": "More"
   },
   "wallet": {
     "connect": "Connect Wallet",
