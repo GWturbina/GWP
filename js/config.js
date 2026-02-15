@@ -29,6 +29,7 @@ const CONFIG = {
     MatrixRegistry: '0xD62945edFF7605dFc77A4bF607c96Da72E03cd0C',
     GlobalWay: '0xe8e2af46AEEec1B51B335f10C5912620B1a2707F',
     SafeVaultGW: '0xc22592F84557e73f9e19C6B0fB13C3717E4cD92e',
+    P2PEscrow: '0x0000000000000000000000000000000000000000', // TODO: заменить после деплоя
     PartnerProgram: '0x390409BA8b64052D160e259816E5B6472e51b2ae',
     MatrixPayments: '0xDf37d4cc11a01bcB57F2e8cD56234325a6ce8EDf',
     QuarterlyPayments: '0x10dd3Fbaf52Be26Ee3606DC5984Cb7D10f017EA4',
@@ -53,6 +54,7 @@ const CONFIG = {
     MatrixPayments: '../contracts/abis/MatrixPayments.json',
     GlobalWay: '../contracts/abis/GlobalWay.json',
     SafeVaultGW: '../contracts/abis/SafeVaultGW.json',
+    P2PEscrow: '../contracts/abis/P2PEscrow.json',
     PartnerProgram: '../contracts/abis/PartnerProgram.json',
     QuarterlyPayments: '../contracts/abis/QuarterlyPayments.json',
     GlobalWayInvestment: '../contracts/abis/GlobalWayInvestment.json',
