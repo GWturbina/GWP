@@ -14,10 +14,10 @@ const projectsModule = {
       id: 'kardgift',
       name: 'KardGift',
       icon: 'CardGift.png',
-      description: 'Платформа подарочных сертификатов',
+      description: 'projects.cardgiftDesc',
       url: 'https://cgm-brown.vercel.app/dashboard.html',  // ✅ CardGift Dashboard
       status: 'active',                             // ✅ ИЗМЕНЕНО: development → active
-      statusText: 'Активен',                        // ✅ ИЗМЕНЕНО
+      statusText: 'projects.statusActive',                        // ✅ ИЗМЕНЕНО
       releaseDate: 'Q1 2025',
       requiredLevel: 0  // ✅ ДОБАВЛЕНО: минимальный уровень (0 = только регистрация)
     },
@@ -25,10 +25,10 @@ const projectsModule = {
       id: 'globaltub',
       name: 'GlobalTub',
       icon: 'GlobalTub.png',
-      description: 'Децентрализованная видео платформа',
+      description: 'projects.globalTubDesc',
       url: '#',
       status: 'development',
-      statusText: 'В разработке',
+      statusText: 'projects.statusDev',
       releaseDate: 'Q3 2025',
       requiredLevel: 1
     },
@@ -36,10 +36,10 @@ const projectsModule = {
       id: 'globalmarket',
       name: 'GlobalMarket',
       icon: 'GlobalMarket.png',
-      description: 'P2P маркетплейс товаров и услуг',
+      description: 'projects.globalMarketDesc',
       url: '#',
       status: 'coming',
-      statusText: 'Скоро',
+      statusText: 'projects.statusSoon',
       releaseDate: 'Q4 2025',
       requiredLevel: 1
     },
@@ -47,10 +47,10 @@ const projectsModule = {
       id: 'globalgame',
       name: 'GlobalGame',
       icon: 'GlobalGame.png',
-      description: 'Игровая экосистема Play-to-Earn',
+      description: 'projects.globalGameDesc',
       url: '#',
       status: 'coming',
-      statusText: 'Скоро',
+      statusText: 'projects.statusSoon',
       releaseDate: 'Q1 2026',
       requiredLevel: 1
     },
@@ -58,10 +58,10 @@ const projectsModule = {
       id: 'globalsocial',
       name: 'GlobalSocial',
       icon: 'GlobalSocial.png',
-      description: 'Децентрализованная социальная сеть',
+      description: 'projects.globalNetDesc',
       url: '#',
       status: 'planned',
-      statusText: 'Планируется',
+      statusText: 'projects.statusPlanned',
       releaseDate: 'Q2 2026',
       requiredLevel: 2
     },
@@ -69,10 +69,10 @@ const projectsModule = {
       id: 'globalbank',
       name: 'GlobalBank',
       icon: 'GlobalBank.png',
-      description: 'DeFi платформа для банковских операций',
+      description: 'projects.globalBankDesc',
       url: '#',
       status: 'planned',
-      statusText: 'Планируется',
+      statusText: 'projects.statusPlanned',
       releaseDate: 'Q3 2026',
       requiredLevel: 3
     },
@@ -80,10 +80,10 @@ const projectsModule = {
       id: 'globaledu',
       name: 'GlobalEdu',
       icon: 'GlobalEdu.png',
-      description: 'Образовательная платформа',
+      description: 'projects.globalEduDesc',
       url: '#',
       status: 'planned',
-      statusText: 'Планируется',
+      statusText: 'projects.statusPlanned',
       releaseDate: 'Q4 2026',
       requiredLevel: 2
     },
@@ -91,10 +91,10 @@ const projectsModule = {
       id: 'globalai',
       name: 'GlobalAI',
       icon: 'GlobalAI.png',
-      description: 'Искусственный интеллект для бизнеса',
+      description: 'projects.globalAIDesc',
       url: '#',
       status: 'planned',
-      statusText: 'Планируется',
+      statusText: 'projects.statusPlanned',
       releaseDate: 'Q1 2027',
       requiredLevel: 4
     },
@@ -102,10 +102,10 @@ const projectsModule = {
       id: 'ecovillages',
       name: 'EcoVillages',
       icon: 'EcoVillages.png',
-      description: 'Эко-поселения и устойчивое развитие',
+      description: 'projects.ecoVillagesDesc',
       url: '#',
       status: 'planned',
-      statusText: 'Планируется',
+      statusText: 'projects.statusPlanned',
       releaseDate: 'Q2 2027',
       requiredLevel: 4
     }
@@ -618,10 +618,10 @@ const projectsModule = {
     return `
       <div class="projects-connect-message">
         <div class="wallet-icon">🔗</div>
-        <h2>Подключите кошелёк</h2>
-        <p>Для просмотра и использования проектов GlobalWay необходимо подключить кошелёк SafePal</p>
+        <h2>${_t ? _t('projects.connectWallet') : 'Connect Wallet'}</h2>
+        <p>${_t ? _t('projects.connectWalletDesc') : 'Connect SafePal wallet'}</p>
         <button class="connect-btn" onclick="app.connectWallet()">
-          Подключить SafePal
+          ${_t ? _t('projects.connectWallet') : 'Connect SafePal'}
         </button>
       </div>
     `;
@@ -634,10 +634,10 @@ const projectsModule = {
     return `
       <div class="projects-locked-message">
         <div class="lock-icon">🔒</div>
-        <h2>Требуется регистрация в GlobalWay</h2>
-        <p>Для доступа к проектам экосистемы необходимо зарегистрироваться в GlobalWay. После регистрации вам станут доступны все инструменты.</p>
+        <h2>${_t ? _t('projects.registrationRequired') : 'Registration Required'}</h2>
+        <p>${_t ? _t('projects.registrationDesc') : 'Register in GlobalWay to access projects.'}</p>
         <button class="register-btn" onclick="showPage('dashboard')">
-          Зарегистрироваться
+          ${_t ? _t('common.register') : 'Register'}
         </button>
       </div>
     `;
@@ -663,24 +663,24 @@ const projectsModule = {
 
     // ✅ НОВОЕ: Бейдж уровня для заблокированных
     const levelBadge = isLocked 
-      ? `<div class="level-required-badge">🔒 Уровень ${project.requiredLevel}+</div>` 
+      ? `<div class="level-required-badge">🔒 Level ${project.requiredLevel}+</div>` 
       : '';
 
     // ✅ НОВОЕ: Определяем текст и состояние кнопки
-    let buttonText = 'Открыть проект';
+    let buttonText = (_t ? _t('common.openProject') : 'Open project');
     let buttonDisabled = true;
     
     if (isActive && hasAccess) {
       buttonDisabled = false;
     } else if (isLocked) {
-      buttonText = `🔒 Нужен уровень ${project.requiredLevel}`;
+      buttonText = `🔒 Need Level ${project.requiredLevel}`;
     } else if (project.status !== 'active') {
-      buttonText = 'Открыть проект';
+      buttonText = (_t ? _t('common.openProject') : 'Open project');
     }
 
     // ✅ НОВОЕ: Статус для активных проектов
     const statusClass = project.status === 'active' ? 'active' : project.status;
-    const statusText = project.status === 'active' ? '✅ Активен' : `${project.statusText} • ${project.releaseDate}`;
+    const statusText = project.status === 'active' ? '✅ ' + (_t ? _t('projects.statusActive') : 'Active') : `${_t ? _t(project.statusText) : project.statusText} • ${project.releaseDate}`;
 
     card.innerHTML = `
       ${levelBadge}
@@ -691,7 +691,7 @@ const projectsModule = {
         onerror="this.src='assets/icons/projects.png'"
       >
       <h3 class="project-name">${project.name}</h3>
-      <p class="project-description">${project.description}</p>
+      <p class="project-description">${_t ? _t(project.description) : project.description}</p>
       <div class="project-buttons">
         <button 
           class="project-btn-open" 
@@ -719,16 +719,16 @@ const projectsModule = {
     card.innerHTML = `
       <img 
         src="assets/icons/projects.png" 
-        alt="Твой проект" 
+        alt="Your project" 
         class="project-icon"
       >
-      <h3 class="your-project-title">Здесь может появиться<br>твой проект</h3>
+      <h3 class="your-project-title">Your project<br>could be here</h3>
       <div class="project-buttons">
         <button 
           class="project-btn-open your-project-btn" 
           onclick="projectsModule.scrollToForm()"
         >
-          Оставить заявку
+          Submit application
         </button>
       </div>
     `;
@@ -746,12 +746,12 @@ const projectsModule = {
     // ✅ НОВОЕ: Проверяем уровень
     const requiredLevel = project.requiredLevel || 0;
     if (this.userState.userLevel < requiredLevel) {
-      app.showNotification(`Для доступа к ${project.name} нужен уровень ${requiredLevel}. Ваш уровень: ${this.userState.userLevel}`, 'warning');
+      app.showNotification(`${project.name} requires Level ${requiredLevel}. Your level: ${this.userState.userLevel}`, 'warning');
       return;
     }
 
     if (project.status !== 'active') {
-      app.showNotification(`${project.name} находится в разработке. Запуск: ${project.releaseDate}`, 'info');
+      app.showNotification(`${project.name} is in development. Launch: ${project.releaseDate}`, 'info');
       return;
     }
 
@@ -778,7 +778,7 @@ const projectsModule = {
         window.open(targetUrl, '_blank');
       }
     } else {
-      app.showNotification('Проект скоро будет доступен!', 'info');
+      app.showNotification('Project coming soon!', 'info');
     }
   },
 
@@ -812,7 +812,7 @@ const projectsModule = {
     const formData = new FormData(form);
 
     const proposal = {
-      name: formData.get('name') || 'Аноним',
+      name: formData.get('name') || 'Anonymous',
       contact: formData.get('contact'),
       projectName: formData.get('projectName'),
       description: formData.get('description'),
@@ -821,7 +821,7 @@ const projectsModule = {
 
     // Валидация
     if (!proposal.contact || !proposal.projectName || !proposal.description) {
-      app.showNotification('Заполните все обязательные поля', 'error');
+      app.showNotification('Fill in all required fields', 'error');
       return;
     }
 
