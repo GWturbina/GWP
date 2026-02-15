@@ -4,7 +4,7 @@
 
 /* 📊 РАСШИРЕННАЯ СТАТИСТИКА */
 .matrix-stats-extended {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--gold-dim), rgba(255, 215, 0, 0.6));
   border-radius: 12px;
   padding: 20px;
   margin: 20px 0;
@@ -94,13 +94,13 @@
 
 .matrix-search-input input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--border-gold-active);
   box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
 }
 
 .matrix-search-input button {
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--gold-dim), rgba(255, 215, 0, 0.6));
   color: white;
   border: none;
   border-radius: 8px;
@@ -203,7 +203,7 @@
 
 .btn-navigate {
   padding: 6px 12px;
-  background: #667eea;
+  background: var(--gold-dim);
   color: white;
   border: none;
   border-radius: 5px;
@@ -213,7 +213,7 @@
 }
 
 .btn-navigate:hover {
-  background: #764ba2;
+  background: var(--gold);
 }
 
 .result-actions {
@@ -225,7 +225,7 @@
 .btn-view {
   flex: 1;
   padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--gold-dim), rgba(255, 215, 0, 0.6));
   color: white;
   border: none;
   border-radius: 8px;
@@ -289,7 +289,7 @@
 
 .matrix-expand-modal .modal-header {
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--gold-dim), rgba(255, 215, 0, 0.6));
   color: white;
   border-radius: 15px 15px 0 0;
   display: flex;
@@ -389,8 +389,8 @@
 .btn-mini {
   padding: 6px 12px;
   background: white;
-  border: 2px solid #667eea;
-  color: #667eea;
+  border: 2px solid var(--border-gold-active);
+  color: var(--gold);
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
@@ -399,7 +399,7 @@
 }
 
 .btn-mini:hover {
-  background: #667eea;
+  background: var(--gold-dim);
   color: white;
 }
 
@@ -411,7 +411,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--gold-dim), rgba(255, 215, 0, 0.6));
   color: white;
   border: none;
   font-size: 16px;
