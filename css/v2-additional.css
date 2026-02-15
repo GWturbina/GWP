@@ -30,7 +30,7 @@
 }
 
 .balance-item {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 20, 45, 0.75);
   padding: var(--spacing-lg);
   border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -172,7 +172,7 @@
   align-items: center;
   padding: var(--spacing-md);
   margin: var(--spacing-sm) 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 20, 45, 0.75);
   border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
@@ -180,7 +180,7 @@
 
 .board-member-card:hover {
   border-color: var(--gold);
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 20, 45, 0.8);
 }
 
 .member-info {
@@ -220,7 +220,7 @@
 
 /* Board Forms */
 .board-form {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 15, 35, 0.7);
   padding: var(--spacing-lg);
   border-radius: var(--radius-md);
   margin-top: var(--spacing-md);
@@ -263,7 +263,7 @@
 }
 
 .form-group input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 /* Board Statistics */
@@ -276,7 +276,7 @@
 
 .board-stat-item {
   padding: var(--spacing-md);
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 20, 45, 0.75);
   border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.1);
   text-align: center;
@@ -385,7 +385,7 @@
 
 .btn-secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.65);
 }
 
 .btn-success {
