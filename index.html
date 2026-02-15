@@ -249,6 +249,9 @@
                 <button class="nav-btn" data-page="exchange">
                     <span>💱 Обменник</span>
                 </button>
+                <button class="nav-btn" data-page="safevault">
+                    <span>🔒 SafeVault</span>
+                </button>
                 <button class="nav-btn admin-only" data-page="admin" style="display:none;">
                     <i class="icon-settings"></i>
                     <span data-translate="nav.admin">Admin</span>
@@ -378,40 +381,6 @@
     </section>
     </div> <!-- ✅ ЗАКРЫЛИ quarterlySection -->
 
-
-    <!-- Contract Balances & Withdrawal -->
-    <section class="contract-balances">
-        <h3 data-translate="dashboard.contractBalances">💰 Available Balances</h3>
-        <div class="balances-grid">
-            <div class="balance-item">
-                <div class="balance-header">
-                    <label data-translate="dashboard.marketingPool">Marketing Pool:</label>
-                </div>
-                <div class="balance-content">
-                    <span id="marketingBalance" class="balance-amount">0.0000 BNB</span>
-                    <button class="withdraw-btn" onclick="app.withdrawFromContract('marketing')" data-translate="dashboard.withdraw">Withdraw</button>
-                </div>
-            </div>
-            <div class="balance-item">
-                <div class="balance-header">
-                    <label data-translate="dashboard.leaderPool">Leader Pool:</label>
-                </div>
-                <div class="balance-content">
-                    <span id="leaderBalance" class="balance-amount">0.0000 BNB</span>
-                    <button class="withdraw-btn" onclick="app.withdrawFromContract('leader')" data-translate="dashboard.withdraw">Withdraw</button>
-                </div>
-            </div>
-            <div class="balance-item">
-                <div class="balance-header">
-                    <label data-translate="dashboard.investmentPool">Investment Pool:</label>
-                </div>
-                <div class="balance-content">
-                    <span id="investmentBalance" class="balance-amount">0.0000 BNB</span>
-                    <button class="withdraw-btn" onclick="app.withdrawFromContract('investment')" data-translate="dashboard.withdraw">Withdraw</button>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <!-- ✅ Level Management (скрывается если не зарегистрирован) -->
     <div id="levelsSection">
@@ -1317,6 +1286,11 @@
                   <!-- Populated by exchange.js -->
                 </div>
 
+                <!-- SafeVault -->
+                <div id="safevault" class="page-content">
+                  <!-- Populated by safevault.js -->
+                </div>
+
                 <!-- Admin -->
                 <div id="admin" class="page-content">
 <div class="admin-page">
@@ -1729,13 +1703,14 @@
     <script src="js/landing.js?v=8"></script>    <!-- ✅ ИЗМЕНЕНО: v=6 → v=7 -->
     
     <!-- Страницы -->
-    <script src="js/dashboard.js?v=16"></script>
-    <script src="js/partners.js?v=13"></script>
-    <script src="js/matrix.js?v=11"></script>
+    <script src="js/dashboard.js?v=17"></script>
+    <script src="js/partners.js?v=14"></script>
+    <script src="js/matrix.js?v=12"></script>
     <script src="js/tokens.js?v=7"></script>
     <script src="js/projects.js?v=10"></script> 
-    <script src="js/referral-links.js?v=2"></script>
+    <script src="js/referral-links.js?v=3"></script>
     <script src="js/exchange.js?v=1"></script>
+    <script src="js/safevault.js?v=1"></script>
     <script src="js/admin.js?v=22"></script>
     
     <!-- Инициализация -->
