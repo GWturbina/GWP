@@ -73,7 +73,7 @@ const matrixModule = {
       console.log('✅ Matrix v3.1 loaded');
     } catch (error) {
       console.error('❌ Matrix init error:', error);
-      app.showNotification('Ошибка загрузки матрицы', 'error');
+      app.showNotification(_t('notifications.matrixError'), 'error');
     }
   },
 
@@ -133,10 +133,10 @@ const matrixModule = {
     const navHTML = `
       <div id="matrixNavigation" style="display:flex; justify-content:center; align-items:center; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
         <button id="matrixGoUp" style="display:none; padding:10px 20px; background:linear-gradient(135deg, #667eea, #764ba2); color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; transition:all 0.3s;">
-          ⬆️ Назад
+          ⬆️ ${_t ? _t('common.back') : 'Back'}
         </button>
         <button id="matrixGoHome" style="display:none; padding:10px 20px; background:linear-gradient(135deg, #ffd700, #ffaa00); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; transition:all 0.3s;">
-          🏠 Моя матрица
+          🏠 ${_t ? _t('common.myMatrix') : 'My matrix'}
         </button>
         <span id="matrixViewingInfo" style="color:#ffd700; font-size:14px; font-weight:600;"></span>
       </div>
@@ -174,7 +174,7 @@ const matrixModule = {
 
     if (viewingInfo) {
       if (isViewingOther) {
-        viewingInfo.textContent = `Просмотр: GW${this.state.viewingUserId}`;
+        viewingInfo.textContent = (_t ? _t('common.viewing') : 'Viewing') + ': GW' + this.state.viewingUserId;
         viewingInfo.style.display = 'inline-block';
       } else {
         viewingInfo.textContent = '';
@@ -185,7 +185,7 @@ const matrixModule = {
 
   async goUp() {
     if (this.state.navigationHistory.length === 0) {
-      app.showNotification('Вы на своей матрице', 'info');
+      app.showNotification(_t('notifications.alreadyOnMatrix'), 'info');
       return;
     }
     const previousId = this.state.navigationHistory.pop();
@@ -212,7 +212,7 @@ const matrixModule = {
       
       if (!userAddress || userAddress === ethers.constants.AddressZero) {
         console.error('❌ User not found: GW' + userId);
-        app.showNotification('Пользователь не найден', 'error');
+        app.showNotification(_t('notifications.userNotFound'), 'error');
         return;
       }
 
@@ -224,7 +224,7 @@ const matrixModule = {
 
       const tableBody = document.getElementById('matrixTableBody');
       if (tableBody) {
-        tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#ffd700;">⏳ Загрузка...</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#ffd700;">' + (_t ? _t('common.loading') : 'Loading...') + '</td></tr>';
       }
 
       const matrixStructure = await this.getMatrixStructure(userId, level);
@@ -241,7 +241,7 @@ const matrixModule = {
       
     } catch (error) {
       console.error('❌ loadMatrixData error:', error);
-      app.showNotification('Ошибка загрузки матрицы', 'error');
+      app.showNotification(_t('notifications.matrixError'), 'error');
     }
   },
 
@@ -271,7 +271,7 @@ const matrixModule = {
           userId: rootData[0].toString(),
           level: level,
           maxLevel: rootMaxLevel,
-          rank: 'Участник',
+          rank: (_t ? _t('common.member') : 'Member'),
           leftChildId: rootData[3].toString(),
           rightChildId: rootData[4].toString(),
           sponsorId: rootData[2].toString(),
@@ -389,7 +389,7 @@ const matrixModule = {
       address: childData[1],
       userId: childData[0].toString(),
       maxLevel: maxLevel,
-      rank: 'Участник',
+      rank: (_t ? _t('common.member') : 'Member'),
       depth,
       position,
       side,
@@ -426,7 +426,7 @@ const matrixModule = {
         address: nodeData[1],
         userId: nodeData[0].toString(),
         maxLevel: userMaxLevel,
-        rank: 'Участник',
+        rank: (_t ? _t('common.member') : 'Member'),
         depth,
         position,
         side,
@@ -491,7 +491,7 @@ const matrixModule = {
         userId: 'N/A',
         level: level,
         maxLevel: 0,
-        rank: 'Никто',
+        rank: (_t ? _t('ranks.nobody') : 'Nobody'),
         leftChildId: '0',
         rightChildId: '0',
         sponsorId: '0',
@@ -584,7 +584,7 @@ const matrixModule = {
     if (maxPosEl) maxPosEl.textContent = maxPositionsOnLevel;
 
     if (levelPositions.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ffd700;">Линия ${this.state.currentLevel} пуста (макс. ${maxPositionsOnLevel} позиций)</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ffd700;">Line ${this.state.currentLevel} empty (max ${maxPositionsOnLevel} positions)</td></tr>`;
       return;
     }
 
@@ -614,7 +614,7 @@ const matrixModule = {
           sponsorId,
           date,
           level: p.maxLevel || 0,
-          rank: 'Участник'
+          rank: (_t ? _t('common.member') : 'Member')
         };
       })
     );
@@ -634,13 +634,13 @@ const matrixModule = {
 
   getRankName(rankId) {
     const ranks = {
-      0: 'Никто',
-      1: 'Бронза 🥉',
-      2: 'Серебро 🥈',
-      3: 'Золото 🥇',
-      4: 'Платина 💎'
+      0: (_t ? _t('ranks.nobody') : 'Nobody'),
+      1: (_t ? _t('ranks.bronze') : 'Bronze 🥉'),
+      2: (_t ? _t('ranks.silver') : 'Silver 🥈'),
+      3: (_t ? _t('ranks.gold') : 'Gold 🥇'),
+      4: (_t ? _t('ranks.platinum') : 'Platinum 💎')
     };
-    return ranks[rankId] || 'Никто';
+    return ranks[rankId] || (_t ? _t('ranks.nobody') : 'Nobody');
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -673,7 +673,7 @@ const matrixModule = {
   // ═══════════════════════════════════════════════════════════════
   async showNodeModal(node) {
     if (!node.address || node.address === ethers.constants.AddressZero) {
-      app.showNotification('Позиция свободна', 'info');
+      app.showNotification('Position available', 'info');
       return;
     }
 
@@ -690,7 +690,7 @@ const matrixModule = {
       }
     }
 
-    let rank = 'Участник';
+    let rank = (_t ? _t('common.member') : 'Member');
     try {
       const leaderPool = await app.getContract('GlobalWayLeaderPool');
       const rankInfo = await leaderPool.getUserRankInfo(node.address);
@@ -713,28 +713,28 @@ const matrixModule = {
 
     const header = document.createElement('div');
     header.style.cssText = 'text-align:center; margin-bottom:20px;';
-    header.innerHTML = '<h2 style="color:#ffd700; margin:0;">Информация о позиции</h2>';
+    header.innerHTML = '<h2 style="color:#ffd700; margin:0;">Position Info</h2>';
 
     const content = document.createElement('div');
     content.style.cssText = 'color:#fff; line-height:2;';
     content.innerHTML = `
       <p><strong>ID:</strong> <span style="color:#ffd700;">${nodeUserId !== 'N/A' && nodeUserId !== '0' ? 'GW' + nodeUserId : 'N/A'}</span></p>
-      <p><strong>Адрес:</strong> ${app.formatAddress(node.address)}</p>
-      <p><strong>Спонсор:</strong> ${sponsorId}</p>
-      <p><strong>Уровень:</strong> ${node.maxLevel}</p>
-      <p><strong>Ранг:</strong> ${rank}</p>
-      <p><strong>Тип:</strong> ${this.getTypeLabel(node.type, node.isTechAccount)}</p>
+      <p><strong>Address:</strong> ${app.formatAddress(node.address)}</p>
+      <p><strong>Sponsor:</strong> ${sponsorId}</p>
+      <p><strong>Level:</strong> ${node.maxLevel}</p>
+      <p><strong>Rank:</strong> ${rank}</p>
+      <p><strong>Type:</strong> ${this.getTypeLabel(node.type, node.isTechAccount)}</p>
     `;
 
     const buttonsDiv = document.createElement('div');
     buttonsDiv.style.cssText = 'display:flex; gap:10px; margin-top:25px;';
 
     const viewMatrixBtn = document.createElement('button');
-    viewMatrixBtn.textContent = '🌐 Матрица';
+    viewMatrixBtn.textContent = '🌐 Matrix';
     viewMatrixBtn.style.cssText = 'flex:1; padding:14px 15px; background:linear-gradient(135deg, #ffd700, #ffaa00); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;';
 
     const closeModalBtn = document.createElement('button');
-    closeModalBtn.textContent = '✕ Закрыть';
+    closeModalBtn.textContent = '✕ Close';
     closeModalBtn.style.cssText = 'flex:1; padding:14px 15px; background:transparent; color:#ffd700; border:2px solid #ffd700; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;';
 
     const closeModal = () => {
@@ -752,7 +752,7 @@ const matrixModule = {
         try {
           await self.loadMatrixData(nodeUserId, currentLevel, true);
         } catch (err) {
-          app.showNotification('Ошибка загрузки матрицы', 'error');
+          app.showNotification(_t('notifications.matrixError'), 'error');
         }
       });
     } else {
@@ -776,9 +776,9 @@ const matrixModule = {
   },
 
   getTypeLabel(type, isTechAccount) {
-    if (isTechAccount || type === 'technical') return '🔵 Техническое место';
-    if (type === 'partner') return '🟢 Партнер';
-    return '⚪ Доступно';
+    if (isTechAccount || type === 'technical') return '🔵 Technical';
+    if (type === 'partner') return '🟢 Partner';
+    return '⚪ Available';
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -815,13 +815,13 @@ const matrixModule = {
       searchBtn.addEventListener('click', async () => {
         let userId = searchInput.value.trim().replace(/^GW/i, '');
         if (!/^\d+$/.test(userId)) {
-          app.showNotification('Введите корректный ID', 'error');
+          app.showNotification('Enter valid ID', 'error');
           return;
         }
         try {
           await self.loadMatrixData(userId, self.state.currentLevel, true);
         } catch (err) {
-          app.showNotification('Пользователь не найден', 'error');
+          app.showNotification(_t('notifications.userNotFound'), 'error');
         }
       });
 
