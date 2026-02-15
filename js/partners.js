@@ -55,7 +55,7 @@ const partnersModule = {
       console.log('✅ Partners loaded');
     } catch (error) {
       console.error('❌ Partners init error:', error);
-      app.showNotification('Ошибка загрузки партнеров', 'error');
+      app.showNotification(_t('notifications.partnersError'), 'error');
     }
   },
 
@@ -351,7 +351,7 @@ const partnersModule = {
       if (!tableBody) return;
 
       console.log(`📋 Loading partners for depth ${depth}...`);
-      tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Загрузка...</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="8" class="no-data">' + _t('common.loading') + '</td></tr>';
 
       // Получаем партнёров на нужной глубине
       const referrals = await this.getPartnersAtDepth(address, depth);
@@ -359,7 +359,7 @@ const partnersModule = {
       console.log(`📋 Found ${referrals.length} partners at depth ${depth}`);
 
       if (referrals.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Партнеры не найдены</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found</td></tr>';
         return;
       }
 
@@ -391,7 +391,7 @@ const partnersModule = {
       console.error('❌ Error loading partners:', error);
       const tableBody = document.getElementById('partnersTable');
       if (tableBody) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="no-data">Ошибка загрузки</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="no-data">' + _t('common.loadError') + '</td></tr>';
       }
     }
   },
@@ -488,7 +488,7 @@ const partnersModule = {
       } catch (e) {}
 
       // 5. Ранг
-      let rank = 'Никто';
+      let rank = (_t ? _t('ranks.nobody') : 'Nobody');
       try {
         const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
         rank = this.getRankName(Number(rankInfo.rank));
@@ -514,7 +514,7 @@ const partnersModule = {
         sponsorId: '-',
         level: 0,
         team: 0,
-        rank: 'Никто',
+        rank: (_t ? _t('ranks.nobody') : 'Nobody'),
         date: '-'
       };
     }
@@ -648,13 +648,13 @@ const partnersModule = {
   
   getRankName(rankId) {
     const ranks = {
-      0: 'Никто',
-      1: 'Бронза 🥉',
-      2: 'Серебро 🥈',
-      3: 'Золото 🥇',
-      4: 'Платина 💎'
+      0: (_t ? _t('ranks.nobody') : 'Nobody'),
+      1: (_t ? _t('ranks.bronze') : 'Bronze 🥉'),
+      2: (_t ? _t('ranks.silver') : 'Silver 🥈'),
+      3: (_t ? _t('ranks.gold') : 'Gold 🥇'),
+      4: (_t ? _t('ranks.platinum') : 'Platinum 💎')
     };
-    return ranks[rankId] || 'Никто';
+    return ranks[rankId] || (_t ? _t('ranks.nobody') : 'Nobody');
   },
 
   async refresh() {
