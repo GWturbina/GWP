@@ -9,7 +9,8 @@
     "admin": "Админ",
     "referrals": "Ссылки",
     "exchange": "Обменник",
-    "safevault": "SafeVault"
+    "safevault": "SafeVault",
+    "more": "Ещё"
   },
   "wallet": {
     "connect": "Подключить кошелек",
