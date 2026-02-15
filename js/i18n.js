@@ -88,11 +88,11 @@ function loadFallbackTranslations() {
         goals: "Цели Клуба", 
         roadmap: "Дорожная карта",
         projects: "Наши Проекты",
-        clubText: "GlobalWay - это децентрализованный клуб, объединяющий энтузиастов технологий со всего мира.",
-        missionText: "Наша миссия - создание инновационных Web3 решений, делающих децентрализованные технологии доступными для всех.",
-        goalsText: "Мы стремимся построить устойчивую экосистему проектов, которые приносят пользу нашему сообществу.",
-        roadmapText: "Наша дорожная карта включает запуск 8 крупных проектов, листинг токена и строительство эко-поселений к 2028 году.",
-        projectsText: "Мы разрабатываем CardGift, GlobalTub, GlobalMarket, GlobalGame, GlobalEdu, GlobalBank, GlobalAI и EcoVillages."
+        clubText: "GlobalWay — это децентрализованная экосистема, где ваши навыки, время и связи становятся реальными цифровыми активами.",
+        missionText: "Мы строим новую экономическую модель, где доход не ограничен географией или чужими решениями.",
+        goalsText: "Одна платформа — десятки возможностей. От реферального дохода до роста стоимости токена.",
+        roadmapText: "2025 — Запуск платформы, токен GWT, 8 проектов. 2026 — Листинг на биржах. 2027 — DAO управление. 2028 — Эко-поселения.",
+        projectsText: "CardGift, GlobalTub, GlobalMarket, GlobalGame, GlobalEdu, GlobalBank, GlobalAI, EcoVillages — каждый проект является бизнесом внутри экосистемы."
       }
     },
     uk: {
@@ -271,8 +271,12 @@ window.i18n = {
   setLanguage,
   getTranslation,
   translatePage,
-  initI18n
+  initI18n,
+  t: getTranslation
 };
+
+// Global shortcut for all modules
+window._t = getTranslation;
 
 // Инициализация при загрузке
 if (document.readyState === 'loading') {
