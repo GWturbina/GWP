@@ -65,7 +65,7 @@
 .balance-amount {
   font-size: var(--font-size-xl);
   font-weight: 700;
-  color: #00ff88;
+  color: var(--gold);
 }
 
 .withdraw-btn {
