@@ -26,6 +26,7 @@ const referralsModule = {
     }
     
     this.bindEvents();
+    if (window.i18n?.translatePage) window.i18n.translatePage();
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -65,13 +66,13 @@ const referralsModule = {
   
   <!-- ЗАГОЛОВОК -->
   <div class="ref-header">
-    <h2>🔗 Реферальные ссылки</h2>
-    <p class="ref-subtitle">Создавайте красивые ссылки для каждого направления экосистемы</p>
+    <h2 data-translate="referrals.pageTitle">🔗 Referral Links</h2>
+    <p class="ref-subtitle" data-translate="referrals.pageSubtitle">Create beautiful links for each ecosystem direction</p>
   </div>
 
   <!-- ВЫБОР НАПРАВЛЕНИЯ -->
   <div class="ref-directions">
-    <h3>📌 Выберите направление</h3>
+    <h3 data-translate="referrals.chooseDirection">📌 Choose direction</h3>
     <div class="direction-cards">
       ${dirKeys.map(key => {
         const d = directions[key];
@@ -90,15 +91,15 @@ const referralsModule = {
 
   <!-- ГЕНЕРАТОР ССЫЛОК -->
   <div class="ref-generator">
-    <h3>🔧 Генератор ссылок</h3>
+    <h3 data-translate="referrals.linkGenerator">🔧 Link generator</h3>
     
     <div class="ref-user-info" id="refUserInfo">
       <div class="ref-no-wallet" id="refNoWallet">
-        <p>⚠️ Подключите кошелёк для генерации реферальных ссылок</p>
+        <p data-translate="referrals.connectForLinks">⚠️ Connect wallet to generate referral links</p>
       </div>
       <div class="ref-has-wallet" id="refHasWallet" style="display:none;">
         <div class="ref-id-badge">
-          <span class="ref-id-label">Ваш ID:</span>
+          <span class="ref-id-label" data-translate="referrals.yourId">Your ID</span>:
           <span class="ref-id-value" id="refUserId">—</span>
         </div>
       </div>
@@ -107,11 +108,11 @@ const referralsModule = {
     <!-- НАСТРОЙКИ ССЫЛКИ -->
     <div class="ref-link-settings" id="refLinkSettings" style="display:none;">
       <div class="ref-setting-row">
-        <label>🏷️ Ваше имя (необязательно):</label>
-        <input type="text" id="refUserName" placeholder="Григорий" maxlength="30" class="ref-input">
+        <label data-translate="referrals.yourName">🏷️ Your name (optional):</label>
+        <input type="text" id="refUserName" placeholder="Name" maxlength="30" class="ref-input">
       </div>
       <div class="ref-setting-row">
-        <label>🌐 Домен:</label>
+        <label data-translate="referrals.domain">🌐 Domain:</label>
         <div class="ref-domain-selector" id="refDomainSelector">
           <!-- Заполняется динамически -->
         </div>
@@ -119,27 +120,27 @@ const referralsModule = {
       <div class="ref-setting-row ref-antiban-row">
         <label>
           <input type="checkbox" id="refAntiBanToggle" checked>
-          🛡️ Антибан (ротация доменов)
+          🛡️ <span data-translate="referrals.antiban">Anti-ban (domain rotation)</span>
         </label>
-        <span class="ref-antiban-hint">Каждая ссылка — через разный домен</span>
+        <span class="ref-antiban-hint" data-translate="referrals.antibanHint">Each link via different domain</span>
       </div>
 
       <button class="ref-generate-btn" id="refGenerateBtn">
-        ⚡ Сгенерировать ссылку
+        ⚡ <span data-translate="referrals.generateLink">Generate link</span>
       </button>
     </div>
   </div>
 
   <!-- РЕЗУЛЬТАТ: ПРЕВЬЮ + ССЫЛКА -->
   <div class="ref-result" id="refResult" style="display:none;">
-    <h3>📋 Ваша реферальная ссылка</h3>
+    <h3 data-translate="referrals.yourLink">📋 Your referral link</h3>
     
     <!-- OG PREVIEW CANVAS -->
     <div class="ref-preview-container">
       <canvas id="refPreviewCanvas" width="1200" height="630"></canvas>
       <div class="ref-preview-actions">
         <button class="ref-btn ref-btn-download" id="refDownloadPreview">
-          📥 Скачать превью
+          📥 <span data-translate="common.download">Download preview</span>
         </button>
       </div>
     </div>
@@ -148,10 +149,10 @@ const referralsModule = {
     <div class="ref-link-box">
       <div class="ref-link-display">
         <span class="ref-link-text" id="refLinkText">—</span>
-        <button class="ref-btn ref-btn-copy" id="refCopyLink">📋 Копировать</button>
+        <button class="ref-btn ref-btn-copy" id="refCopyLink" data-translate="common.copy">📋 Copy</button>
       </div>
       <div class="ref-link-short">
-        <span class="ref-link-short-label">Короткая:</span>
+        <span class="ref-link-short-label" data-translate="referrals.shortLink">Short:</span>
         <span class="ref-link-short-text" id="refShortLink">—</span>
         <button class="ref-btn ref-btn-copy" id="refCopyShort">📋</button>
       </div>
@@ -176,9 +177,9 @@ const referralsModule = {
 
   <!-- ИСТОРИЯ СОЗДАННЫХ ССЫЛОК -->
   <div class="ref-history">
-    <h3>📊 Мои ссылки</h3>
+    <h3 data-translate="referrals.history">📊 My Links</h3>
     <div class="ref-history-list" id="refHistoryList">
-      <p class="ref-history-empty">Ещё не создано ни одной ссылки</p>
+      <p class="ref-history-empty">No links created yet</p>
     </div>
   </div>
 
@@ -257,7 +258,7 @@ const referralsModule = {
     const activeDomains = domains.filter(d => d.active);
 
     if (activeDomains.length === 0) {
-      container.innerHTML = '<span class="ref-no-domains">Нет активных доменов</span>';
+      container.innerHTML = '<span class="ref-no-domains">No active domains</span>';
       return;
     }
 
@@ -295,7 +296,7 @@ const referralsModule = {
   // ═══════════════════════════════════════════════════════════════
   generateLink() {
     if (!this.state.userId) {
-      app?.showNotification?.('Подключите кошелёк!', 'error');
+      app?.showNotification?.(_t ? _t('notifications.connectWalletFirst') : 'Connect wallet!', 'error');
       return;
     }
 
@@ -378,7 +379,7 @@ const referralsModule = {
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 52px "Segoe UI", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`Присоединяйтесь к ${dir.name || 'GlobalWay'}!`, W / 2, 240);
+    ctx.fillText(`Join ${dir.name || 'GlobalWay'}!`, W / 2, 240);
 
     // ═══ ОПИСАНИЕ ═══
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
@@ -388,7 +389,7 @@ const referralsModule = {
     // ═══ ПРИГЛАШЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ ═══
     if (userName) {
       // Рамка с именем
-      const invText = `Приглашает: ${userName}`;
+      const invText = `Invited by: ${userName}`;
       ctx.font = 'bold 32px "Segoe UI", Arial, sans-serif';
       const textW = ctx.measureText(invText).width;
       
@@ -681,7 +682,7 @@ const referralsModule = {
 
     const history = this.state.generatedLinks;
     if (!history.length) {
-      container.innerHTML = '<p class="ref-history-empty">Ещё не создано ни одной ссылки</p>';
+      container.innerHTML = '<p class="ref-history-empty">No links created yet</p>';
       return;
     }
 
