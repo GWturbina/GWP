@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
 // GlobalWay DApp - Exchange & P2P Module
-// Обменник GWT токенов + P2P площадка
-// v2.1 - February 13, 2026
+// Полностью подключён к GWTToken.sol контракту
+// buyTokens, createSellOrder, buyFromOrder, cancelOrder, getActiveOrders
+// v2.2 - February 15, 2026
 // ═══════════════════════════════════════════════════════════════════
 
 const exchangeModule = {
@@ -9,10 +10,17 @@ const exchangeModule = {
     userAddress: null,
     gwtBalance: '0',
     bnbBalance: '0',
-    gwtPrice: '0.0001', // Стартовая цена GWT в BNB
-    mode: 'swap',  // 'swap' | 'p2p'
+    gwtPrice: '0',
+    tradingEnabled: false,
+    userQualified: false,
+    userRegistered: false,
+    tokenStats: null,
     p2pOrders: [],
-    myOrders: []
+    orderCounter: 0,
+    mode: 'swap',
+    loading: false,
+    _swapPair: { from: 'BNB', to: 'GWT' },
+    _refreshTimer: null
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -21,14 +29,45 @@ const exchangeModule = {
   async init() {
     console.log('💱 Exchange module init');
     this.render();
-    
+    this.bindEvents();
+
     if (app?.state?.userAddress) {
       this.state.userAddress = app.state.userAddress;
-      await this.loadBalances();
+      await this.loadAllData();
     }
-    
-    this.bindEvents();
-    this.loadP2POrders();
+
+    this.state._refreshTimer = setInterval(() => this.refreshPriceAndBalances(), 30000);
+  },
+
+  destroy() {
+    if (this.state._refreshTimer) clearInterval(this.state._refreshTimer);
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА ВСЕХ ДАННЫХ
+  // ═══════════════════════════════════════════════════════════════
+  async loadAllData() {
+    try {
+      await Promise.all([
+        this.loadBalances(),
+        this.loadTokenStats(),
+        this.checkTradingStatus(),
+        this.checkUserQualification(),
+        this.loadOnChainOrders()
+      ]);
+      this.updateFullUI();
+    } catch (err) {
+      console.error('❌ Exchange loadAllData error:', err);
+    }
+  },
+
+  async refreshPriceAndBalances() {
+    if (!this.state.userAddress) return;
+    try {
+      await Promise.all([this.loadBalances(), this.loadTokenStats()]);
+      this.updateBalancesUI();
+      this.updateStatsUI();
+    } catch (e) { /* silent */ }
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -36,40 +75,346 @@ const exchangeModule = {
   // ═══════════════════════════════════════════════════════════════
   async loadBalances() {
     try {
-      // GWT баланс
       const gwtToken = await app?.getContract?.('GWTToken');
-      if (gwtToken) {
+      if (gwtToken && this.state.userAddress) {
         const balance = await gwtToken.balanceOf(this.state.userAddress);
-        this.state.gwtBalance = window.ethers 
-          ? window.ethers.utils.formatEther(balance) 
-          : (parseInt(balance) / 1e18).toFixed(4);
+        this.state.gwtBalance = this.formatEther(balance);
       }
-
-      // BNB баланс
-      if (window.web3Manager?.provider) {
+      if (window.web3Manager?.provider && this.state.userAddress) {
         const bnb = await window.web3Manager.provider.getBalance(this.state.userAddress);
-        this.state.bnbBalance = window.ethers
-          ? window.ethers.utils.formatEther(bnb)
-          : (parseInt(bnb) / 1e18).toFixed(6);
+        this.state.bnbBalance = this.formatEther(bnb);
       }
-
-      // Цена GWT (из контракта если доступно)
-      try {
-        const gwtContract = await app?.getContract?.('GWTToken');
-        if (gwtContract?.tokenPrice) {
-          const price = await gwtContract.tokenPrice();
-          this.state.gwtPrice = window.ethers
-            ? window.ethers.utils.formatEther(price)
-            : (parseInt(price) / 1e18).toString();
-        }
-      } catch (e) {
-        console.log('Using default GWT price');
-      }
-
-      this.updateBalancesUI();
     } catch (err) {
       console.error('❌ Error loading balances:', err);
     }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА СТАТИСТИКИ ТОКЕНА
+  // ═══════════════════════════════════════════════════════════════
+  async loadTokenStats() {
+    try {
+      const gwtToken = await app?.getContract?.('GWTToken');
+      if (!gwtToken) return;
+
+      const price = await gwtToken.currentPrice();
+      this.state.gwtPrice = this.formatEther(price);
+
+      try {
+        const stats = await gwtToken.getTokenStats();
+        this.state.tokenStats = {
+          circulating: this.formatEther(stats.circulating || stats[0]),
+          price: this.formatEther(stats.price || stats[1]),
+          capitalization: this.formatEther(stats.cap || stats[2]),
+          bought: this.formatEther(stats.bought || stats[3]),
+          sold: this.formatEther(stats.sold || stats[4]),
+          minted: this.formatEther(stats.minted || stats[5]),
+          burned: this.formatEther(stats.burned || stats[6])
+        };
+      } catch (e) {
+        console.log('Token stats unavailable, using price only');
+      }
+    } catch (err) {
+      console.error('❌ Error loading token stats:', err);
+    }
+  },
+
+  async checkTradingStatus() {
+    try {
+      const gwtToken = await app?.getContract?.('GWTToken');
+      if (gwtToken) this.state.tradingEnabled = await gwtToken.tradingEnabled();
+    } catch (e) { console.warn('Could not check trading status'); }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПРОВЕРКА КВАЛИФИКАЦИИ (Level 7+ для торговли)
+  // ═══════════════════════════════════════════════════════════════
+  async checkUserQualification() {
+    try {
+      if (!this.state.userAddress) return;
+      const matrixRegistry = await app?.getContract?.('MatrixRegistry');
+      if (!matrixRegistry) return;
+
+      try {
+        const userId = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
+        this.state.userRegistered = userId && userId.toString() !== '0';
+      } catch (e) {
+        this.state.userRegistered = false;
+        return;
+      }
+
+      const globalWay = await app?.getContract?.('GlobalWay');
+      if (globalWay) {
+        try {
+          for (let level = 7; level <= 12; level++) {
+            const isActive = await globalWay.isLevelActive(this.state.userAddress, level);
+            if (isActive) { this.state.userQualified = true; return; }
+          }
+          this.state.userQualified = false;
+        } catch (e) {
+          try {
+            const uid = await matrixRegistry.getUserIdByAddress(this.state.userAddress);
+            const userInfo = await matrixRegistry.getUserInfo(uid);
+            const highest = parseInt(userInfo.highestLevel || userInfo[3] || 0);
+            this.state.userQualified = highest >= 7;
+          } catch (e2) { this.state.userQualified = false; }
+        }
+      }
+    } catch (err) { console.error('❌ Qualification check error:', err); }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАГРУЗКА ON-CHAIN ОРДЕРОВ
+  // ═══════════════════════════════════════════════════════════════
+  async loadOnChainOrders() {
+    try {
+      const gwtToken = await app?.getContract?.('GWTToken');
+      if (!gwtToken) return;
+
+      const counter = await gwtToken.orderCounter();
+      this.state.orderCounter = parseInt(counter.toString());
+      if (this.state.orderCounter === 0) { this.state.p2pOrders = []; return; }
+
+      const startId = Math.max(1, this.state.orderCounter - 49);
+      let activeIds = [];
+      
+      try {
+        const result = await gwtToken.getActiveOrders(startId, 50);
+        activeIds = result.filter(id => parseInt(id.toString()) > 0);
+      } catch (e) {
+        for (let i = this.state.orderCounter; i >= startId; i--) {
+          try {
+            const o = await gwtToken.getOrder(i);
+            if (o.active || o[3]) activeIds.push(i);
+          } catch (e2) { break; }
+        }
+      }
+
+      const orders = [];
+      for (const id of activeIds) {
+        const idNum = parseInt(id.toString());
+        if (idNum === 0) continue;
+        try {
+          const order = await gwtToken.getOrder(idNum);
+          const seller = order.seller || order[0];
+          const tokenAmount = order.tokenAmount || order[1];
+          const pricePerToken = order.pricePerToken || order[2];
+          const active = order.active ?? order[3];
+          const createdAt = order.createdAt || order[4];
+          if (!active) continue;
+
+          const totalRaw = tokenAmount.mul(pricePerToken).div(
+            window.ethers ? window.ethers.utils.parseEther('1') : BigInt(1e18)
+          );
+
+          orders.push({
+            id: idNum,
+            seller,
+            sellerShort: seller.slice(0, 6) + '...' + seller.slice(-4),
+            tokenAmount: this.formatEther(tokenAmount),
+            tokenAmountRaw: tokenAmount,
+            pricePerToken: this.formatEther(pricePerToken),
+            pricePerTokenRaw: pricePerToken,
+            totalBNB: this.formatEther(totalRaw),
+            active,
+            createdAt: parseInt(createdAt.toString()),
+            isMine: seller.toLowerCase() === this.state.userAddress?.toLowerCase()
+          });
+        } catch (e) { console.warn(`Order ${idNum} fetch failed`); }
+      }
+
+      this.state.p2pOrders = orders.sort((a, b) => b.createdAt - a.createdAt);
+    } catch (err) { console.error('❌ Error loading on-chain orders:', err); }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПОКУПКА GWT (buyTokens)
+  // ═══════════════════════════════════════════════════════════════
+  async executeBuyTokens() {
+    if (this.state._swapPair.from === 'GWT') {
+      app?.showNotification?.('Для продажи GWT создайте P2P ордер', 'info');
+      this.switchMode('p2p');
+      document.querySelectorAll('.exch-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector('.exch-tab[data-mode="p2p"]')?.classList.add('active');
+      return;
+    }
+
+    if (!this.preflightCheck()) return;
+
+    const fromAmount = parseFloat(document.getElementById('swapFromAmount')?.value || 0);
+    if (!fromAmount || fromAmount <= 0) {
+      app?.showNotification?.('Укажите сумму BNB', 'error');
+      return;
+    }
+
+    this.setLoading(true, 'Покупка GWT...');
+
+    try {
+      const gwtToken = await app?.getContract?.('GWTToken');
+      if (!gwtToken) throw new Error('GWTToken contract not available');
+      const ethers = window.ethers;
+
+      const price = await gwtToken.currentPrice();
+      const bnbWei = ethers.utils.parseEther(fromAmount.toString());
+      
+      // baseCost = bnbSent / 1.10 (10% commission)
+      const baseCost = bnbWei.mul(100).div(110);
+      const tokenAmount = baseCost.mul(ethers.utils.parseEther('1')).div(price);
+
+      if (tokenAmount.lte(0)) throw new Error('Сумма слишком мала');
+
+      const maxPrice = price.mul(102).div(100); // +2% slippage
+      
+      const actualBaseCost = await gwtToken.calculatePurchaseCost(tokenAmount);
+      const commission = actualBaseCost.mul(10).div(100);
+      const totalCost = actualBaseCost.add(commission);
+      const sendValue = totalCost.mul(103).div(100); // +3% buffer
+
+      console.log(`Buying ${this.formatEther(tokenAmount)} GWT for ~${this.formatEther(sendValue)} BNB`);
+
+      const tx = await gwtToken.buyTokens(tokenAmount, maxPrice, {
+        value: sendValue,
+        gasLimit: CONFIG.GAS.buyTokens
+      });
+
+      app?.showNotification?.('⏳ Транзакция отправлена...', 'info');
+      await tx.wait();
+      app?.showNotification?.(`✅ Куплено ${parseFloat(this.formatEther(tokenAmount)).toFixed(2)} GWT!`, 'success');
+      await this.loadAllData();
+
+    } catch (err) {
+      console.error('❌ Buy tokens error:', err);
+      app?.showNotification?.(`❌ ${this.parseError(err)}`, 'error');
+    } finally {
+      this.setLoading(false);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // СОЗДАНИЕ P2P ОРДЕРА НА ПРОДАЖУ (createSellOrder)
+  // ═══════════════════════════════════════════════════════════════
+  async executeCreateSellOrder() {
+    if (!this.preflightCheck()) return;
+
+    const amount = parseFloat(document.getElementById('p2pSellAmount')?.value || 0);
+    const price = document.getElementById('p2pSellPrice')?.value?.trim();
+
+    if (!amount || amount <= 0) { app?.showNotification?.('Укажите количество GWT', 'error'); return; }
+    if (!price || parseFloat(price) <= 0) { app?.showNotification?.('Укажите цену', 'error'); return; }
+    if (parseFloat(price) < 0.0001) { app?.showNotification?.('Мин. цена: 0.0001 BNB', 'error'); return; }
+    if (amount > parseFloat(this.state.gwtBalance)) {
+      app?.showNotification?.(`Недостаточно GWT. Баланс: ${parseFloat(this.state.gwtBalance).toFixed(2)}`, 'error');
+      return;
+    }
+
+    this.setLoading(true, 'Создание ордера...');
+
+    try {
+      const gwtToken = await app?.getContract?.('GWTToken');
+      const ethers = window.ethers;
+      const tokenAmountWei = ethers.utils.parseEther(amount.toString());
+      const pricePerTokenWei = ethers.utils.parseEther(price);
+
+      // Check allowance
+      const contractAddr = CONFIG.CONTRACTS.GWTToken;
+      const allowance = await gwtToken.allowance(this.state.userAddress, contractAddr);
+      
+      if (allowance.lt(tokenAmountWei)) {
+        app?.showNotification?.('⏳ Подтвердите approve...', 'info');
+        const approveTx = await gwtToken.approve(contractAddr, tokenAmountWei, {
+          gasLimit: CONFIG.GAS.approve
+        });
+        await approveTx.wait();
+        app?.showNotification?.('✅ Approve подтверждён', 'success');
+      }
+
+      app?.showNotification?.('⏳ Подтвердите ордер...', 'info');
+      const tx = await gwtToken.createSellOrder(tokenAmountWei, pricePerTokenWei, {
+        gasLimit: CONFIG.GAS.createSellOrder
+      });
+      await tx.wait();
+      app?.showNotification?.(`✅ Ордер создан: ${amount} GWT @ ${price} BNB`, 'success');
+
+      document.getElementById('p2pSellAmount').value = '';
+      document.getElementById('p2pSellPrice').value = '';
+      await this.loadAllData();
+
+    } catch (err) {
+      console.error('❌ Create sell order error:', err);
+      app?.showNotification?.(`❌ ${this.parseError(err)}`, 'error');
+    } finally {
+      this.setLoading(false);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПОКУПКА ИЗ P2P ОРДЕРА (buyFromOrder)
+  // ═══════════════════════════════════════════════════════════════
+  async executeBuyFromOrder(orderId) {
+    if (!this.preflightCheck()) return;
+
+    const order = this.state.p2pOrders.find(o => o.id === orderId);
+    if (!order) { app?.showNotification?.('Ордер не найден', 'error'); return; }
+
+    this.setLoading(true, `Покупка ${parseFloat(order.tokenAmount).toFixed(2)} GWT...`);
+
+    try {
+      const gwtToken = await app?.getContract?.('GWTToken');
+      const ethers = window.ethers;
+
+      const totalPrice = order.tokenAmountRaw.mul(order.pricePerTokenRaw).div(ethers.utils.parseEther('1'));
+      const sendValue = totalPrice.mul(102).div(100); // +2% buffer
+      const maxPrice = order.pricePerTokenRaw.mul(102).div(100);
+
+      const tx = await gwtToken.buyFromOrder(orderId, maxPrice, {
+        value: sendValue,
+        gasLimit: CONFIG.GAS.buyFromOrder
+      });
+
+      app?.showNotification?.('⏳ Транзакция отправлена...', 'info');
+      await tx.wait();
+      app?.showNotification?.(`✅ Куплено ${parseFloat(order.tokenAmount).toFixed(2)} GWT!`, 'success');
+      await this.loadAllData();
+
+    } catch (err) {
+      console.error('❌ Buy from order error:', err);
+      app?.showNotification?.(`❌ ${this.parseError(err)}`, 'error');
+    } finally {
+      this.setLoading(false);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ОТМЕНА ОРДЕРА
+  // ═══════════════════════════════════════════════════════════════
+  async executeCancelOrder(orderId) {
+    if (!this.state.userAddress) return;
+    this.setLoading(true, 'Отмена ордера...');
+    try {
+      const gwtToken = await app?.getContract?.('GWTToken');
+      const tx = await gwtToken.cancelOrder(orderId, { gasLimit: CONFIG.GAS.cancelOrder });
+      app?.showNotification?.('⏳ Отмена...', 'info');
+      await tx.wait();
+      app?.showNotification?.('✅ Ордер отменён, GWT возвращены', 'success');
+      await this.loadAllData();
+    } catch (err) {
+      console.error('❌ Cancel order error:', err);
+      app?.showNotification?.(`❌ ${this.parseError(err)}`, 'error');
+    } finally {
+      this.setLoading(false);
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // PREFLIGHT CHECK
+  // ═══════════════════════════════════════════════════════════════
+  preflightCheck() {
+    if (!this.state.userAddress) { app?.showNotification?.('Подключите кошелёк', 'error'); return false; }
+    if (!this.state.tradingEnabled) { app?.showNotification?.('Торговля не активирована владельцем контракта', 'error'); return false; }
+    if (!this.state.userRegistered) { app?.showNotification?.('Необходима регистрация в GlobalWay', 'error'); return false; }
+    if (!this.state.userQualified) { app?.showNotification?.('Для торговли нужен Level 7+', 'error'); return false; }
+    if (this.state.loading) { app?.showNotification?.('Дождитесь завершения операции', 'info'); return false; }
+    return true;
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -81,30 +426,30 @@ const exchangeModule = {
 
     container.innerHTML = `
 <div class="exchange-page">
-
-  <!-- ЗАГОЛОВОК -->
   <div class="exch-header">
-    <h2>💱 Обменник & P2P</h2>
-    <p class="exch-subtitle">Обмен GWT токенов и P2P торговля</p>
+    <h2>💱 Обменник GWT</h2>
+    <p class="exch-subtitle">Покупка GWT и P2P торговля на блокчейне</p>
   </div>
 
-  <!-- ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ -->
+  <div class="exch-status-bar" id="exchStatusBar">
+    <div class="exch-status-item">
+      <span class="status-dot" id="exchTradingDot">●</span>
+      <span id="exchTradingStatus">Проверка...</span>
+    </div>
+    <div class="exch-status-item">
+      <span class="status-label">Квалификация:</span>
+      <span id="exchQualStatus">—</span>
+    </div>
+  </div>
+
   <div class="exch-mode-tabs">
-    <button class="exch-tab active" data-mode="swap">
-      <span class="tab-icon">🔄</span> Обмен
-    </button>
-    <button class="exch-tab" data-mode="p2p">
-      <span class="tab-icon">👥</span> P2P Торговля
-    </button>
-    <button class="exch-tab" data-mode="history">
-      <span class="tab-icon">📊</span> История
-    </button>
+    <button class="exch-tab active" data-mode="swap"><span class="tab-icon">🔄</span> Купить GWT</button>
+    <button class="exch-tab" data-mode="p2p"><span class="tab-icon">📋</span> P2P Ордера</button>
+    <button class="exch-tab" data-mode="stats"><span class="tab-icon">📊</span> Статистика</button>
   </div>
 
-  <!-- ═══ SWAP РЕЖИМ ═══ -->
+  <!-- SWAP -->
   <div class="exch-section" id="exchSwapSection">
-    
-    <!-- БАЛАНСЫ -->
     <div class="exch-balances">
       <div class="exch-balance-card">
         <span class="bal-label">GWT</span>
@@ -113,7 +458,7 @@ const exchangeModule = {
       </div>
       <div class="exch-balance-card">
         <span class="bal-label">BNB</span>
-        <span class="bal-value" id="exchBnbBalance">0.00</span>
+        <span class="bal-value" id="exchBnbBalance">0.000000</span>
         <span class="bal-usd">opBNB</span>
       </div>
       <div class="exch-balance-card exch-price-card">
@@ -123,130 +468,120 @@ const exchangeModule = {
       </div>
     </div>
 
-    <!-- SWAP ФОРМА -->
     <div class="exch-swap-form">
       <div class="exch-swap-card">
-        <!-- ОТ -->
         <div class="swap-from">
           <div class="swap-header">
             <span>Отдаёте</span>
             <span class="swap-max" id="swapMaxBtn">MAX</span>
           </div>
           <div class="swap-input-row">
-            <input type="number" id="swapFromAmount" placeholder="0.00" class="swap-input" step="any">
-            <div class="swap-token-select" id="swapFromToken">
-              <span class="token-icon">🪙</span>
-              <span class="token-name" id="swapFromName">GWT</span>
-              <span class="token-arrow">▼</span>
+            <input type="number" id="swapFromAmount" placeholder="0.00" class="swap-input" step="any" min="0">
+            <div class="swap-token-select">
+              <span class="token-icon" id="swapFromIcon">💎</span>
+              <span class="token-name" id="swapFromName">BNB</span>
             </div>
           </div>
-          <div class="swap-balance-hint">
-            Баланс: <span id="swapFromBalance">0.00</span>
-          </div>
+          <div class="swap-balance-hint">Баланс: <span id="swapFromBalance">0.00</span></div>
         </div>
 
-        <!-- СТРЕЛКА ПЕРЕКЛЮЧЕНИЯ -->
-        <div class="swap-switch-btn" id="swapSwitchBtn">
-          <span>⇅</span>
-        </div>
+        <div class="swap-switch-btn" id="swapSwitchBtn">⇅</div>
 
-        <!-- К -->
         <div class="swap-to">
-          <div class="swap-header">
-            <span>Получаете</span>
-          </div>
+          <div class="swap-header"><span>Получаете (примерно)</span></div>
           <div class="swap-input-row">
             <input type="number" id="swapToAmount" placeholder="0.00" class="swap-input" readonly>
-            <div class="swap-token-select" id="swapToToken">
-              <span class="token-icon">💎</span>
-              <span class="token-name" id="swapToName">BNB</span>
-              <span class="token-arrow">▼</span>
+            <div class="swap-token-select">
+              <span class="token-icon" id="swapToIcon">🪙</span>
+              <span class="token-name" id="swapToName">GWT</span>
             </div>
           </div>
-          <div class="swap-rate-info">
-            Курс: <span id="swapRateDisplay">—</span>
-          </div>
+          <div class="swap-rate-info">Курс: <span id="swapRateDisplay">—</span></div>
         </div>
       </div>
 
-      <!-- ДЕТАЛИ -->
       <div class="swap-details">
-        <div class="swap-detail-row">
-          <span>Комиссия сети:</span>
-          <span>~0.0001 BNB</span>
-        </div>
-        <div class="swap-detail-row">
-          <span>Slippage:</span>
-          <span>0.5%</span>
+        <div class="swap-detail-row"><span>Комиссия покупки:</span><span>10% → tokenomics</span></div>
+        <div class="swap-detail-row"><span>Буфер slippage:</span><span>~3%</span></div>
+        <div class="swap-detail-row" id="swapCostRow" style="display:none;">
+          <span>Итого к оплате:</span><span id="swapTotalCost">—</span>
         </div>
       </div>
 
-      <!-- КНОПКА -->
-      <button class="exch-swap-btn" id="exchSwapBtn" disabled>
-        ⚠️ Подключите кошелёк
-      </button>
+      <button class="exch-swap-btn" id="exchSwapBtn" disabled>⚠️ Подключите кошелёк</button>
 
-      <!-- ИНФО -->
-      <div class="exch-swap-info">
-        <p>💡 Обмен GWT токенов будет доступен после подключения контракта SwapHelper.</p>
-        <p>Сейчас вы можете создавать P2P объявления для торговли напрямую.</p>
+      <div class="exch-info-note" id="exchSellNote" style="display:none;">
+        <p>ℹ️ Прямая продажа GWT в контракт не предусмотрена. Создайте P2P ордер — другие участники купят ваши токены.</p>
       </div>
     </div>
   </div>
 
-  <!-- ═══ P2P РЕЖИМ ═══ -->
+  <!-- P2P -->
   <div class="exch-section" id="exchP2PSection" style="display:none;">
-    
-    <!-- СОЗДАТЬ ОРДЕР -->
     <div class="p2p-create">
-      <h3>📝 Создать объявление</h3>
+      <h3>📝 Создать ордер на продажу GWT</h3>
+      <p class="p2p-hint">Токены блокируются на контракте до покупки или отмены. Ордер действует 30 дней. Комиссия P2P: 2%.</p>
       <div class="p2p-form">
         <div class="p2p-form-row">
-          <div class="p2p-type-selector">
-            <button class="p2p-type-btn active" data-type="sell">Продаю GWT</button>
-            <button class="p2p-type-btn" data-type="buy">Покупаю GWT</button>
-          </div>
-        </div>
-        <div class="p2p-form-row">
           <label>Количество GWT:</label>
-          <input type="number" id="p2pAmount" placeholder="100" class="p2p-input">
+          <div class="p2p-input-wrap">
+            <input type="number" id="p2pSellAmount" placeholder="100" class="p2p-input" step="any" min="0">
+            <button class="p2p-max-btn" id="p2pMaxSell">MAX</button>
+          </div>
         </div>
         <div class="p2p-form-row">
           <label>Цена за 1 GWT (BNB):</label>
-          <input type="number" id="p2pPrice" placeholder="0.0001" class="p2p-input" step="any">
+          <div class="p2p-input-wrap">
+            <input type="number" id="p2pSellPrice" placeholder="0.001" class="p2p-input" step="any" min="0.0001">
+            <button class="p2p-market-btn" id="p2pMarketPrice">Текущая</button>
+          </div>
         </div>
-        <div class="p2p-form-row">
-          <label>Контакт (Telegram):</label>
-          <input type="text" id="p2pContact" placeholder="@username" class="p2p-input">
+        <div class="p2p-form-row p2p-total-row">
+          <span>Итого получите:</span>
+          <span id="p2pSellTotal">— BNB</span>
+          <span class="p2p-commission-note">(минус 2% комиссия)</span>
         </div>
-        <button class="p2p-create-btn" id="p2pCreateBtn">
-          📢 Разместить объявление
-        </button>
+        <button class="p2p-create-btn" id="p2pCreateBtn">📢 Создать ордер (on-chain)</button>
       </div>
     </div>
 
-    <!-- СПИСОК ОРДЕРОВ -->
     <div class="p2p-orders">
-      <h3>📊 Активные объявления</h3>
+      <div class="p2p-orders-header">
+        <h3>📊 Активные ордера</h3>
+        <button class="p2p-refresh-btn" id="p2pRefreshBtn">🔄</button>
+      </div>
       <div class="p2p-filter">
         <button class="p2p-filter-btn active" data-filter="all">Все</button>
-        <button class="p2p-filter-btn" data-filter="sell">Продажа</button>
-        <button class="p2p-filter-btn" data-filter="buy">Покупка</button>
         <button class="p2p-filter-btn" data-filter="my">Мои</button>
+        <button class="p2p-filter-btn" data-filter="cheap">Дешёвые</button>
       </div>
       <div class="p2p-list" id="p2pOrdersList">
-        <p class="p2p-empty">Пока нет объявлений. Будьте первым! 🚀</p>
+        <p class="p2p-empty">Загрузка ордеров...</p>
       </div>
     </div>
   </div>
 
-  <!-- ═══ ИСТОРИЯ ═══ -->
-  <div class="exch-section" id="exchHistorySection" style="display:none;">
-    <div class="exch-history-empty">
-      <p>📋 История обменов будет доступна после проведения первых транзакций</p>
+  <!-- STATS -->
+  <div class="exch-section" id="exchStatsSection" style="display:none;">
+    <div class="exch-stats-grid" id="exchStatsGrid">
+      <div class="stat-card"><span class="stat-label">Цена GWT</span><span class="stat-value" id="statPrice">—</span><span class="stat-sub">BNB</span></div>
+      <div class="stat-card"><span class="stat-label">В обращении</span><span class="stat-value" id="statCirculating">—</span><span class="stat-sub">GWT</span></div>
+      <div class="stat-card"><span class="stat-label">Капитализация</span><span class="stat-value" id="statCap">—</span><span class="stat-sub">BNB</span></div>
+      <div class="stat-card"><span class="stat-label">Куплено</span><span class="stat-value" id="statBought">—</span><span class="stat-sub">GWT</span></div>
+      <div class="stat-card"><span class="stat-label">Продано P2P</span><span class="stat-value" id="statSold">—</span><span class="stat-sub">GWT</span></div>
+      <div class="stat-card"><span class="stat-label">Сожжено</span><span class="stat-value" id="statBurned">—</span><span class="stat-sub">GWT</span></div>
+    </div>
+    <div class="exch-info-note">
+      <p>📈 Цена GWT растёт с каждой покупкой. Комиссия 10% → tokenomics.</p>
+      <p>👥 P2P: торговля напрямую между участниками. Комиссия 2%.</p>
+      <p>🔒 Для торговли необходим Level 7+ в GlobalWay.</p>
     </div>
   </div>
 
+  <div class="exch-loading-overlay" id="exchLoadingOverlay" style="display:none;">
+    <div class="exch-loading-spinner"></div>
+    <p id="exchLoadingText">Обработка...</p>
+  </div>
 </div>`;
   },
 
@@ -254,7 +589,6 @@ const exchangeModule = {
   // ПРИВЯЗКА СОБЫТИЙ
   // ═══════════════════════════════════════════════════════════════
   bindEvents() {
-    // Переключение режимов
     document.querySelectorAll('.exch-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.exch-tab').forEach(t => t.classList.remove('active'));
@@ -263,293 +597,295 @@ const exchangeModule = {
       });
     });
 
-    // Swap: ввод суммы → пересчёт
-    const fromInput = document.getElementById('swapFromAmount');
-    if (fromInput) {
-      fromInput.addEventListener('input', () => this.calculateSwap());
-    }
+    document.getElementById('swapFromAmount')?.addEventListener('input', () => this.calculateSwap());
+    document.getElementById('swapSwitchBtn')?.addEventListener('click', () => this.switchPair());
+    document.getElementById('swapMaxBtn')?.addEventListener('click', () => this.setMaxAmount());
+    document.getElementById('exchSwapBtn')?.addEventListener('click', () => this.executeBuyTokens());
 
-    // Swap: переключение пар
-    const switchBtn = document.getElementById('swapSwitchBtn');
-    if (switchBtn) switchBtn.addEventListener('click', () => this.switchPair());
-
-    // Swap: MAX
-    const maxBtn = document.getElementById('swapMaxBtn');
-    if (maxBtn) maxBtn.addEventListener('click', () => this.setMaxAmount());
-
-    // P2P: тип ордера
-    document.querySelectorAll('.p2p-type-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.p2p-type-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
+    document.getElementById('p2pCreateBtn')?.addEventListener('click', () => this.executeCreateSellOrder());
+    document.getElementById('p2pMaxSell')?.addEventListener('click', () => {
+      const input = document.getElementById('p2pSellAmount');
+      if (input) input.value = parseFloat(this.state.gwtBalance).toFixed(4);
+      this.updateP2PTotal();
+    });
+    document.getElementById('p2pMarketPrice')?.addEventListener('click', () => {
+      const input = document.getElementById('p2pSellPrice');
+      if (input) input.value = this.state.gwtPrice;
+      this.updateP2PTotal();
+    });
+    document.getElementById('p2pSellAmount')?.addEventListener('input', () => this.updateP2PTotal());
+    document.getElementById('p2pSellPrice')?.addEventListener('input', () => this.updateP2PTotal());
+    document.getElementById('p2pRefreshBtn')?.addEventListener('click', async () => {
+      await this.loadOnChainOrders();
+      this.renderP2POrders();
+      app?.showNotification?.('✅ Обновлено', 'success');
     });
 
-    // P2P: создание ордера
-    const createBtn = document.getElementById('p2pCreateBtn');
-    if (createBtn) createBtn.addEventListener('click', () => this.createP2POrder());
-
-    // P2P: фильтры
     document.querySelectorAll('.p2p-filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.p2p-filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        this.filterP2POrders(btn.dataset.filter);
+        this.renderP2POrders(btn.dataset.filter);
       });
     });
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
-  // ═══════════════════════════════════════════════════════════════
   switchMode(mode) {
     this.state.mode = mode;
-    const sections = {
-      swap: 'exchSwapSection',
-      p2p: 'exchP2PSection',
-      history: 'exchHistorySection'
-    };
-
-    Object.values(sections).forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-
-    const active = document.getElementById(sections[mode]);
-    if (active) active.style.display = 'block';
+    const map = { swap: 'exchSwapSection', p2p: 'exchP2PSection', stats: 'exchStatsSection' };
+    Object.values(map).forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    const el = document.getElementById(map[mode]);
+    if (el) el.style.display = 'block';
+    if (mode === 'p2p') this.renderP2POrders();
+    if (mode === 'stats') this.updateStatsUI();
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ОБНОВЛЕНИЕ БАЛАНСОВ UI
+  // SWAP КАЛЬКУЛЯТОР
   // ═══════════════════════════════════════════════════════════════
-  updateBalancesUI() {
-    const gwtEl = document.getElementById('exchGwtBalance');
-    const bnbEl = document.getElementById('exchBnbBalance');
-    const priceEl = document.getElementById('exchGwtPrice');
-    
-    if (gwtEl) gwtEl.textContent = parseFloat(this.state.gwtBalance).toFixed(2);
-    if (bnbEl) bnbEl.textContent = parseFloat(this.state.bnbBalance).toFixed(6);
-    if (priceEl) priceEl.textContent = this.state.gwtPrice;
-
-    // Обновляем баланс в swap
-    const fromBal = document.getElementById('swapFromBalance');
-    if (fromBal) fromBal.textContent = parseFloat(this.state.gwtBalance).toFixed(2);
-
-    // Кнопка swap
-    const swapBtn = document.getElementById('exchSwapBtn');
-    if (swapBtn) {
-      if (this.state.userAddress) {
-        swapBtn.textContent = '🔄 Обменять';
-        swapBtn.disabled = false;
-      }
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // SWAP КАЛЬКУЛЯЦИЯ
-  // ═══════════════════════════════════════════════════════════════
-  _swapPair: { from: 'GWT', to: 'BNB' },
-
   calculateSwap() {
     const fromAmount = parseFloat(document.getElementById('swapFromAmount')?.value || 0);
     const toInput = document.getElementById('swapToAmount');
     const rateDisplay = document.getElementById('swapRateDisplay');
+    const costRow = document.getElementById('swapCostRow');
+    const costEl = document.getElementById('swapTotalCost');
+    const sellNote = document.getElementById('exchSellNote');
 
     if (!fromAmount || fromAmount <= 0) {
       if (toInput) toInput.value = '';
+      if (costRow) costRow.style.display = 'none';
       return;
     }
 
     const price = parseFloat(this.state.gwtPrice);
-    let result;
-
-    if (this._swapPair.from === 'GWT') {
-      result = fromAmount * price;
-      if (rateDisplay) rateDisplay.textContent = `1 GWT = ${price} BNB`;
-    } else {
-      result = price > 0 ? fromAmount / price : 0;
-      if (rateDisplay) rateDisplay.textContent = `1 BNB = ${(1/price).toFixed(0)} GWT`;
+    if (!price || price <= 0) {
+      if (rateDisplay) rateDisplay.textContent = 'Цена не загружена';
+      return;
     }
 
-    if (toInput) toInput.value = result.toFixed(8);
+    if (this.state._swapPair.from === 'BNB') {
+      const baseBnb = fromAmount / 1.10;
+      const tokensOut = baseBnb / price;
+      if (toInput) toInput.value = tokensOut.toFixed(2);
+      if (rateDisplay) rateDisplay.textContent = `1 GWT = ${price} BNB`;
+      if (costRow) costRow.style.display = 'flex';
+      if (costEl) costEl.textContent = `~${fromAmount.toFixed(6)} BNB (вкл. 10%)`;
+      if (sellNote) sellNote.style.display = 'none';
+    } else {
+      const bnbOut = fromAmount * price;
+      if (toInput) toInput.value = bnbOut.toFixed(8);
+      if (rateDisplay) rateDisplay.textContent = `1 GWT = ${price} BNB`;
+      if (costRow) costRow.style.display = 'none';
+      if (sellNote) sellNote.style.display = 'block';
+    }
   },
 
   switchPair() {
-    const temp = this._swapPair.from;
-    this._swapPair.from = this._swapPair.to;
-    this._swapPair.to = temp;
+    const pair = this.state._swapPair;
+    const temp = pair.from; pair.from = pair.to; pair.to = temp;
+    const icons = { GWT: '🪙', BNB: '💎' };
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('swapFromName', pair.from); set('swapToName', pair.to);
+    set('swapFromIcon', icons[pair.from]); set('swapToIcon', icons[pair.to]);
+    this.updateSwapBalance();
 
-    const fromName = document.getElementById('swapFromName');
-    const toName = document.getElementById('swapToName');
-    const fromIcon = document.querySelector('#swapFromToken .token-icon');
-    const toIcon = document.querySelector('#swapToToken .token-icon');
-
-    if (fromName && toName) {
-      fromName.textContent = this._swapPair.from;
-      toName.textContent = this._swapPair.to;
+    const btn = document.getElementById('exchSwapBtn');
+    if (btn && this.state.userAddress && this.state.tradingEnabled && this.state.userQualified) {
+      btn.textContent = pair.from === 'BNB' ? '🔄 Купить GWT' : '📋 Перейти к P2P';
+      btn.disabled = false;
     }
-    if (fromIcon && toIcon) {
-      const icons = { GWT: '🪙', BNB: '💎' };
-      fromIcon.textContent = icons[this._swapPair.from];
-      toIcon.textContent = icons[this._swapPair.to];
-    }
-
-    // Обновляем баланс
-    const fromBal = document.getElementById('swapFromBalance');
-    if (fromBal) {
-      fromBal.textContent = this._swapPair.from === 'GWT' 
-        ? parseFloat(this.state.gwtBalance).toFixed(2)
-        : parseFloat(this.state.bnbBalance).toFixed(6);
-    }
-
-    // Пересчёт
     this.calculateSwap();
   },
 
   setMaxAmount() {
     const input = document.getElementById('swapFromAmount');
     if (!input) return;
-    input.value = this._swapPair.from === 'GWT' 
-      ? parseFloat(this.state.gwtBalance).toFixed(4)
-      : parseFloat(this.state.bnbBalance).toFixed(6);
+    if (this.state._swapPair.from === 'BNB') {
+      input.value = Math.max(0, parseFloat(this.state.bnbBalance) - 0.001).toFixed(6);
+    } else {
+      input.value = parseFloat(this.state.gwtBalance).toFixed(4);
+    }
     this.calculateSwap();
   },
 
+  updateSwapBalance() {
+    const el = document.getElementById('swapFromBalance');
+    if (el) {
+      el.textContent = this.state._swapPair.from === 'BNB'
+        ? parseFloat(this.state.bnbBalance).toFixed(6)
+        : parseFloat(this.state.gwtBalance).toFixed(2);
+    }
+  },
+
+  updateP2PTotal() {
+    const amount = parseFloat(document.getElementById('p2pSellAmount')?.value || 0);
+    const price = parseFloat(document.getElementById('p2pSellPrice')?.value || 0);
+    const el = document.getElementById('p2pSellTotal');
+    if (el) {
+      el.textContent = (amount > 0 && price > 0) ? `~${(amount * price * 0.98).toFixed(6)} BNB` : '— BNB';
+    }
+  },
+
   // ═══════════════════════════════════════════════════════════════
-  // P2P ОРДЕРА (localStorage пока нет контракта)
+  // РЕНДЕР P2P ОРДЕРОВ
   // ═══════════════════════════════════════════════════════════════
-  createP2POrder() {
-    if (!this.state.userAddress) {
-      app?.showNotification?.('Подключите кошелёк!', 'error');
-      return;
-    }
-
-    const type = document.querySelector('.p2p-type-btn.active')?.dataset.type || 'sell';
-    const amount = parseFloat(document.getElementById('p2pAmount')?.value || 0);
-    const price = parseFloat(document.getElementById('p2pPrice')?.value || 0);
-    const contact = document.getElementById('p2pContact')?.value?.trim() || '';
-
-    if (!amount || amount <= 0) {
-      app?.showNotification?.('Укажите количество GWT', 'error');
-      return;
-    }
-    if (!price || price <= 0) {
-      app?.showNotification?.('Укажите цену', 'error');
-      return;
-    }
-    if (!contact) {
-      app?.showNotification?.('Укажите контакт для связи', 'error');
-      return;
-    }
-
-    const order = {
-      id: Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
-      type,
-      amount,
-      price,
-      total: (amount * price).toFixed(8),
-      contact,
-      wallet: this.state.userAddress.slice(0, 6) + '...' + this.state.userAddress.slice(-4),
-      fullWallet: this.state.userAddress,
-      timestamp: Date.now(),
-      status: 'active'
-    };
-
-    this.state.p2pOrders.unshift(order);
-    this.saveP2POrders();
-    this.renderP2POrders();
-
-    // Очищаем форму
-    document.getElementById('p2pAmount').value = '';
-    document.getElementById('p2pPrice').value = '';
-    document.getElementById('p2pContact').value = '';
-
-    app?.showNotification?.('✅ Объявление создано!', 'success');
-  },
-
-  loadP2POrders() {
-    try {
-      this.state.p2pOrders = JSON.parse(localStorage.getItem('gw_p2p_orders') || '[]');
-      // Убираем просроченные (старше 7 дней)
-      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      this.state.p2pOrders = this.state.p2pOrders.filter(o => o.timestamp > weekAgo);
-      this.renderP2POrders();
-    } catch (e) {
-      console.warn('P2P orders load error:', e);
-    }
-  },
-
-  saveP2POrders() {
-    try {
-      localStorage.setItem('gw_p2p_orders', JSON.stringify(this.state.p2pOrders));
-    } catch (e) {
-      console.warn('P2P save error:', e);
-    }
-  },
-
-  filterP2POrders(filter) {
-    this.renderP2POrders(filter);
-  },
-
-  renderP2POrders(filter = 'all') {
+  renderP2POrders(filter) {
+    filter = filter || 'all';
     const container = document.getElementById('p2pOrdersList');
     if (!container) return;
 
-    let orders = this.state.p2pOrders.filter(o => o.status === 'active');
-    
-    if (filter === 'sell') orders = orders.filter(o => o.type === 'sell');
-    if (filter === 'buy') orders = orders.filter(o => o.type === 'buy');
-    if (filter === 'my') orders = orders.filter(o => o.fullWallet === this.state.userAddress);
+    let orders = [...this.state.p2pOrders];
+    if (filter === 'my') orders = orders.filter(o => o.isMine);
+    else if (filter === 'cheap') orders = [...orders].sort((a, b) => parseFloat(a.pricePerToken) - parseFloat(b.pricePerToken));
 
     if (!orders.length) {
-      container.innerHTML = '<p class="p2p-empty">Нет объявлений по данному фильтру</p>';
+      container.innerHTML = filter === 'my'
+        ? '<p class="p2p-empty">У вас нет активных ордеров</p>'
+        : '<p class="p2p-empty">Нет активных ордеров на блокчейне</p>';
       return;
     }
 
     container.innerHTML = orders.map(order => {
-      const isMine = order.fullWallet === this.state.userAddress;
-      const date = new Date(order.timestamp).toLocaleDateString('ru-RU', {
+      const daysLeft = Math.max(0, Math.ceil(((order.createdAt + 30*86400)*1000 - Date.now()) / 86400000));
+      const created = new Date(order.createdAt * 1000).toLocaleDateString('ru-RU', {
         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
       });
       return `
-        <div class="p2p-order-card ${order.type}">
-          <div class="p2p-order-type ${order.type}">
-            ${order.type === 'sell' ? '🔴 ПРОДАЖА' : '🟢 ПОКУПКА'}
+        <div class="p2p-order-card ${order.isMine ? 'my-order' : ''}">
+          <div class="p2p-order-header">
+            <span class="p2p-order-id">#${order.id}</span>
+            <span class="p2p-order-seller">${order.sellerShort}${order.isMine ? ' (вы)' : ''}</span>
           </div>
-          <div class="p2p-order-details">
-            <div class="p2p-order-amount">
-              <span class="p2p-amount">${order.amount} GWT</span>
-              <span class="p2p-price">@ ${order.price} BNB</span>
-            </div>
-            <div class="p2p-order-total">
-              Итого: <strong>${order.total} BNB</strong>
-            </div>
-            <div class="p2p-order-meta">
-              <span class="p2p-wallet">${order.wallet}</span>
-              <span class="p2p-date">${date}</span>
-            </div>
+          <div class="p2p-order-body">
+            <div class="p2p-order-amount"><span class="p2p-big">${parseFloat(order.tokenAmount).toFixed(2)}</span> <span class="p2p-unit">GWT</span></div>
+            <div class="p2p-order-price"><span class="p2p-label">Цена:</span> <span class="p2p-val">${parseFloat(order.pricePerToken).toFixed(6)} BNB</span></div>
+            <div class="p2p-order-total"><span class="p2p-label">Итого:</span> <span class="p2p-val">${parseFloat(order.totalBNB).toFixed(6)} BNB</span></div>
           </div>
-          <div class="p2p-order-actions">
-            ${isMine 
-              ? `<button class="p2p-cancel-btn" onclick="exchangeModule.cancelOrder('${order.id}')">❌ Отменить</button>`
-              : `<a href="https://t.me/${order.contact.replace('@', '')}" target="_blank" class="p2p-contact-btn">💬 Связаться</a>`
-            }
+          <div class="p2p-order-footer">
+            <span class="p2p-date">${created} · ${daysLeft}д</span>
+            ${order.isMine
+              ? `<button class="p2p-cancel-btn" data-oid="${order.id}">❌ Отменить</button>`
+              : `<button class="p2p-buy-btn" data-oid="${order.id}">🛒 Купить</button>`}
           </div>
-        </div>
-      `;
+        </div>`;
     }).join('');
+
+    container.querySelectorAll('.p2p-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => this.executeBuyFromOrder(parseInt(btn.dataset.oid)));
+    });
+    container.querySelectorAll('.p2p-cancel-btn').forEach(btn => {
+      btn.addEventListener('click', () => this.executeCancelOrder(parseInt(btn.dataset.oid)));
+    });
   },
 
-  cancelOrder(orderId) {
-    const idx = this.state.p2pOrders.findIndex(o => o.id === orderId);
-    if (idx >= 0) {
-      this.state.p2pOrders[idx].status = 'cancelled';
-      this.saveP2POrders();
-      this.renderP2POrders();
-      app?.showNotification?.('❌ Объявление отменено', 'info');
+  // ═══════════════════════════════════════════════════════════════
+  // UI UPDATES
+  // ═══════════════════════════════════════════════════════════════
+  updateFullUI() {
+    this.updateBalancesUI();
+    this.updateStatusUI();
+    this.updateSwapButton();
+    this.updateStatsUI();
+    this.renderP2POrders();
+  },
+
+  updateBalancesUI() {
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('exchGwtBalance', parseFloat(this.state.gwtBalance).toFixed(2));
+    set('exchBnbBalance', parseFloat(this.state.bnbBalance).toFixed(6));
+    set('exchGwtPrice', this.state.gwtPrice || '—');
+    this.updateSwapBalance();
+  },
+
+  updateStatusUI() {
+    const dot = document.getElementById('exchTradingDot');
+    const status = document.getElementById('exchTradingStatus');
+    const qual = document.getElementById('exchQualStatus');
+
+    if (this.state.tradingEnabled) {
+      if (dot) dot.style.color = '#00ff88';
+      if (status) status.textContent = 'Торговля активна';
+    } else {
+      if (dot) dot.style.color = '#ff4444';
+      if (status) status.textContent = 'Торговля не активна';
+    }
+
+    if (!this.state.userAddress) {
+      if (qual) qual.textContent = 'Кошелёк не подключён';
+    } else if (this.state.userQualified) {
+      if (qual) { qual.textContent = '✅ Level 7+'; qual.style.color = '#00ff88'; }
+    } else if (this.state.userRegistered) {
+      if (qual) { qual.textContent = '❌ Нужен Level 7+'; qual.style.color = '#ffaa00'; }
+    } else {
+      if (qual) { qual.textContent = '❌ Не зарегистрирован'; qual.style.color = '#ff4444'; }
+    }
+  },
+
+  updateSwapButton() {
+    const btn = document.getElementById('exchSwapBtn');
+    if (!btn) return;
+    if (!this.state.userAddress) { btn.textContent = '⚠️ Подключите кошелёк'; btn.disabled = true; }
+    else if (!this.state.tradingEnabled) { btn.textContent = '🔒 Торговля не активирована'; btn.disabled = true; }
+    else if (!this.state.userQualified) { btn.textContent = '🔒 Нужен Level 7+'; btn.disabled = true; }
+    else if (this.state._swapPair.from === 'BNB') { btn.textContent = '🔄 Купить GWT'; btn.disabled = false; }
+    else { btn.textContent = '📋 Перейти к P2P'; btn.disabled = false; }
+  },
+
+  updateStatsUI() {
+    if (!this.state.tokenStats) return;
+    const s = this.state.tokenStats;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = parseFloat(val).toLocaleString('ru-RU', { maximumFractionDigits: 4 }); };
+    set('statPrice', s.price); set('statCirculating', s.circulating); set('statCap', s.capitalization);
+    set('statBought', s.bought); set('statSold', s.sold); set('statBurned', s.burned);
+  },
+
+  setLoading(on, text) {
+    this.state.loading = on;
+    const overlay = document.getElementById('exchLoadingOverlay');
+    const textEl = document.getElementById('exchLoadingText');
+    if (overlay) overlay.style.display = on ? 'flex' : 'none';
+    if (textEl) textEl.textContent = text || 'Обработка...';
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // УТИЛИТЫ
+  // ═══════════════════════════════════════════════════════════════
+  formatEther(val) {
+    try {
+      if (window.ethers?.utils?.formatEther) return window.ethers.utils.formatEther(val);
+      return (parseInt(val.toString()) / 1e18).toString();
+    } catch (e) { return '0'; }
+  },
+
+  parseError(err) {
+    const msg = err?.reason || err?.data?.message || err?.message || 'Неизвестная ошибка';
+    const map = {
+      'Trading not enabled': 'Торговля не активирована',
+      'Not registered': 'Необходима регистрация',
+      'Need level 7': 'Нужен Level 7+',
+      'Insufficient reserve': 'Недостаточно токенов в резерве',
+      'Insufficient payment': 'Недостаточно BNB',
+      'Insufficient balance': 'Недостаточно GWT',
+      'Price too high': 'Цена изменилась, попробуйте снова',
+      'Price too low': 'Мин. цена: 0.0001 BNB',
+      'Order not active': 'Ордер уже неактивен',
+      'Order expired': 'Ордер просрочен (>30 дней)',
+      'Not order owner': 'Вы не владелец ордера',
+      'user rejected': 'Транзакция отменена',
+      'denied': 'Транзакция отменена'
+    };
+    for (const [key, val] of Object.entries(map)) {
+      if (msg.includes(key)) return val;
+    }
+    return msg.length > 100 ? msg.slice(0, 100) + '...' : msg;
+  },
+
+  async refresh() {
+    if (app?.state?.userAddress) {
+      this.state.userAddress = app.state.userAddress;
+      await this.loadAllData();
     }
   }
 };
 
-// Экспорт
 window.exchangeModule = exchangeModule;
