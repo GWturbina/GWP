@@ -307,7 +307,7 @@ const exchangeModule = {
       return;
     }
 
-    this.setLoading(true, 'Создание ордера...');
+    this.setLoading(true, 'Creating order...');
 
     try {
       const gwtToken = await app?.getContract?.('GWTToken');
@@ -389,7 +389,7 @@ const exchangeModule = {
   // ═══════════════════════════════════════════════════════════════
   async executeCancelOrder(orderId) {
     if (!this.state.userAddress) return;
-    this.setLoading(true, 'Отмена ордера...');
+    this.setLoading(true, 'Cancelling...');
     try {
       const gwtToken = await app?.getContract?.('GWTToken');
       const tx = await gwtToken.cancelOrder(orderId, { gasLimit: CONFIG.GAS.cancelOrder });
@@ -409,8 +409,8 @@ const exchangeModule = {
   // PREFLIGHT CHECK
   // ═══════════════════════════════════════════════════════════════
   preflightCheck() {
-    if (!this.state.userAddress) { app?.showNotification?.('Подключите кошелёк', 'error'); return false; }
-    if (!this.state.tradingEnabled) { app?.showNotification?.('Торговля не активирована владельцем контракта', 'error'); return false; }
+    if (!this.state.userAddress) { app?.showNotification?.(this._t('exchange.connectWallet'), 'error'); return false; }
+    if (!this.state.tradingEnabled) { app?.showNotification?.(this._t('exchange.tradingLocked'), 'error'); return false; }
     if (!this.state.userRegistered) { app?.showNotification?.('Необходима регистрация в GlobalWay', 'error'); return false; }
     if (!this.state.userQualified) { app?.showNotification?.('Для торговли нужен Level 7+', 'error'); return false; }
     if (this.state.loading) { app?.showNotification?.('Дождитесь завершения операции', 'info'); return false; }
@@ -427,25 +427,25 @@ const exchangeModule = {
     container.innerHTML = `
 <div class="exchange-page">
   <div class="exch-header">
-    <h2>💱 Обменник GWT</h2>
-    <p class="exch-subtitle">Покупка GWT и P2P торговля на блокчейне</p>
+    <h2 data-translate="exchange.title">💱 GWT Exchange</h2>
+    <p class="exch-subtitle" data-translate="exchange.subtitle">Buy GWT and P2P trading on blockchain</p>
   </div>
 
   <div class="exch-status-bar" id="exchStatusBar">
     <div class="exch-status-item">
       <span class="status-dot" id="exchTradingDot">●</span>
-      <span id="exchTradingStatus">Проверка...</span>
+      <span id="exchTradingStatus">...</span>
     </div>
     <div class="exch-status-item">
-      <span class="status-label">Квалификация:</span>
+      <span class="status-label" data-translate="exchange.qualification">Qualification</span>:
       <span id="exchQualStatus">—</span>
     </div>
   </div>
 
   <div class="exch-mode-tabs">
-    <button class="exch-tab active" data-mode="swap"><span class="tab-icon">🔄</span> Купить GWT</button>
-    <button class="exch-tab" data-mode="p2p"><span class="tab-icon">📋</span> P2P Ордера</button>
-    <button class="exch-tab" data-mode="stats"><span class="tab-icon">📊</span> Статистика</button>
+    <button class="exch-tab active" data-mode="swap"><span class="tab-icon">🔄</span> <span data-translate="exchange.tabBuy">Buy GWT</span></button>
+    <button class="exch-tab" data-mode="p2p"><span class="tab-icon">📋</span> <span data-translate="exchange.tabP2P">P2P Orders</span></button>
+    <button class="exch-tab" data-mode="stats"><span class="tab-icon">📊</span> <span data-translate="exchange.tabStats">Statistics</span></button>
   </div>
 
   <!-- SWAP -->
@@ -462,7 +462,7 @@ const exchangeModule = {
         <span class="bal-usd">opBNB</span>
       </div>
       <div class="exch-balance-card exch-price-card">
-        <span class="bal-label">Цена GWT</span>
+        <span class="bal-label" data-translate="exchange.gwtPrice">GWT Price</span>
         <span class="bal-value" id="exchGwtPrice">—</span>
         <span class="bal-usd">BNB</span>
       </div>
@@ -472,7 +472,7 @@ const exchangeModule = {
       <div class="exch-swap-card">
         <div class="swap-from">
           <div class="swap-header">
-            <span>Отдаёте</span>
+            <span data-translate="exchange.youPay">You pay</span>
             <span class="swap-max" id="swapMaxBtn">MAX</span>
           </div>
           <div class="swap-input-row">
@@ -482,13 +482,13 @@ const exchangeModule = {
               <span class="token-name" id="swapFromName">BNB</span>
             </div>
           </div>
-          <div class="swap-balance-hint">Баланс: <span id="swapFromBalance">0.00</span></div>
+          <div class="swap-balance-hint">Balance: <span id="swapFromBalance">0.00</span></div>
         </div>
 
         <div class="swap-switch-btn" id="swapSwitchBtn">⇅</div>
 
         <div class="swap-to">
-          <div class="swap-header"><span>Получаете (примерно)</span></div>
+          <div class="swap-header"><span data-translate="exchange.youGet">You get (approx.)</span></div>
           <div class="swap-input-row">
             <input type="number" id="swapToAmount" placeholder="0.00" class="swap-input" readonly>
             <div class="swap-token-select">
@@ -496,22 +496,22 @@ const exchangeModule = {
               <span class="token-name" id="swapToName">GWT</span>
             </div>
           </div>
-          <div class="swap-rate-info">Курс: <span id="swapRateDisplay">—</span></div>
+          <div class="swap-rate-info"><span data-translate="exchange.rate">Rate</span>: <span id="swapRateDisplay">—</span></div>
         </div>
       </div>
 
       <div class="swap-details">
-        <div class="swap-detail-row"><span>Комиссия покупки:</span><span>10% → tokenomics</span></div>
-        <div class="swap-detail-row"><span>Буфер slippage:</span><span>~3%</span></div>
+        <div class="swap-detail-row"><span data-translate="exchange.buyCommission">Buy commission</span><span>10% → tokenomics</span></div>
+        <div class="swap-detail-row"><span data-translate="exchange.slippage">Slippage buffer</span><span>~3%</span></div>
         <div class="swap-detail-row" id="swapCostRow" style="display:none;">
-          <span>Итого к оплате:</span><span id="swapTotalCost">—</span>
+          <span data-translate="exchange.totalCost">Total cost</span><span id="swapTotalCost">—</span>
         </div>
       </div>
 
-      <button class="exch-swap-btn" id="exchSwapBtn" disabled>⚠️ Подключите кошелёк</button>
+      <button class="exch-swap-btn" id="exchSwapBtn" disabled data-translate="exchange.connectWallet">⚠️ Connect wallet</button>
 
       <div class="exch-info-note" id="exchSellNote" style="display:none;">
-        <p>ℹ️ Прямая продажа GWT в контракт не предусмотрена. Создайте P2P ордер — другие участники купят ваши токены.</p>
+        <p data-translate="exchange.sellNote">Direct GWT sell not available. Create P2P order.</p>
       </div>
     </div>
   </div>
@@ -519,44 +519,44 @@ const exchangeModule = {
   <!-- P2P -->
   <div class="exch-section" id="exchP2PSection" style="display:none;">
     <div class="p2p-create">
-      <h3>📝 Создать ордер на продажу GWT</h3>
-      <p class="p2p-hint">Токены блокируются на контракте до покупки или отмены. Ордер действует 30 дней. Комиссия P2P: 2%.</p>
+      <h3 data-translate="exchange.p2pTitle">📝 Create sell order</h3>
+      <p class="sv-hint" data-translate="exchange.p2pHint">Tokens locked in contract until purchase or cancel. 30 days. Commission: 2%.</p>
       <div class="p2p-form">
         <div class="p2p-form-row">
-          <label>Количество GWT:</label>
+          <label data-translate="exchange.p2pAmount">GWT amount</label>
           <div class="p2p-input-wrap">
             <input type="number" id="p2pSellAmount" placeholder="100" class="p2p-input" step="any" min="0">
             <button class="p2p-max-btn" id="p2pMaxSell">MAX</button>
           </div>
         </div>
         <div class="p2p-form-row">
-          <label>Цена за 1 GWT (BNB):</label>
+          <label data-translate="exchange.p2pPrice">Price per 1 GWT (BNB)</label>
           <div class="p2p-input-wrap">
             <input type="number" id="p2pSellPrice" placeholder="0.001" class="p2p-input" step="any" min="0.0001">
-            <button class="p2p-market-btn" id="p2pMarketPrice">Текущая</button>
+            <button class="p2p-market-btn" id="p2pMarketPrice" data-translate="exchange.p2pCurrent">Current</button>
           </div>
         </div>
         <div class="p2p-form-row p2p-total-row">
-          <span>Итого получите:</span>
+          <span data-translate="exchange.p2pTotal">You will receive</span>
           <span id="p2pSellTotal">— BNB</span>
-          <span class="p2p-commission-note">(минус 2% комиссия)</span>
+          <span class="p2p-commission-note" data-translate="exchange.p2pCommNote">(minus 2% commission)</span>
         </div>
-        <button class="p2p-create-btn" id="p2pCreateBtn">📢 Создать ордер (on-chain)</button>
+        <button class="p2p-create-btn" id="p2pCreateBtn" data-translate="exchange.p2pCreate">📢 Create order (on-chain)</button>
       </div>
     </div>
 
     <div class="p2p-orders">
       <div class="p2p-orders-header">
-        <h3>📊 Активные ордера</h3>
+        <h3 data-translate="exchange.p2pActiveOrders">📊 Active orders</h3>
         <button class="p2p-refresh-btn" id="p2pRefreshBtn">🔄</button>
       </div>
       <div class="p2p-filter">
-        <button class="p2p-filter-btn active" data-filter="all">Все</button>
-        <button class="p2p-filter-btn" data-filter="my">Мои</button>
-        <button class="p2p-filter-btn" data-filter="cheap">Дешёвые</button>
+        <button class="p2p-filter-btn active" data-filter="all" data-translate="exchange.p2pAll">All</button>
+        <button class="p2p-filter-btn" data-filter="my" data-translate="exchange.p2pMy">Mine</button>
+        <button class="p2p-filter-btn" data-filter="cheap" data-translate="exchange.p2pCheap">Cheapest</button>
       </div>
       <div class="p2p-list" id="p2pOrdersList">
-        <p class="p2p-empty">Загрузка ордеров...</p>
+        <p class="p2p-empty">Loading...</p>
       </div>
     </div>
   </div>
@@ -564,25 +564,27 @@ const exchangeModule = {
   <!-- STATS -->
   <div class="exch-section" id="exchStatsSection" style="display:none;">
     <div class="exch-stats-grid" id="exchStatsGrid">
-      <div class="stat-card"><span class="stat-label">Цена GWT</span><span class="stat-value" id="statPrice">—</span><span class="stat-sub">BNB</span></div>
-      <div class="stat-card"><span class="stat-label">В обращении</span><span class="stat-value" id="statCirculating">—</span><span class="stat-sub">GWT</span></div>
-      <div class="stat-card"><span class="stat-label">Капитализация</span><span class="stat-value" id="statCap">—</span><span class="stat-sub">BNB</span></div>
-      <div class="stat-card"><span class="stat-label">Куплено</span><span class="stat-value" id="statBought">—</span><span class="stat-sub">GWT</span></div>
-      <div class="stat-card"><span class="stat-label">Продано P2P</span><span class="stat-value" id="statSold">—</span><span class="stat-sub">GWT</span></div>
-      <div class="stat-card"><span class="stat-label">Сожжено</span><span class="stat-value" id="statBurned">—</span><span class="stat-sub">GWT</span></div>
+      <div class="stat-card"><span class="stat-label" data-translate="exchange.gwtPrice">GWT Price</span><span class="stat-value" id="statPrice">—</span><span class="stat-sub">BNB</span></div>
+      <div class="stat-card"><span class="stat-label" data-translate="exchange.circulating">Circulating</span><span class="stat-value" id="statCirculating">—</span><span class="stat-sub">GWT</span></div>
+      <div class="stat-card"><span class="stat-label" data-translate="exchange.capitalization">Capitalization</span><span class="stat-value" id="statCap">—</span><span class="stat-sub">BNB</span></div>
+      <div class="stat-card"><span class="stat-label" data-translate="exchange.bought">Bought</span><span class="stat-value" id="statBought">—</span><span class="stat-sub">GWT</span></div>
+      <div class="stat-card"><span class="stat-label" data-translate="exchange.soldP2P">Sold P2P</span><span class="stat-value" id="statSold">—</span><span class="stat-sub">GWT</span></div>
+      <div class="stat-card"><span class="stat-label" data-translate="exchange.burned">Burned</span><span class="stat-value" id="statBurned">—</span><span class="stat-sub">GWT</span></div>
     </div>
     <div class="exch-info-note">
-      <p>📈 Цена GWT растёт с каждой покупкой. Комиссия 10% → tokenomics.</p>
-      <p>👥 P2P: торговля напрямую между участниками. Комиссия 2%.</p>
-      <p>🔒 Для торговли необходим Level 7+ в GlobalWay.</p>
+      <p data-translate="exchange.statsNote1">📈 GWT price grows with each purchase.</p>
+      <p data-translate="exchange.statsNote2">👥 P2P: direct trading between participants.</p>
+      <p data-translate="exchange.statsNote3">🔒 Level 7+ required for trading.</p>
     </div>
   </div>
 
   <div class="exch-loading-overlay" id="exchLoadingOverlay" style="display:none;">
     <div class="exch-loading-spinner"></div>
-    <p id="exchLoadingText">Обработка...</p>
+    <p id="exchLoadingText">...</p>
   </div>
 </div>`;
+
+    if (window.i18n?.translatePage) window.i18n.translatePage();
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -691,7 +693,7 @@ const exchangeModule = {
 
     const btn = document.getElementById('exchSwapBtn');
     if (btn && this.state.userAddress && this.state.tradingEnabled && this.state.userQualified) {
-      btn.textContent = pair.from === 'BNB' ? '🔄 Купить GWT' : '📋 Перейти к P2P';
+      btn.textContent = pair.from === 'BNB' ? '🔄 ' + exchangeModule._t('exchange.buyGwt') : '📋 ' + exchangeModule._t('exchange.goToP2P');
       btn.disabled = false;
     }
     this.calculateSwap();
@@ -740,8 +742,8 @@ const exchangeModule = {
 
     if (!orders.length) {
       container.innerHTML = filter === 'my'
-        ? '<p class="p2p-empty">У вас нет активных ордеров</p>'
-        : '<p class="p2p-empty">Нет активных ордеров на блокчейне</p>';
+        ? '<p class="p2p-empty">' + exchangeModule._t('exchange.p2pNoMyOrders') + '</p>'
+        : '<p class="p2p-empty">' + exchangeModule._t('exchange.p2pNoOrders') + '</p>';
       return;
     }
 
@@ -765,7 +767,7 @@ const exchangeModule = {
             <span class="p2p-date">${created} · ${daysLeft}д</span>
             ${order.isMine
               ? `<button class="p2p-cancel-btn" data-oid="${order.id}">❌ Отменить</button>`
-              : `<button class="p2p-buy-btn" data-oid="${order.id}">🛒 Купить</button>`}
+              : `<button class="p2p-buy-btn" data-oid="${order.id}">🛒 ${exchangeModule._t('exchange.p2pBuy')}</button>`}
           </div>
         </div>`;
     }).join('');
@@ -804,10 +806,10 @@ const exchangeModule = {
 
     if (this.state.tradingEnabled) {
       if (dot) dot.style.color = '#00ff88';
-      if (status) status.textContent = 'Торговля активна';
+      if (status) status.textContent = exchangeModule._t('exchange.tradingActive');
     } else {
       if (dot) dot.style.color = '#ff4444';
-      if (status) status.textContent = 'Торговля не активна';
+      if (status) status.textContent = exchangeModule._t('exchange.tradingInactive');
     }
 
     if (!this.state.userAddress) {
@@ -815,7 +817,7 @@ const exchangeModule = {
     } else if (this.state.userQualified) {
       if (qual) { qual.textContent = '✅ Level 7+'; qual.style.color = '#00ff88'; }
     } else if (this.state.userRegistered) {
-      if (qual) { qual.textContent = '❌ Нужен Level 7+'; qual.style.color = '#ffaa00'; }
+      if (qual) { qual.textContent = '❌ ' + exchangeModule._t('exchange.qualNeed'); qual.style.color = '#ffaa00'; }
     } else {
       if (qual) { qual.textContent = '❌ Не зарегистрирован'; qual.style.color = '#ff4444'; }
     }
@@ -824,11 +826,11 @@ const exchangeModule = {
   updateSwapButton() {
     const btn = document.getElementById('exchSwapBtn');
     if (!btn) return;
-    if (!this.state.userAddress) { btn.textContent = '⚠️ Подключите кошелёк'; btn.disabled = true; }
-    else if (!this.state.tradingEnabled) { btn.textContent = '🔒 Торговля не активирована'; btn.disabled = true; }
-    else if (!this.state.userQualified) { btn.textContent = '🔒 Нужен Level 7+'; btn.disabled = true; }
-    else if (this.state._swapPair.from === 'BNB') { btn.textContent = '🔄 Купить GWT'; btn.disabled = false; }
-    else { btn.textContent = '📋 Перейти к P2P'; btn.disabled = false; }
+    if (!this.state.userAddress) { btn.textContent = '⚠️ ' + exchangeModule._t('exchange.connectWallet'); btn.disabled = true; }
+    else if (!this.state.tradingEnabled) { btn.textContent = '🔒 ' + exchangeModule._t('exchange.tradingLocked'); btn.disabled = true; }
+    else if (!this.state.userQualified) { btn.textContent = '🔒 ' + exchangeModule._t('exchange.needLevel7'); btn.disabled = true; }
+    else if (this.state._swapPair.from === 'BNB') { btn.textContent = '🔄 ' + exchangeModule._t('exchange.buyGwt'); btn.disabled = false; }
+    else { btn.textContent = '📋 ' + exchangeModule._t('exchange.goToP2P'); btn.disabled = false; }
   },
 
   updateStatsUI() {
@@ -844,7 +846,7 @@ const exchangeModule = {
     const overlay = document.getElementById('exchLoadingOverlay');
     const textEl = document.getElementById('exchLoadingText');
     if (overlay) overlay.style.display = on ? 'flex' : 'none';
-    if (textEl) textEl.textContent = text || 'Обработка...';
+    if (textEl) textEl.textContent = text || '...';
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -860,9 +862,9 @@ const exchangeModule = {
   parseError(err) {
     const msg = err?.reason || err?.data?.message || err?.message || 'Неизвестная ошибка';
     const map = {
-      'Trading not enabled': 'Торговля не активирована',
+      'Trading not enabled': 'Trading not enabled',
       'Not registered': 'Необходима регистрация',
-      'Need level 7': 'Нужен Level 7+',
+      'Need level 7': 'Need Level 7+',
       'Insufficient reserve': 'Недостаточно токенов в резерве',
       'Insufficient payment': 'Недостаточно BNB',
       'Insufficient balance': 'Недостаточно GWT',
@@ -870,7 +872,7 @@ const exchangeModule = {
       'Price too low': 'Мин. цена: 0.0001 BNB',
       'Order not active': 'Ордер уже неактивен',
       'Order expired': 'Ордер просрочен (>30 дней)',
-      'Not order owner': 'Вы не владелец ордера',
+      'Not order owner': 'Not order owner',
       'user rejected': 'Транзакция отменена',
       'denied': 'Транзакция отменена'
     };
@@ -889,3 +891,11 @@ const exchangeModule = {
 };
 
 window.exchangeModule = exchangeModule;
+// i18n helper - added at bottom
+exchangeModule._t = function(key) {
+  if (window.i18n?.t) return window.i18n.t(key);
+  const parts = key.split('.');
+  let val = (window.translations || {})[window.currentLang || 'en'];
+  for (const p of parts) { val = val?.[p]; }
+  return val || key;
+};
