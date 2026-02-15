@@ -120,13 +120,7 @@ class Web3Manager {
   // 🔥 НОВОЕ: Показ сообщения о неправильной сети
   showSolanaNetworkError() {
     const message = 
-      '⚠️ Обнаружен Solana кошелёк!\n\n' +
-      'GlobalWay работает на opBNB (EVM сеть).\n\n' +
-      'Пожалуйста:\n' +
-      '1. Откройте SafePal кошелёк\n' +
-      '2. Переключитесь на opBNB или BNB Smart Chain\n' +
-      '3. Убедитесь что выбран EVM кошелёк (адрес 0x...)\n' +
-      '4. Обновите страницу и подключитесь снова';
+      (_t ? _t('web3.solanaMsg') : 'GlobalWay runs on opBNB (EVM). Switch to opBNB in SafePal.');
     
     alert(message);
     throw new Error('Solana wallet detected. Please switch to opBNB/BNB network in SafePal.');
@@ -221,19 +215,19 @@ async connect() {
         let message;
         if (this.isMobile) {
           message = 
-            '📱 SafePal кошелек не обнаружен!\n\n' +
-            '1. Установите приложение SafePal Wallet\n' +
-            '2. Создайте или восстановите кошелек\n' +
-            '3. Откройте эту ссылку в браузере SafePal\n\n' +
-            '💡 Нажмите на "Browser" в приложении SafePal';
+            '📱 SafePal wallet not found!\n\n' +
+            '1. Install SafePal Wallet app\n' +
+            '2. Create or restore a wallet\n' +
+            '3. Open this link in SafePal browser\n\n' +
+            '💡 Tap "Browser" in SafePal app';
         } else {
           message = 
-            '💻 SafePal кошелек не обнаружен!\n\n' +
-            'Установите SafePal расширение для браузера:\n' +
-            '1. Перейдите на safepal.com\n' +
-            '2. Скачайте расширение\n' +
-            '3. Создайте кошелек\n' +
-            '4. Обновите эту страницу';
+            '💻 SafePal wallet not found!\n\n' +
+            'Install SafePal browser extension:\n' +
+            '1. Go to safepal.com\n' +
+            '2. Download extension\n' +
+            '3. Create wallet\n' +
+            '4. Refresh this page';
         }
         
         throw new Error(message);
@@ -519,9 +513,9 @@ async connect() {
   
     // Если мы всё ещё здесь — приложение не открылось
     const install = confirm(
-      'SafePal не установлен.\n\n' +
-      'Установить SafePal Wallet?\n\n' +
-      'После установки откройте эту ссылку в браузере SafePal (вкладка "Browser" в приложении).'
+      'SafePal not installed.\n\n' +
+      'Install SafePal Wallet?\n\n' +
+      'After installation, open this link in SafePal browser ("Browser" tab in the app).'
     );
   
     if (install) {
@@ -572,19 +566,19 @@ async connect() {
         } catch (addError) {
           console.error('❌ Failed to add network:', addError);
           throw new Error(
-            'Не удалось добавить сеть opBNB.\n\n' +
-            'Добавьте вручную:\n' +
-            `Название: ${CONFIG.NETWORK.name}\n` +
+            'Failed to add opBNB network.\n\n' +
+            'Add manually:\n' +
+            `Name: ${CONFIG.NETWORK.name}\n` +
             `RPC: ${CONFIG.NETWORK.rpcUrl}\n` +
             `Chain ID: ${CONFIG.NETWORK.chainId}`
           );
         }
       } else if (error.code === 4001) {
         // Пользователь отклонил
-        throw new Error('Вы отклонили смену сети');
+        throw new Error('Network switch rejected');
       } else {
         console.error('❌ Switch failed:', error);
-        throw new Error('Переключите на opBNB вручную в кошельке');
+        throw new Error(_t ? _t('web3.switchNetwork') : 'Switch to opBNB manually');
       }
     }
   }
