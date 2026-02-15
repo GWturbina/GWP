@@ -63,7 +63,7 @@ const dashboardModule = {
       console.log('✅ Dashboard loaded');
     } catch (error) {
       console.error('❌ Dashboard init error:', error);
-      app.showNotification('Ошибка загрузки dashboard', 'error');
+      app.showNotification((_t('notifications.dashboardError')), 'error');
     }
   },
 
@@ -158,7 +158,7 @@ const dashboardModule = {
           this.userData.rank = this.getRankName(Number(rankInfo.rank));
         } catch (e) {
           console.warn('⚠️ Could not get rank:', e);
-          this.userData.rank = 'Бронза 🥉';
+          this.userData.rank = (_t('ranks.bronze'));
         }
 
         console.log('✅ Personal info loaded:', {
@@ -200,7 +200,7 @@ async loadQuarterlyInfo() {
           canPay = false;
           nextPayment = 0;
           daysRemaining = 0;
-          status = 'Сначала активируйте уровень 1';
+          status = _t('dashboard.activateFirst');
         } else {
           // Уровень 1 активирован — считаем от даты активации
           nextPayment = activationTime + QUARTERLY_INTERVAL;
@@ -209,13 +209,13 @@ async loadQuarterlyInfo() {
           
           if (timeUntilNext <= 0) {
             canPay = true;
-            status = '⚠️ Оплатите квартал!';
+            status = '⚠️ ' + _t('dashboard.quarterExpired');
           } else if (timeUntilNext <= WARNING_PERIOD) {
             canPay = true;
-            status = 'Можно активировать';
+            status = _t('dashboard.canActivate');
           } else {
             canPay = false;
-            status = `Доступно через ${daysRemaining} дней`;
+            status = _t('dashboard.availableIn') + ' ' + daysRemaining + ' ' + _t('common.days');
           }
         }
       } catch(e) {
@@ -223,7 +223,7 @@ async loadQuarterlyInfo() {
         canPay = false;
         nextPayment = 0;
         daysRemaining = 0;
-        status = 'Еще не активирован';
+        status = _t('dashboard.notActivated');
       }
     } else {
       // Уже были квартальные платежи — считаем от последнего
@@ -233,13 +233,13 @@ async loadQuarterlyInfo() {
       
       if (timeUntilNext <= 0) {
         canPay = true;
-        status = '⚠️ Квартал истёк! Оплатите';
+        status = '⚠️ ' + _t('dashboard.quarterExpired');
       } else if (timeUntilNext <= WARNING_PERIOD) {
         canPay = true;
-        status = 'Можно активировать';
+        status = _t('dashboard.canActivate');
       } else {
         canPay = false;
-        status = `Доступно через ${daysRemaining} дней`;
+        status = _t('dashboard.availableIn') + ' ' + daysRemaining + ' ' + _t('common.days');
       }
     }
     
@@ -273,7 +273,7 @@ async loadQuarterlyInfo() {
       lastPayment: 0,
       nextPayment: 0,
       daysRemaining: 0,
-      status: 'Ошибка загрузки',
+      status: _t('common.loadError'),
       cost: CONFIG.QUARTERLY_COST || '0.075',
       pensionBalance: '0'
     };
@@ -507,12 +507,12 @@ async loadQuarterlyInfo() {
       const tableBody = document.getElementById('historyTable');
       if (!tableBody) return;
       console.log('📜 Loading transaction history...');
-      tableBody.innerHTML = '<tr><td colspan="6" class="no-data">Загрузка...</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6" class="no-data">' + _t('common.loading') + '</td></tr>';
     
       this.allEvents = await this.getTransactionEvents();
     
       if (this.allEvents.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" class="no-data">Нет транзакций</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" class="no-data">' + _t('common.noTransactions') + '</td></tr>';
         return;
       }
     
@@ -537,7 +537,7 @@ async loadQuarterlyInfo() {
       : this.allEvents.filter(e => e.type === filterType);
   
     if (filteredEvents.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="6" class="no-data">Нет транзакций выбранного типа</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6" class="no-data">' + _t('common.noTransactionsType') + '</td></tr>';
       return;
     }
     
@@ -572,7 +572,7 @@ async loadQuarterlyInfo() {
             timestamp: 0,
             txHash: event.transactionHash,
             type: 'level',
-            typeLabel: 'Уровень покупки'
+            typeLabel: _t('dashboard.txTypes.levelPurchase')
           });
         }
       } catch (e) {
@@ -591,7 +591,7 @@ async loadQuarterlyInfo() {
             timestamp: 0,
             txHash: event.transactionHash,
             type: 'partner',
-            typeLabel: 'Партнерский бонус (спонсор)'
+            typeLabel: _t('dashboard.txTypes.partnerBonus')
           });
         }
         
@@ -606,7 +606,7 @@ async loadQuarterlyInfo() {
             timestamp: 0,
             txHash: event.transactionHash,
             type: 'partner',
-            typeLabel: 'Партнерский бонус (апліния)'
+            typeLabel: _t('dashboard.txTypes.partnerUpline')
           });
         }
       } catch (e) {
@@ -625,7 +625,7 @@ async loadQuarterlyInfo() {
             timestamp: 0,
             txHash: event.transactionHash,
             type: 'matrix',
-            typeLabel: 'Матричный бонус'
+            typeLabel: _t('dashboard.txTypes.matrixBonus')
           });
         }
       } catch (e) {
@@ -644,7 +644,7 @@ async loadQuarterlyInfo() {
             timestamp: 0,
             txHash: event.transactionHash,
             type: 'quarterly',
-            typeLabel: 'Ежеквартальная активность'
+            typeLabel: _t('dashboard.txTypes.quarterlyActivity')
           });
         }
       } catch (e) {
@@ -732,7 +732,7 @@ async loadQuarterlyInfo() {
         }
         
         if (daysEl) {
-          daysEl.textContent = daysRemaining === 0 ? 'Сегодня!' : `${daysRemaining} дней`;
+          daysEl.textContent = daysRemaining === 0 ? _t('common.today') : daysRemaining + ' ' + _t('common.days');
           daysEl.style.color = daysRemaining <= 3 ? '#ff3232' : '#ffc107';
         }
       } else {
@@ -743,33 +743,33 @@ async loadQuarterlyInfo() {
       if (payBtn) {
         if (canPay) {
           payBtn.disabled = false;
-          payBtn.textContent = 'Оплатить Quarterly';
+          payBtn.textContent = _t('dashboard.payQuarterly');
           payBtn.style.opacity = '1';
           payBtn.style.cursor = 'pointer';
         } else {
           payBtn.disabled = true;
-          payBtn.textContent = `Оплата через ${daysRemaining}д`;
+          payBtn.textContent = _t('dashboard.paymentIn') + ' ' + daysRemaining + _t('common.daysShort');
           payBtn.style.opacity = '0.5';
           payBtn.style.cursor = 'not-allowed';
         }
       }
     } else {
       // Еще не активирован
-      if (lastPaymentEl) lastPaymentEl.textContent = 'Еще не активирован';
+      if (lastPaymentEl) lastPaymentEl.textContent = _t('dashboard.notActivated');
       
       if (canPay) {
-        if (nextPaymentEl) nextPaymentEl.textContent = '✅ Можно активировать';
+        if (nextPaymentEl) nextPaymentEl.textContent = '✅ ' + _t('dashboard.canActivate');
         if (payBtn) {
           payBtn.disabled = false;
-          payBtn.textContent = '⚡ Активировать Quarterly';
+          payBtn.textContent = '⚡ ' + _t('dashboard.activateQuarterly');
           payBtn.style.opacity = '1';
           payBtn.style.cursor = 'pointer';
         }
       } else {
-        if (nextPaymentEl) nextPaymentEl.textContent = `Доступно через ${daysRemaining}д`;
+        if (nextPaymentEl) nextPaymentEl.textContent = _t('dashboard.availableIn') + ' ' + daysRemaining + _t('common.daysShort');
         if (payBtn) {
           payBtn.disabled = true;
-          payBtn.textContent = `Доступно через ${daysRemaining}д`;
+          payBtn.textContent = _t('dashboard.availableIn') + ' ' + daysRemaining + _t('common.daysShort');
           payBtn.style.opacity = '0.5';
           payBtn.style.cursor = 'not-allowed';
         }
@@ -807,7 +807,7 @@ async loadQuarterlyInfo() {
     
     if (!app.state.userAddress) {
       console.log('❌ No user address');
-      app.showNotification('Подключите кошелек', 'error');
+      app.showNotification(_t('notifications.connectWalletFirst'), 'error');
       this.buyLevelInProgress = false;
       return;
     }
@@ -831,7 +831,7 @@ async loadQuarterlyInfo() {
       // 🔥 FIX: Используем app.state.isRegistered (он корректно загружается в app.js)
       if (!app.state.isRegistered && !this.userData.isRegistered) {
         console.log('❌ User not registered');
-        app.showNotification('Сначала зарегистрируйтесь', 'error');
+        app.showNotification(_t('notifications.registerFirst'), 'error');
         this.buyLevelInProgress = false;
         return;
       }
@@ -844,7 +844,7 @@ async loadQuarterlyInfo() {
         console.log('   Current max level:', Number(maxLevel));
         if (Number(maxLevel) < level - 1) {
           console.log('❌ Previous level not activated');
-          app.showNotification(`Сначала активируйте уровень ${level - 1}`, 'error');
+          app.showNotification(_t('dashboard.activateFirst'), 'error');
           this.buyLevelInProgress = false;
           return;
         }
@@ -858,7 +858,7 @@ async loadQuarterlyInfo() {
       
       if (isActive) {
         console.log('❌ Level already active');
-        app.showNotification('Уровень уже активен', 'error');
+        app.showNotification(_t('notifications.levelAlreadyActive'), 'error');
         this.buyLevelInProgress = false;
         return;
       }
@@ -876,7 +876,7 @@ async loadQuarterlyInfo() {
       
       if (balance.lt(priceWei)) {
         console.log('❌ Insufficient balance');
-        app.showNotification('Недостаточно BNB', 'error');
+        app.showNotification(_t('notifications.insufficientBNB'), 'error');
         this.buyLevelInProgress = false;
         return;
       }
@@ -885,10 +885,7 @@ async loadQuarterlyInfo() {
       console.log('6️⃣ Asking user confirmation...');
       
       const confirmed = confirm(
-        `Активировать уровень ${level}?\n\n` +
-        `Стоимость: ${price} BNB\n` +
-        `Награда: ${CONFIG.TOKEN_REWARDS[level - 1]} GWT\n\n` +
-        `Продолжить?`
+        `${_t('dashboard.activateLevel')} ${level}?\n\n${_t('dashboard.cost')}: ${price} BNB\n${_t('dashboard.reward')}: ${CONFIG.TOKEN_REWARDS[level - 1]} GWT\n\n${_t('dashboard.continue')}`
       );
       
       if (!confirmed) {
@@ -902,7 +899,7 @@ async loadQuarterlyInfo() {
       document.querySelectorAll('.level-btn').forEach(btn => btn.disabled = true);
       
       console.log('8️⃣ Calling GlobalWay.activateLevel(' + level + ')...');
-      app.showNotification(`Покупка уровня ${level}...`, 'info');
+      app.showNotification(_t('dashboard.buyingLevel') + ' ' + level + '...', 'info');
       
       const contract = await app.getSignedContract('GlobalWay');
       console.log('   Contract loaded:', contract.address);
@@ -913,7 +910,7 @@ async loadQuarterlyInfo() {
       });
       
       console.log(`📝 Transaction sent: ${tx.hash}`);
-      app.showNotification(`Транзакция отправлена! Ожидание...`, 'info');
+      app.showNotification(_t('notifications.txSent'), 'info');
       
       const receipt = await tx.wait();
       console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
@@ -923,7 +920,7 @@ async loadQuarterlyInfo() {
       }
       
       app.showNotification(
-        `✅ Уровень ${level} активирован!\n🎁 Получено ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
+        `✅ ${_t('dashboard.levelActivated')}\n🎁 ${_t('dashboard.received')} ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
         'success'
       );
       
@@ -933,11 +930,11 @@ async loadQuarterlyInfo() {
       console.error('❌ Buy level error:', error);
       
       if (error.code === 4001) {
-        app.showNotification('Транзакция отклонена', 'error');
+        app.showNotification(_t('notifications.txRejected'), 'error');
       } else if (error.message && error.message.includes('insufficient funds')) {
-        app.showNotification('Недостаточно средств', 'error');
+        app.showNotification(_t('notifications.insufficientFunds'), 'error');
       } else {
-        app.showNotification('Ошибка покупки: ' + error.message, 'error');
+        app.showNotification(_t('notifications.buyError') + ': ' + error.message, 'error');
       }
     } finally {
       document.querySelectorAll('.level-btn').forEach(btn => {
@@ -956,7 +953,7 @@ async loadQuarterlyInfo() {
     console.log('=== 💳 PAY QUARTERLY START ===');
     
     if (!app.state.userAddress) {
-      app.showNotification('Подключите кошелек', 'error');
+      app.showNotification(_t('notifications.connectWalletFirst'), 'error');
       return;
     }
     
@@ -968,17 +965,14 @@ async loadQuarterlyInfo() {
       const { quarter, canPay } = this.userData.quarterlyInfo;
       
       if (!canPay) {
-        app.showNotification('Оплата пока недоступна', 'error');
+        app.showNotification(_t('notifications.paymentNotAvailable'), 'error');
         return;
       }
 
       // Подтверждение
       const cost = CONFIG.QUARTERLY_COST;
       const confirmed = confirm(
-        `Оплатить quarterly активность?\n\n` +
-        `Квартал: ${quarter + 1}\n` +
-        `Стоимость: ${cost} BNB\n\n` +
-        `Продолжить?`
+        `${_t('dashboard.payQuarterlyConfirm')}\n\n${_t('dashboard.quarter')}: ${quarter + 1}\n${_t('dashboard.cost')}: ${cost} BNB\n\n${_t('dashboard.continue')}`
       );
       
       if (!confirmed) {
@@ -990,17 +984,17 @@ async loadQuarterlyInfo() {
       const balance = await this.web3Provider.getBalance(app.state.userAddress);
       
       if (balance.lt(costWei)) {
-        app.showNotification('Недостаточно BNB', 'error');
+        app.showNotification(_t('notifications.insufficientBNB'), 'error');
         return;
       }
       
       const payBtn = document.getElementById('payActivityBtn');
       if (payBtn) {
         payBtn.disabled = true;
-        payBtn.textContent = 'Обработка...';
+        payBtn.textContent = 'Processing...';
       }
       
-      app.showNotification('Оплата quarterly...', 'info');
+      app.showNotification(_t('dashboard.payingQuarterly'), 'info');
 
       const contract = await app.getSignedContract('QuarterlyPayments');
       
@@ -1010,12 +1004,12 @@ async loadQuarterlyInfo() {
       });
 
       console.log(`📝 Quarterly transaction sent: ${tx.hash}`);
-      app.showNotification('Ожидание подтверждения...', 'info');
+      app.showNotification('Waiting for confirmation...', 'info');
       
       const receipt = await tx.wait();
       console.log(`✅ Quarterly confirmed in block ${receipt.blockNumber}`);
 
-      app.showNotification('✅ Quarterly оплачен!', 'success');
+      app.showNotification('✅ Quarterly paid!', 'success');
       
       await this.refresh();
       
@@ -1023,17 +1017,17 @@ async loadQuarterlyInfo() {
       console.error('❌ Pay quarterly error:', error);
       
       if (error.code === 4001) {
-        app.showNotification('Транзакция отклонена', 'error');
+        app.showNotification(_t('notifications.txRejected'), 'error');
       } else if (error.message && error.message.includes('insufficient funds')) {
-        app.showNotification('Недостаточно средств', 'error');
+        app.showNotification(_t('notifications.insufficientFunds'), 'error');
       } else {
-        app.showNotification('Ошибка оплаты: ' + error.message, 'error');
+        app.showNotification(_t('notifications.paymentError') + ': ' + error.message, 'error');
       }
     } finally {
       const payBtn = document.getElementById('payActivityBtn');
       if (payBtn) {
         payBtn.disabled = false;
-        payBtn.textContent = 'Оплатить Quarterly';
+        payBtn.textContent = _t('dashboard.payQuarterly');
       }
     }
     
@@ -1053,20 +1047,20 @@ async loadQuarterlyInfo() {
         console.log('📋 Copy ref link triggered');
         
         if (!refLinkInput || !refLinkInput.value) {
-          app.showNotification('Ошибка: ссылка пуста', 'error');
+          app.showNotification(_t('common.linkEmpty'), 'error');
           return;
         }
         
         try {
           await navigator.clipboard.writeText(refLinkInput.value);
-          app.showNotification('Реферальная ссылка скопирована! ✓', 'success');
+          app.showNotification(_t('common.copied'), 'success');
         } catch (error) {
           try {
             refLinkInput.select();
             document.execCommand('copy');
-            app.showNotification('Реферальная ссылка скопирована! ✓', 'success');
+            app.showNotification(_t('common.copied'), 'success');
           } catch (fallbackError) {
-            app.showNotification('Ошибка копирования. Скопируйте вручную.', 'error');
+            app.showNotification(_t('common.copyError'), 'error');
           }
         }
       };
@@ -1108,7 +1102,7 @@ async loadQuarterlyInfo() {
         if (e) e.preventDefault();
         console.log('🔄 Refresh history triggered');
         await self.loadTransactionHistory();
-        app.showNotification('История обновлена', 'success');
+        app.showNotification(_t('notifications.updated'), 'success');
       };
       
       refreshHistory.addEventListener('click', handleRefresh);
@@ -1127,13 +1121,13 @@ async loadQuarterlyInfo() {
   
   getRankName(rankId) {
     const ranks = {
-      0: 'Никто',
-      1: 'Бронза 🥉',
-      2: 'Серебро 🥈',
-      3: 'Золото 🥇',
-      4: 'Платина 💎'
+      0: (_t ? _t('ranks.nobody') : 'Nobody'),
+      1: (_t ? _t('ranks.bronze') : 'Bronze'),
+      2: (_t ? _t('ranks.silver') : 'Silver 🥈'),
+      3: (_t ? _t('ranks.gold') : 'Gold 🥇'),
+      4: (_t ? _t('ranks.platinum') : 'Platinum 💎')
     };
-    return ranks[rankId] || 'Никто';
+    return ranks[rankId] || (_t ? _t('ranks.nobody') : 'Nobody');
   },
 
   filterHistory() {
