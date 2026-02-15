@@ -232,7 +232,7 @@ const exchangeModule = {
   // ═══════════════════════════════════════════════════════════════
   async executeBuyTokens() {
     if (this.state._swapPair.from === 'GWT') {
-      app?.showNotification?.('Для продажи GWT создайте P2P ордер', 'info');
+      app?.showNotification?.('To sell GWT, create a P2P order', 'info');
       this.switchMode('p2p');
       document.querySelectorAll('.exch-tab').forEach(t => t.classList.remove('active'));
       document.querySelector('.exch-tab[data-mode="p2p"]')?.classList.add('active');
@@ -243,11 +243,11 @@ const exchangeModule = {
 
     const fromAmount = parseFloat(document.getElementById('swapFromAmount')?.value || 0);
     if (!fromAmount || fromAmount <= 0) {
-      app?.showNotification?.('Укажите сумму BNB', 'error');
+      app?.showNotification?.('Enter BNB amount', 'error');
       return;
     }
 
-    this.setLoading(true, 'Покупка GWT...');
+    this.setLoading(true, 'Buying GWT...');
 
     try {
       const gwtToken = await app?.getContract?.('GWTToken');
@@ -261,7 +261,7 @@ const exchangeModule = {
       const baseCost = bnbWei.mul(100).div(110);
       const tokenAmount = baseCost.mul(ethers.utils.parseEther('1')).div(price);
 
-      if (tokenAmount.lte(0)) throw new Error('Сумма слишком мала');
+      if (tokenAmount.lte(0)) throw new Error('Amount too small');
 
       const maxPrice = price.mul(102).div(100); // +2% slippage
       
@@ -277,9 +277,9 @@ const exchangeModule = {
         gasLimit: CONFIG.GAS.buyTokens
       });
 
-      app?.showNotification?.('⏳ Транзакция отправлена...', 'info');
+      app?.showNotification?.('⏳ Transaction sent...', 'info');
       await tx.wait();
-      app?.showNotification?.(`✅ Куплено ${parseFloat(this.formatEther(tokenAmount)).toFixed(2)} GWT!`, 'success');
+      app?.showNotification?.(`✅ Bought ${parseFloat(this.formatEther(tokenAmount)).toFixed(2)} GWT!`, 'success');
       await this.loadAllData();
 
     } catch (err) {
@@ -299,11 +299,11 @@ const exchangeModule = {
     const amount = parseFloat(document.getElementById('p2pSellAmount')?.value || 0);
     const price = document.getElementById('p2pSellPrice')?.value?.trim();
 
-    if (!amount || amount <= 0) { app?.showNotification?.('Укажите количество GWT', 'error'); return; }
-    if (!price || parseFloat(price) <= 0) { app?.showNotification?.('Укажите цену', 'error'); return; }
-    if (parseFloat(price) < 0.0001) { app?.showNotification?.('Мин. цена: 0.0001 BNB', 'error'); return; }
+    if (!amount || amount <= 0) { app?.showNotification?.('Enter GWT amount', 'error'); return; }
+    if (!price || parseFloat(price) <= 0) { app?.showNotification?.('Enter price', 'error'); return; }
+    if (parseFloat(price) < 0.0001) { app?.showNotification?.('Min price: 0.0001 BNB', 'error'); return; }
     if (amount > parseFloat(this.state.gwtBalance)) {
-      app?.showNotification?.(`Недостаточно GWT. Баланс: ${parseFloat(this.state.gwtBalance).toFixed(2)}`, 'error');
+      app?.showNotification?.(`Insufficient GWT. Balance: ${parseFloat(this.state.gwtBalance).toFixed(2)}`, 'error');
       return;
     }
 
@@ -320,20 +320,20 @@ const exchangeModule = {
       const allowance = await gwtToken.allowance(this.state.userAddress, contractAddr);
       
       if (allowance.lt(tokenAmountWei)) {
-        app?.showNotification?.('⏳ Подтвердите approve...', 'info');
+        app?.showNotification?.('⏳ Confirm approve...', 'info');
         const approveTx = await gwtToken.approve(contractAddr, tokenAmountWei, {
           gasLimit: CONFIG.GAS.approve
         });
         await approveTx.wait();
-        app?.showNotification?.('✅ Approve подтверждён', 'success');
+        app?.showNotification?.('✅ Approve confirmed', 'success');
       }
 
-      app?.showNotification?.('⏳ Подтвердите ордер...', 'info');
+      app?.showNotification?.('⏳ Confirm order...', 'info');
       const tx = await gwtToken.createSellOrder(tokenAmountWei, pricePerTokenWei, {
         gasLimit: CONFIG.GAS.createSellOrder
       });
       await tx.wait();
-      app?.showNotification?.(`✅ Ордер создан: ${amount} GWT @ ${price} BNB`, 'success');
+      app?.showNotification?.(`✅ Order created: ${amount} GWT @ ${price} BNB`, 'success');
 
       document.getElementById('p2pSellAmount').value = '';
       document.getElementById('p2pSellPrice').value = '';
@@ -354,9 +354,9 @@ const exchangeModule = {
     if (!this.preflightCheck()) return;
 
     const order = this.state.p2pOrders.find(o => o.id === orderId);
-    if (!order) { app?.showNotification?.('Ордер не найден', 'error'); return; }
+    if (!order) { app?.showNotification?.('Order not found', 'error'); return; }
 
-    this.setLoading(true, `Покупка ${parseFloat(order.tokenAmount).toFixed(2)} GWT...`);
+    this.setLoading(true, `Buying ${parseFloat(order.tokenAmount).toFixed(2)} GWT...`);
 
     try {
       const gwtToken = await app?.getContract?.('GWTToken');
@@ -371,9 +371,9 @@ const exchangeModule = {
         gasLimit: CONFIG.GAS.buyFromOrder
       });
 
-      app?.showNotification?.('⏳ Транзакция отправлена...', 'info');
+      app?.showNotification?.('⏳ Transaction sent...', 'info');
       await tx.wait();
-      app?.showNotification?.(`✅ Куплено ${parseFloat(order.tokenAmount).toFixed(2)} GWT!`, 'success');
+      app?.showNotification?.(`✅ Bought ${parseFloat(order.tokenAmount).toFixed(2)} GWT!`, 'success');
       await this.loadAllData();
 
     } catch (err) {
@@ -393,9 +393,9 @@ const exchangeModule = {
     try {
       const gwtToken = await app?.getContract?.('GWTToken');
       const tx = await gwtToken.cancelOrder(orderId, { gasLimit: CONFIG.GAS.cancelOrder });
-      app?.showNotification?.('⏳ Отмена...', 'info');
+      app?.showNotification?.('⏳ Cancelling...', 'info');
       await tx.wait();
-      app?.showNotification?.('✅ Ордер отменён, GWT возвращены', 'success');
+      app?.showNotification?.('✅ Order cancelled, GWT returned', 'success');
       await this.loadAllData();
     } catch (err) {
       console.error('❌ Cancel order error:', err);
@@ -411,9 +411,9 @@ const exchangeModule = {
   preflightCheck() {
     if (!this.state.userAddress) { app?.showNotification?.(this._t('exchange.connectWallet'), 'error'); return false; }
     if (!this.state.tradingEnabled) { app?.showNotification?.(this._t('exchange.tradingLocked'), 'error'); return false; }
-    if (!this.state.userRegistered) { app?.showNotification?.('Необходима регистрация в GlobalWay', 'error'); return false; }
-    if (!this.state.userQualified) { app?.showNotification?.('Для торговли нужен Level 7+', 'error'); return false; }
-    if (this.state.loading) { app?.showNotification?.('Дождитесь завершения операции', 'info'); return false; }
+    if (!this.state.userRegistered) { app?.showNotification?.('GlobalWay registration required', 'error'); return false; }
+    if (!this.state.userQualified) { app?.showNotification?.('Level 7+ required for trading', 'error'); return false; }
+    if (this.state.loading) { app?.showNotification?.('Wait for operation to complete', 'info'); return false; }
     return true;
   },
 
@@ -869,7 +869,7 @@ const exchangeModule = {
       'Insufficient payment': 'Недостаточно BNB',
       'Insufficient balance': 'Недостаточно GWT',
       'Price too high': 'Цена изменилась, попробуйте снова',
-      'Price too low': 'Мин. цена: 0.0001 BNB',
+      'Price too low': 'Min price: 0.0001 BNB',
       'Order not active': 'Ордер уже неактивен',
       'Order expired': 'Ордер просрочен (>30 дней)',
       'Not order owner': 'Not order owner',
