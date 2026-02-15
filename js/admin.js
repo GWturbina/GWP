@@ -13,7 +13,7 @@ const adminModule = {
   access: {
     isOwner: false,
     isGuardian: false,
-    level: 'Нет доступа'
+    level: 'No access'
   },
 
   state: {
@@ -29,7 +29,7 @@ const adminModule = {
   },
 
   // Названия рангов
-  RANK_NAMES: ['Нет ранга', 'Bronze 🥉', 'Silver 🥈', 'Gold 🥇', 'Platinum 💎'],
+  RANK_NAMES: ['No Rank', 'Bronze 🥉', 'Silver 🥈', 'Gold 🥇', 'Platinum 💎'],
 
   // ═══════════════════════════════════════════════════════════════
   // ИНИЦИАЛИЗАЦИЯ
@@ -64,7 +64,7 @@ const adminModule = {
       console.log('✅ Панель администратора загружена');
     } catch (error) {
       console.error('❌ Ошибка инициализации админки:', error);
-      app.showNotification('Ошибка загрузки панели администратора', 'error');
+      app.showNotification('Admin panel loading error', 'error');
     }
   },
 
@@ -83,7 +83,7 @@ const adminModule = {
 
     this.access.isOwner = isOwner;
     this.access.isGuardian = isGuardian;
-    this.access.level = isOwner ? 'Владелец 👑' : (isGuardian ? 'Совет директоров 🛡️' : 'Нет доступа');
+    this.access.level = isOwner ? 'Owner 👑' : (isGuardian ? 'Board of Directors 🛡️' : 'No access');
 
     console.log('🔐 Доступ:', this.access.level, 'для', currentAddress);
 
@@ -95,25 +95,25 @@ const adminModule = {
     if (!adminPage) return;
 
     const guardiansList = CONFIG.ADMIN.guardians
-      .map((g, i) => `<li>🛡️ Член совета ${i + 1}: <code>${g}</code></li>`)
+      .map((g, i) => `<li>🛡️ Board member ${i + 1}: <code>${g}</code></li>`)
       .join('');
 
     adminPage.innerHTML = `
       <div class="admin-access-denied">
-        <h2>🔒 Доступ Запрещён</h2>
-        <p class="admin-warning">Панель администратора доступна только владельцу и членам совета директоров</p>
-        <p>Ваш адрес: <code>${app.state.userAddress || 'Не подключен'}</code></p>
+        <h2>🔒 Access Denied</h2>
+        <p class="admin-warning">Admin panel is available only to owner and board members</p>
+        <p>Your address: <code>${app.state.userAddress || 'Not connected'}</code></p>
         
         <div class="admin-allowed-list">
-          <h4>Разрешённые адреса:</h4>
+          <h4>Allowed addresses:</h4>
           <ul>
-            <li>👑 Владелец: <code>${CONFIG.ADMIN.owner}</code></li>
+            <li>👑 Owner: <code>${CONFIG.ADMIN.owner}</code></li>
             ${guardiansList}
           </ul>
         </div>
         
         <button class="admin-btn admin-btn-primary" onclick="app.showPage('dashboard')">
-          ← Вернуться на главную
+          ← Back to main
         </button>
       </div>
     `;
@@ -132,7 +132,7 @@ const adminModule = {
 
     adminPage.innerHTML = `
       <div class="admin-container">
-        <h2 class="admin-title">🔧 Панель Администратора</h2>
+        <h2 class="admin-title">🔧 Admin Panel</h2>
         
         <!-- Информация о доступе -->
         <section class="admin-section admin-access-info">
@@ -146,27 +146,27 @@ const adminModule = {
         <!-- СТАТИСТИКА -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section">
-          <h3 class="admin-section-title">📊 Статистика платформы</h3>
+          <h3 class="admin-section-title">📊 Platform Statistics</h3>
           <div class="admin-stats-grid">
             <div class="admin-stat-card">
               <div class="admin-stat-value" id="statTotalUsers">-</div>
-              <div class="admin-stat-label">Пользователей</div>
+              <div class="admin-stat-label">Users</div>
             </div>
             <div class="admin-stat-card">
               <div class="admin-stat-value" id="statTotalVolume">-</div>
-              <div class="admin-stat-label">Объём (BNB)</div>
+              <div class="admin-stat-label">Volume (BNB)</div>
             </div>
             <div class="admin-stat-card">
               <div class="admin-stat-value" id="statContractBalance">-</div>
-              <div class="admin-stat-label">Баланс (BNB)</div>
+              <div class="admin-stat-label">Balance (BNB)</div>
             </div>
             <div class="admin-stat-card">
               <div class="admin-stat-value" id="statTotalTokens">-</div>
-              <div class="admin-stat-label">Токенов GWT</div>
+              <div class="admin-stat-label">GWT Tokens</div>
             </div>
           </div>
           
-          <h4 class="admin-subtitle">🏆 Лидерские ранги</h4>
+          <h4 class="admin-subtitle">🏆 Leadership Ranks</h4>
           <div class="admin-ranks-grid">
             <div class="admin-rank-card admin-rank-bronze">
               <span class="admin-rank-icon">🥉</span>
@@ -190,17 +190,17 @@ const adminModule = {
             </div>
           </div>
           
-          <button class="admin-btn admin-btn-secondary" id="refreshStatsBtn">🔄 Обновить</button>
+          <button class="admin-btn admin-btn-secondary" id="refreshStatsBtn">🔄 Refresh</button>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
         <!-- ПОИСК ПОЛЬЗОВАТЕЛЯ -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section">
-          <h3 class="admin-section-title">🔍 Поиск пользователя</h3>
+          <h3 class="admin-section-title">🔍 Search User</h3>
           <div class="admin-search-form">
-            <input type="text" id="searchUserInput" class="admin-input" placeholder="Адрес (0x...) или ID (GW1234567)">
-            <button class="admin-btn admin-btn-primary" id="searchUserBtn">Найти</button>
+            <input type="text" id="searchUserInput" class="admin-input" placeholder="Address (0x...) or ID (GW1234567)">
+            <button class="admin-btn admin-btn-primary" id="searchUserBtn">Search</button>
           </div>
           <div id="searchResult" class="admin-search-result admin-hidden"></div>
         </section>
@@ -209,29 +209,29 @@ const adminModule = {
         <!-- РЕГИСТРАЦИЯ + АКТИВАЦИЯ -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section ${ownerOnlyClass}">
-          <h3 class="admin-section-title">📝 Регистрация нового пользователя</h3>
-          <p class="admin-desc">Регистрирует нового пользователя и активирует уровни бесплатно</p>
+          <h3 class="admin-section-title">📝 Register New User</h3>
+          <p class="admin-desc">Registers new user and activates levels for free</p>
           
           <div class="admin-form-grid">
             <div class="admin-form-group">
-              <label>Адрес пользователя</label>
+              <label>User address</label>
               <input type="text" id="regUserAddress" class="admin-input" placeholder="0x...">
             </div>
             <div class="admin-form-group">
-              <label>ID спонсора</label>
+              <label>Sponsor ID</label>
               <input type="text" id="regSponsorId" class="admin-input" placeholder="GW9729645">
             </div>
             <div class="admin-form-group">
-              <label>Активировать до уровня</label>
+              <label>Activate up to level</label>
               <select id="regMaxLevel" class="admin-select">
-                <option value="0">Только регистрация</option>
-                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(l => `<option value="${l}" ${l===12?'selected':''}>Уровень ${l}</option>`).join('')}
+                <option value="0">Registration only</option>
+                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(l => `<option value="${l}" ${l===12?'selected':''}>Level ${l}</option>`).join('')}
               </select>
             </div>
           </div>
           
           <button class="admin-btn admin-btn-success" id="registerAndActivateBtn">
-            ✅ Зарегистрировать
+            ✅ Register
           </button>
         </section>
 
@@ -244,13 +244,13 @@ const adminModule = {
           
           <div class="admin-form-grid">
             <div class="admin-form-group">
-              <label>Адрес пользователя</label>
+              <label>User address</label>
               <input type="text" id="activateUserAddress" class="admin-input" placeholder="0x...">
             </div>
             <div class="admin-form-group">
               <label>До уровня</label>
               <select id="activateMaxLevel" class="admin-select">
-                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(l => `<option value="${l}" ${l===12?'selected':''}>Уровень ${l}</option>`).join('')}
+                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(l => `<option value="${l}" ${l===12?'selected':''}>Level ${l}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -269,7 +269,7 @@ const adminModule = {
           
           <div class="admin-form-grid">
             <div class="admin-form-group">
-              <label>Адрес пользователя</label>
+              <label>User address</label>
               <input type="text" id="rankUserAddress" class="admin-input" placeholder="0x...">
             </div>
             <div class="admin-form-group">
