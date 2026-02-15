@@ -679,9 +679,9 @@ tr:hover td {
     left: 0;
     right: 0;
     top: auto;
-    padding: var(--spacing-sm) var(--spacing-xs);
+    padding: 4px 4px 4px 4px;
     justify-content: space-around;
-    gap: var(--spacing-xs);
+    gap: 3px;
     border-top: 3px solid var(--gold);
     border-bottom: none;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
@@ -689,8 +689,7 @@ tr:hover td {
     background: linear-gradient(135deg, rgba(0, 26, 51, 0.98), rgba(0, 40, 80, 0.95));
     backdrop-filter: blur(20px);
     box-shadow: 0 -4px 20px rgba(255, 215, 0, 0.3);
-    min-height: auto;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    min-height: 0;
   }
   
   .nav-btn {
@@ -741,11 +740,11 @@ tr:hover td {
   }
   
   .content {
-    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 55px;
   }
   
   #dapp {
-    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 55px;
   }
   
   .header {
@@ -822,8 +821,8 @@ tr:hover td {
   }
   
   .nav-btn {
-    min-width: 55px;
-    min-height: 50px;
+    min-width: 50px;
+    min-height: 42px;
   }
   
   .nav-btn span {
