@@ -16,15 +16,15 @@
   --bg-card-hover: rgba(0, 36, 71, 0.85);
   --bg-card-solid: #001a33;
   --bg-elevated: rgba(13, 32, 64, 0.9);
-  --bg-input: rgba(0, 20, 40, 0.6);
+  --bg-input: rgba(0, 15, 35, 0.8);
   --bg-overlay: rgba(0, 10, 20, 0.95);
 
   /* Text */
   --text-light: #ffffff;
-  --text-primary: #e0e8f0;
-  --text-secondary: #8b949e;
-  --text-muted: rgba(255, 255, 255, 0.45);
-  --text-disabled: rgba(255, 255, 255, 0.25);
+  --text-primary: #f0f2f5;
+  --text-secondary: #c8cdd2;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-disabled: rgba(255, 255, 255, 0.3);
 
   /* ═══ ACCENT — GOLD (PRIMARY) ═══ */
   --gold: #ffd700;
