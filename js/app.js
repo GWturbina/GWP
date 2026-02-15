@@ -59,7 +59,7 @@ const app = {
       console.log('✅ App initialized successfully');
     } catch (error) {
       console.error('❌ App initialization failed:', error);
-      this.showNotification('Ошибка инициализации приложения', 'error');
+      this.showNotification(_t('notifications.initError'), 'error');
     }
   },
 
@@ -93,11 +93,11 @@ const app = {
   async connectWallet() {
     try {
       if (!window.web3Manager) {
-        this.showNotification('Web3 Manager не загружен', 'error');
+        this.showNotification(_t('notifications.web3NotLoaded'), 'error');
         return;
       }
 
-      this.showNotification('Подключение кошелька...', 'info');
+      this.showNotification(_t('notifications.walletConnecting'), 'info');
       
       await window.web3Manager.connect();
       
@@ -110,11 +110,11 @@ const app = {
         this.checkAndShowActivationModal();
         await this.loadCurrentPage();
         
-        this.showNotification('Кошелек подключен!', 'success');
+        this.showNotification(_t('notifications.walletConnected'), 'success');
       }
     } catch (error) {
       console.error('❌ Connect wallet error:', error);
-      this.showNotification('Ошибка подключения кошелька', 'error');
+      this.showNotification(_t('notifications.walletConnectError'), 'error');
     }
   },
 
@@ -310,13 +310,13 @@ const app = {
       }
       
       const message = referralCode 
-        ? `Добро пожаловать в GlobalWay!\n\nВас пригласил партнёр с ID: ${sponsorId}\n\nРегистрация БЕСПЛАТНАЯ и займет несколько секунд.\n\nЗарегистрироваться сейчас?`
-        : `Добро пожаловать в GlobalWay!\n\nДля начала работы необходимо зарегистрироваться.\nРегистрация БЕСПЛАТНАЯ и займет несколько секунд.\n\nЗарегистрироваться сейчас?`;
+        ? `Welcome to GlobalWay!\n\nYou were invited by partner ID: ${sponsorId}\n\nRegistration is FREE and takes a few seconds.\n\nRegister now?`
+        : `Welcome to GlobalWay!\n\nTo get started, you need to register.\nRegistration is FREE and takes a few seconds.\n\nRegister now?`;
       
       const wantsToRegister = confirm(message);
       
       if (!wantsToRegister) {
-        this.showNotification('Регистрация отменена', 'info');
+        this.showNotification('Registration cancelled', 'info');
         return;
       }
       
@@ -340,9 +340,7 @@ const app = {
         const isActive = sponsorNode.isActive ?? sponsorNode[1];
         if (!isActive) {
           this.showNotification(
-            '⚠️ Ваш спонсор (ID: ' + sponsorId + ') ещё не активировал Level 1.\n\n' +
-            'Регистрация невозможна, пока спонсор не купит хотя бы первый пакет.\n' +
-            'Пожалуйста, сообщите ему об этом.',
+            '⚠️ Your sponsor (ID: ' + sponsorId + ') has not activated Level 1 yet.\n\nRegistration is not possible until sponsor buys at least the first package.\nPlease let them know.',
             'error'
           );
           return;
@@ -361,7 +359,7 @@ const app = {
       console.log('✅ Signed contract ready, requesting transaction...');
       
       // Показываем модальное окно с прогрессом
-      this.showTransactionProgress('Регистрация', 'Подтвердите транзакцию в кошельке...');
+      this.showTransactionProgress('Registration', 'Confirm transaction in wallet...');
       
       const registerTx = await matrixRegistrySigned.register(sponsorId, { 
         gasLimit: CONFIG.GAS.register || 500000
@@ -372,8 +370,8 @@ const app = {
 
       // Обновляем статус с хешем транзакции
       this.updateTransactionProgress(
-        'Ожидание подтверждения...', 
-        `Транзакция отправлена!`,
+        'Waiting for confirmation...', 
+        'Transaction sent!',
         registerTx.hash
       );
 
@@ -393,7 +391,7 @@ const app = {
       console.log('   Your new ID:', this.state.userId);
 
       this.showNotification(
-        `✅ Регистрация завершена!\n\nВаш ID: GW${this.state.userId}\n\n⚠️ Важно: активируйте Level 1, чтобы ваши рефералы могли регистрироваться!`, 
+        `✅ Registration complete!\n\nYour ID: GW${this.state.userId}\n\n⚠️ Important: activate Level 1 so your referrals can register!`, 
         'success'
       );
 
@@ -413,25 +411,25 @@ const app = {
       this.hideTransactionProgress();
       
       if (error.code === 4001) {
-        this.showNotification('Действие отменено пользователем', 'info');
+        this.showNotification('Action cancelled by user', 'info');
       } else if (error.code === -32603) {
-        this.showNotification('Ошибка выполнения транзакции. Проверьте баланс BNB.', 'error');
+        this.showNotification('Transaction error. Check BNB balance.', 'error');
       } else if (error.message && error.message.includes('Already registered')) {
         console.log('⚠️ User already registered (from error)');
         this.state.isRegistered = true;
         await this.loadUserData();
-        this.showNotification('Вы уже зарегистрированы!', 'info');
+        this.showNotification('Already registered!', 'info');
       } else if (error.message && error.message.includes('Sponsor not registered')) {
-        this.showNotification('Ошибка: спонсор не зарегистрирован', 'error');
+        this.showNotification('Error: sponsor not registered', 'error');
       } else if (error.message && (error.message.includes('Sponsor not found') || error.message.includes('Sponsor not active'))) {
         this.showNotification(
-          '⚠️ Спонсор не активирован!\n\nВаш пригласитель зарегистрирован, но ещё не купил Level 1.\nДля регистрации рефералов спонсор должен активировать хотя бы Level 1.\n\nСообщите спонсору об этом.', 
+          '⚠️ Sponsor not activated!\n\nYour inviter is registered but has not bought Level 1 yet.\nTo register referrals, sponsor must activate at least Level 1.\n\nPlease notify your sponsor.', 
           'error'
         );
       } else if (error.message && error.message.includes('Invalid sponsor')) {
-        this.showNotification('Ошибка: неверный ID спонсора', 'error');
+        this.showNotification('Error: invalid sponsor ID', 'error');
       } else {
-        this.showNotification('Ошибка: ' + (error.message || 'Неизвестная ошибка'), 'error');
+        this.showNotification('Error: ' + (error.message || 'Unknown error'), 'error');
       }
     }
   },
@@ -544,31 +542,31 @@ const app = {
             
             <div class="modal-header cosmic-header">
                 <div class="header-icon">🚀</div>
-                <h2>Добро пожаловать в GlobalWay!</h2>
-                <p>Ваш ID: <span class="user-id">GW${this.state.userId}</span></p>
+                <h2>Welcome to GlobalWay!</h2>
+                <p>Your ID: <span class="user-id">GW${this.state.userId}</span></p>
             </div>
             
             <div class="modal-body modal-body-scroll">
                 <div class="feature-section">
-                    <h3>🎯 Начните зарабатывать!</h3>
-                    <p>Активируйте первый уровень чтобы открыть все возможности платформы</p>
+                    <h3>🎯 Start Earning!</h3>
+                    <p>Activate Level 1 to unlock all platform features</p>
                     
                     <div class="features-grid">
                         <div class="feature-item">
                             <span class="feature-icon">📊</span>
-                            <span>Реферальная система</span>
+                            <span>Referral System</span>
                         </div>
                         <div class="feature-item">
                             <span class="feature-icon">🌐</span>
-                            <span>Матричная структура</span>
+                            <span>Matrix Structure</span>
                         </div>
                         <div class="feature-item">
                             <span class="feature-icon">💰</span>
-                            <span>Выплаты и бонусы</span>
+                            <span>Payments & Bonuses</span>
                         </div>
                         <div class="feature-item">
                             <span class="feature-icon">🏆</span>
-                            <span>Ранговая система</span>
+                            <span>Rank System</span>
                         </div>
                     </div>
                 </div>
@@ -576,11 +574,11 @@ const app = {
                 <div class="pricing-section">
                     <div class="price-card">
                         <div class="price-header">
-                            <span class="level-badge">Уровень 1</span>
+                            <span class="level-badge">Level 1</span>
                             <span class="price-amount">${CONFIG.LEVEL_PRICES[0]} BNB</span>
                         </div>
                         <div class="price-details">
-                            <span class="token-reward">+${CONFIG.TOKEN_REWARDS[0]} GWT токенов</span>
+                            <span class="token-reward">+${CONFIG.TOKEN_REWARDS[0]} GWT tokens</span>
                         </div>
                     </div>
                 </div>
@@ -588,10 +586,10 @@ const app = {
             
             <div class="action-buttons-fixed">
                 <button id="activateLevel1Btn" class="btn-gold btn-activate-mobile">
-                    🚀 АКТИВИРОВАТЬ
+                    🚀 ACTIVATE
                 </button>
                 <button id="viewPackagesBtn" class="btn-outline btn-packages-mobile">
-                    📦 Пакеты
+                    📦 Packages
                 </button>
             </div>
         </div>
@@ -763,16 +761,16 @@ const app = {
       console.log(`🔄 Activating level ${level} for ${price} BNB...`);
       
       if (!this.state.isRegistered) {
-        this.showNotification('Сначала зарегистрируйтесь', 'error');
+        this.showNotification(_t('notifications.registerFirst'), 'error');
         return;
       }
       
       const originalText = button.textContent;
       button.disabled = true;
-      button.textContent = '⏳ Подтвердите в кошельке...';
+      button.textContent = '⏳ Confirm in wallet...';
       
       // Показываем модальное окно с прогрессом
-      this.showTransactionProgress(`Активация уровня ${level}`, 'Подтвердите транзакцию в кошельке...');
+      this.showTransactionProgress(`Level ${level} activation`, 'Confirm transaction in wallet...');
       
       const globalWaySigned = await this.getSignedContract('GlobalWay');
       const priceInWei = ethers.utils.parseEther(price);
@@ -783,10 +781,10 @@ const app = {
       });
       
       // Обновляем статус с хешем транзакции
-      button.textContent = '⏳ Ожидание...';
+      button.textContent = '⏳ Waiting...';
       this.updateTransactionProgress(
-        'Ожидание подтверждения...', 
-        `Транзакция отправлена!`,
+        'Waiting for confirmation...', 
+        'Transaction sent!',
         tx.hash
       );
       
@@ -797,7 +795,7 @@ const app = {
       
       this.closeModal('activationModal');
       this.showNotification(
-        `✅ Уровень ${level} активирован!\n🎁 Получено ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
+        `✅ Level ${level} activated!\n🎁 Received ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
         'success'
       );
       
@@ -817,7 +815,7 @@ const app = {
       this.hideTransactionProgress();
       
       button.disabled = false;
-      button.textContent = `🚀 АКТИВИРОВАТЬ УРОВЕНЬ ${level}`;
+      button.textContent = `🚀 ACTIVATE УРОВЕНЬ ${level}`;
       
       if (error.code === 4001) {
         this.showNotification('❌ Транзакция отменена', 'error');
