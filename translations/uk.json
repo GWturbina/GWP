@@ -9,7 +9,8 @@
     "admin": "Адмін",
     "referrals": "Посилання",
     "exchange": "Обмінник",
-    "safevault": "SafeVault"
+    "safevault": "SafeVault",
+    "more": "Ще"
   },
   "wallet": {
     "connect": "Підключити гаманець",
