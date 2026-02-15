@@ -1,112 +1,240 @@
 /* ═══════════════════════════════════════════════════════════════
-   ФИКС: Плотные фоны для Ссылки / Обменник / SafeVault
-   Чтобы секции выглядели как на Dashboard — непрозрачный
-   тёмно-синий фон, золотые бордеры, не просвечивает земля
+   GlobalWay — Pages Fix v2
+   1. Страницы заполняют весь экран (нет пустоты снизу)
+   2. Плотные фоны для Ссылки/Обменник/SafeVault
+   3. Мобильная навигация с гамбургером (4+☰)
    ═══════════════════════════════════════════════════════════════ */
 
-/* ═══ ОБЩИЙ СТИЛЬ СЕКЦИЙ — как Dashboard ═══ */
-/* Referral page sections */
+/* ═══════════════════════════════════════
+   1. MIN-HEIGHT — страницы заполняют экран
+   ═══════════════════════════════════════ */
+.content {
+  min-height: calc(100vh - 130px);
+}
+.page-content.active {
+  min-height: calc(100vh - 130px);
+}
+
+/* ═══════════════════════════════════════
+   2. ПЛОТНЫЕ ФОНЫ — не просвечивает земля
+   Только для Ссылки / Обменник / SafeVault
+   ═══════════════════════════════════════ */
+
+/* Referral page */
 .referrals-page .ref-directions,
 .referrals-page .ref-generator,
 .referrals-page .ref-result,
-.referrals-page .ref-history,
-/* Exchange page sections */
-.exch-container,
-.exch-section,
-.exch-tabs,
-.exch-balance-card,
-.exch-swap-form,
-.exch-orders,
-.exch-p2p-section,
-.exch-card,
-/* SafeVault page sections */
-.sv-status-card,
-.sv-stats,
-.sv-setup,
-.sv-manage,
-.sv-pending,
-.sv-locked {
-  background: rgba(0, 26, 51, 0.92) !important;
-  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+.referrals-page .ref-history {
+  background: rgba(0, 26, 51, 0.92);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+/* Exchange page */
+#exchange .exch-container,
+#exchange .exch-section,
+#exchange .exch-balance-card,
+#exchange .exch-swap-form,
+#exchange .exch-orders,
+#exchange .exch-p2p-section,
+#exchange .exch-card {
+  background: rgba(0, 26, 51, 0.92);
+  border: 1px solid rgba(255, 215, 0, 0.2);
   border-radius: 14px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
-/* ═══ Ещё плотнее для карточек внутри секций ═══ */
+/* SafeVault page */
+.sv-status-card,
+.sv-setup,
+.sv-manage,
+.sv-pending,
+.sv-locked {
+  background: rgba(0, 26, 51, 0.92);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Внутренние карточки */
 .sv-manage .sv-card,
-.exch-order-item,
-.exch-pair-card,
+#exchange .exch-order-item,
 .ref-messenger-preview .ref-msg-body,
-.ref-preview-container,
 .ref-link-box {
-  background: rgba(0, 20, 45, 0.85) !important;
-  border: 1px solid rgba(255, 215, 0, 0.1) !important;
+  background: rgba(0, 20, 45, 0.85);
+  border: 1px solid rgba(255, 215, 0, 0.1);
   border-radius: 12px;
 }
 
-/* ═══ Input поля — плотный фон ═══ */
+/* Input поля */
 .ref-input,
 .sv-input,
 .sv-select,
-.exch-input,
-.exch-select,
-#exchange input,
-#exchange select,
-#referrals input,
-#safevault input,
-#safevault select {
-  background: rgba(0, 10, 25, 0.9) !important;
-  border-color: rgba(255, 215, 0, 0.25) !important;
-  color: #ffffff !important;
-}
-#exchange input::placeholder,
-#referrals input::placeholder,
-#safevault input::placeholder {
-  color: rgba(255, 255, 255, 0.4) !important;
-}
-
-/* ═══ Текст — чёткий белый ═══ */
-#exchange,
-#referrals,
-#safevault {
+#exchange input[type="number"],
+#exchange input[type="text"],
+#exchange select {
+  background: rgba(0, 10, 25, 0.9);
+  border-color: rgba(255, 215, 0, 0.25);
   color: #ffffff;
 }
+
+/* Текст */
 #exchange label,
 #referrals label,
-#safevault label,
-#exchange h3,
-#referrals h3,
-#safevault h3,
-#exchange h4,
-#referrals h4,
-#safevault h4,
-#exchange p,
-#referrals p,
-#safevault p,
-#exchange span,
-#referrals span,
-#safevault span {
+#safevault label {
   color: #e8ecf0;
 }
-/* Заголовки секций — золото */
-#exchange h3,
-#referrals h3,
-#safevault h3,
 .ref-header h2,
 .sv-header h2 {
-  color: #ffd700 !important;
+  color: #ffd700;
 }
 
-/* ═══ Кнопки — видимые ═══ */
-#exchange .exch-tab.active,
-.direction-card.active {
-  border-color: #ffd700 !important;
-  background: rgba(255, 215, 0, 0.1) !important;
+/* ═══════════════════════════════════════
+   3. МОБИЛЬНАЯ НАВИГАЦИЯ — 4 кнопки + ☰
+   ═══════════════════════════════════════ */
+
+/* Кнопка "Ещё" — только на мобильном */
+.nav-more-btn {
+  display: none;
 }
 
-/* ═══ Stat карточки SafeVault ═══ */
-.sv-stat {
-  background: rgba(0, 20, 45, 0.9) !important;
-  border: 1px solid rgba(255, 215, 0, 0.15) !important;
+/* Выпадающее меню */
+.nav-overflow {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Прячем лишние кнопки — показываем только первые 4 */
+  .main-nav .nav-btn:nth-child(n+5) {
+    display: none;
+  }
+  
+  /* Кнопка "Ещё" — видима на мобильном */
+  .nav-more-btn {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 65px;
+    min-height: 55px;
+    padding: 4px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.08));
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 12px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: inherit;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    order: 99;
+  }
+  .nav-more-btn .more-icon {
+    font-size: 20px;
+    line-height: 1;
+    color: #ffd700;
+  }
+  .nav-more-btn .more-label {
+    font-size: 9px;
+    font-weight: 600;
+    margin-top: 2px;
+    color: #fff;
+  }
+  .nav-more-btn.active {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    border-color: #ffd700;
+  }
+  .nav-more-btn.active .more-icon,
+  .nav-more-btn.active .more-label {
+    color: #000;
+  }
+
+  /* Выпадающее меню — появляется над навбаром */
+  .nav-overflow {
+    position: fixed;
+    bottom: calc(75px + env(safe-area-inset-bottom, 8px));
+    left: 8px;
+    right: 8px;
+    background: rgba(0, 20, 45, 0.97);
+    border: 2px solid #ffd700;
+    border-radius: 16px;
+    padding: 12px;
+    z-index: 10000;
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    box-shadow: 0 -8px 30px rgba(255, 215, 0, 0.2);
+    transform: translateY(20px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s ease;
+  }
+  .nav-overflow.open {
+    display: block;
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+  }
+  .nav-overflow-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .nav-overflow-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 4px;
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 12px;
+    color: #e8ecf0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    gap: 4px;
+    transition: all 0.2s;
+  }
+  .nav-overflow-btn:hover,
+  .nav-overflow-btn:active {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: #ffd700;
+    color: #ffd700;
+  }
+  .nav-overflow-btn .ov-icon {
+    font-size: 18px;
+  }
+
+  /* Overlay для закрытия */
+  .nav-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+  }
+  .nav-overlay.open {
+    display: block;
+  }
+
+  /* Контент — отступ под навбар */
+  .content {
+    min-height: calc(100vh - 130px);
+    padding-bottom: calc(90px + env(safe-area-inset-bottom, 8px));
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-overflow-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
