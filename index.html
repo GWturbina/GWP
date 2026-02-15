@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="css/v2-additional.css" />
     <link rel="stylesheet" href="css/referral-links.css" />
     <link rel="stylesheet" href="css/safevault.css" />
+    <link rel="stylesheet" href="css/mobile-nav.css" />
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -229,35 +230,57 @@
 
             <!-- Navigation -->
             <nav class="main-nav">
-                <button class="nav-btn active" data-page="dashboard">
+                <button class="nav-btn nav-primary active" data-page="dashboard">
+                    <i class="nav-icon">📊</i>
                     <span data-translate="nav.dashboard">Dashboard</span>
                 </button>
-                <button class="nav-btn" data-page="partners">
+                <button class="nav-btn nav-primary" data-page="partners">
+                    <i class="nav-icon">👥</i>
                     <span data-translate="nav.partners">Partners</span>
                 </button>
-                <button class="nav-btn" data-page="matrix">
+                <button class="nav-btn nav-primary" data-page="matrix">
+                    <i class="nav-icon">🌐</i>
                     <span data-translate="nav.matrix">Matrix</span>
                 </button>
-                <button class="nav-btn" data-page="tokens">
+                <button class="nav-btn nav-primary" data-page="tokens">
+                    <i class="nav-icon">💎</i>
                     <span data-translate="nav.tokens">Tokens</span>
                 </button>
-                <button class="nav-btn" data-page="projects">
+                <button class="nav-btn nav-secondary" data-page="projects">
+                    <i class="nav-icon">🚀</i>
                     <span data-translate="nav.projects">Projects</span>
                 </button>
-                <button class="nav-btn" data-page="referrals">
+                <button class="nav-btn nav-secondary" data-page="referrals">
+                    <i class="nav-icon">🔗</i>
                     <span data-translate="nav.referrals">Links</span>
                 </button>
-                <button class="nav-btn" data-page="safevault">
+                <button class="nav-btn nav-secondary" data-page="safevault">
+                    <i class="nav-icon">🛡️</i>
                     <span data-translate="nav.safevault">SafeVault</span>
                 </button>
-                <button class="nav-btn" data-page="exchange">
+                <button class="nav-btn nav-secondary" data-page="exchange">
+                    <i class="nav-icon">💱</i>
                     <span data-translate="nav.exchange">Exchange</span>
                 </button>
-                <button class="nav-btn admin-only" data-page="admin" style="display:none;">
-                    <i class="icon-settings"></i>
+                <button class="nav-btn nav-secondary admin-only" data-page="admin" style="display:none;">
+                    <i class="nav-icon">⚙️</i>
                     <span data-translate="nav.admin">Admin</span>
                 </button>
+                <!-- Mobile "More" button -->
+                <button class="nav-btn nav-more-btn" id="navMoreBtn">
+                    <i class="nav-icon">☰</i>
+                    <span data-translate="nav.more">More</span>
+                </button>
             </nav>
+
+            <!-- Mobile More Drawer -->
+            <div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
+            <div class="nav-drawer" id="navDrawer">
+                <div class="nav-drawer-handle"></div>
+                <div class="nav-drawer-grid" id="navDrawerGrid">
+                    <!-- Filled by JS from nav-secondary buttons -->
+                </div>
+            </div>
 
             <!-- Content -->
             <!-- Content -->
