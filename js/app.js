@@ -334,6 +334,25 @@ const app = {
       
       console.log('📝 Calling MatrixRegistry.register(' + sponsorId + ')...');
 
+      // ══════ ПРОВЕРКА: спонсор активировал L1? ══════
+      try {
+        const sponsorNode = await matrixRegistry.getMatrixNode(sponsorId);
+        const isActive = sponsorNode.isActive ?? sponsorNode[1];
+        if (!isActive) {
+          this.showNotification(
+            '⚠️ Ваш спонсор (ID: ' + sponsorId + ') ещё не активировал Level 1.\n\n' +
+            'Регистрация невозможна, пока спонсор не купит хотя бы первый пакет.\n' +
+            'Пожалуйста, сообщите ему об этом.',
+            'error'
+          );
+          return;
+        }
+      } catch (checkErr) {
+        // Если getMatrixNode не существует или ошибка — продолжаем, контракт сам вернёт ошибку
+        console.warn('⚠️ Could not pre-check sponsor activation:', checkErr.message);
+      }
+      // ══════ КОНЕЦ ПРОВЕРКИ ══════
+
       const matrixRegistrySigned = await this.getSignedContract('MatrixRegistry');
       if (!matrixRegistrySigned) {
         throw new Error('Failed to get signed MatrixRegistry contract');
@@ -374,7 +393,7 @@ const app = {
       console.log('   Your new ID:', this.state.userId);
 
       this.showNotification(
-        `✅ Регистрация завершена!\n\nВаш ID: GW${this.state.userId}\n\nТеперь активируйте первый уровень!`, 
+        `✅ Регистрация завершена!\n\nВаш ID: GW${this.state.userId}\n\n⚠️ Важно: активируйте Level 1, чтобы ваши рефералы могли регистрироваться!`, 
         'success'
       );
 
@@ -404,6 +423,11 @@ const app = {
         this.showNotification('Вы уже зарегистрированы!', 'info');
       } else if (error.message && error.message.includes('Sponsor not registered')) {
         this.showNotification('Ошибка: спонсор не зарегистрирован', 'error');
+      } else if (error.message && (error.message.includes('Sponsor not found') || error.message.includes('Sponsor not active'))) {
+        this.showNotification(
+          '⚠️ Спонсор не активирован!\n\nВаш пригласитель зарегистрирован, но ещё не купил Level 1.\nДля регистрации рефералов спонсор должен активировать хотя бы Level 1.\n\nСообщите спонсору об этом.', 
+          'error'
+        );
       } else if (error.message && error.message.includes('Invalid sponsor')) {
         this.showNotification('Ошибка: неверный ID спонсора', 'error');
       } else {
