@@ -280,8 +280,8 @@
         <!-- ✅ СЕКЦИЯ РЕГИСТРАЦИИ (показывается если пользователь не зарегистрирован) -->
         <div id="registrationSection" style="display: none;">
             <div class="registration-alert" style="background: #2a2a3e; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #ffd700;">
-                <h3 style="color: #ffd700; margin-top: 0;">⚠️ Регистрация Required</h3>
-                <p style="color: #e0e0e0;">Для активации уровней необходимо зарегистрироваться в системе GlobalWay.</p>
+                <h3 style="color: #ffd700; margin-top: 0;" data-translate="dashboard.registrationRequired">⚠️ Registration Required</h3>
+                <p style="color: #e0e0e0;" data-translate="dashboard.registrationDesc">To activate levels, register in GlobalWay system.</p>
             </div>
             
             <div class="info-grid" style="margin-bottom: 30px;">
@@ -298,8 +298,8 @@
             <div class="registration-form" style="background: #1a1a2e; padding: 30px; border-radius: 12px;">
                 <label for="sponsorID" style="display: block; margin-bottom: 10px; color: #ffd700; font-weight: bold;">Sponsor ID *</label>
                 <p class="help-text" style="color: #b0b0b0; margin-bottom: 15px; font-size: 14px;">
-                    Введите 7-значный ID вашего спонсора (например: 7777777).<br>
-                    После регистрации спонсора НЕЛЬЗЯ изменить!
+                    <span data-translate="dashboard.sponsorIdLabel">Enter 7-digit sponsor ID (e.g. 7777777).</span><br>
+                    <span data-translate="dashboard.sponsorCannotChange">Sponsor CANNOT be changed after registration!</span>
                 </p>
                 <input 
                     type="text" 
@@ -310,7 +310,7 @@
                     style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #3a3a4e; background: #2a2a3e; color: #fff; margin-bottom: 20px; font-family: monospace; font-size: 18px; text-align: center; letter-spacing: 2px;"
                 />
                 <button id="registerBtn" class="btn-primary" style="width: 100%; padding: 15px; font-size: 16px; font-weight: bold;">
-                    🚀 Зарегистрироваться
+                    🚀 <span data-translate="dashboard.registerBtn">Register</span>
                 </button>
             </div>
         </div>
