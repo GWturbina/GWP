@@ -23,6 +23,7 @@ const referralsModule = {
   async init() {
     console.log('🔗 Referrals module v3 init');
     this.render();
+    this._translateAfterRender();
     
     if (app?.state?.address || app?.state?.userAddress) {
       this.state.userAddress = app.state.userAddress;
@@ -68,13 +69,13 @@ const referralsModule = {
   
   <!-- ЗАГОЛОВОК -->
   <div class="ref-header">
-    <h2>🔗 Реферальные ссылки</h2>
-    <p class="ref-subtitle">Создавайте короткие ссылки с красивым превью для мессенджеров</p>
+    <h2 data-translate="ref.title">🔗 Referral Links</h2>
+    <p class="ref-subtitle" data-translate="ref.subtitle">Create short links with beautiful previews for messengers</p>
   </div>
 
   <!-- ВЫБОР НАПРАВЛЕНИЯ -->
   <div class="ref-directions">
-    <h3>📌 Направление</h3>
+    <h3 data-translate="ref.direction">📌 Direction</h3>
     <div class="direction-cards">
       ${dirKeys.map(key => {
         const d = directions[key];
@@ -93,16 +94,16 @@ const referralsModule = {
 
   <!-- ГЕНЕРАТОР ССЫЛОК -->
   <div class="ref-generator">
-    <h3>⚡ Генератор ссылок</h3>
+    <h3 data-translate="ref.generator">⚡ Link Generator</h3>
     
     <!-- User Info -->
     <div class="ref-user-info" id="refUserInfo">
       <div class="ref-no-wallet" id="refNoWallet">
-        <p>⚠️ Подключите кошелёк для генерации реферальных ссылок</p>
+        <p data-translate="ref.connectWallet">⚠️ Connect wallet to generate referral links</p>
       </div>
       <div class="ref-has-wallet" id="refHasWallet" style="display:none;">
         <div class="ref-id-badge">
-          <span class="ref-id-label">Ваш ID:</span>
+          <span class="ref-id-label" data-translate="ref.yourId">Your ID:</span>
           <span class="ref-id-value" id="refUserId">—</span>
         </div>
       </div>
@@ -113,29 +114,29 @@ const referralsModule = {
       
       <!-- Превью для мессенджеров -->
       <div class="ref-setting-row">
-        <label>🖼️ Превью для мессенджеров:</label>
+        <label data-translate="ref.previewLabel">🖼️ Messenger preview:</label>
         <div class="ref-preview-grid" id="refPreviewGrid">
           <!-- Заполняется динамически -->
         </div>
-        <span class="ref-setting-hint">Эта картинка покажется в Telegram, WhatsApp при отправке ссылки</span>
+        <span class="ref-setting-hint" data-translate="ref.previewHint">This image will appear in Telegram, WhatsApp when sharing the link</span>
       </div>
 
       <!-- Слоган -->
       <div class="ref-setting-row">
-        <label>✍️ Слоган (текст под превью в мессенджере):</label>
-        <input type="text" id="refSlogan" placeholder="Присоединяйся к команде! Вместе строим Web3" maxlength="120" class="ref-input">
-        <span class="ref-setting-hint">Оставьте пустым — будет стандартное описание</span>
+        <label data-translate="ref.sloganLabel">✍️ Slogan (text under preview in messenger):</label>
+        <input type="text" id="refSlogan" placeholder="Join the team! Building Web3 together" data-translate="ref.sloganPlaceholder" maxlength="120" class="ref-input">
+        <span class="ref-setting-hint" data-translate="ref.sloganHint">Leave empty for default description</span>
       </div>
 
       <!-- Имя -->
       <div class="ref-setting-row">
-        <label>🏷️ Ваше имя (необязательно):</label>
-        <input type="text" id="refUserName" placeholder="Григорий" maxlength="30" class="ref-input">
+        <label data-translate="ref.nameLabel">🏷️ Your name (optional):</label>
+        <input type="text" id="refUserName" placeholder="Your name" maxlength="30" class="ref-input" data-translate="ref.namePlaceholder">
       </div>
 
       <!-- Домен -->
       <div class="ref-setting-row">
-        <label>🌐 Домен:</label>
+        <label data-translate="ref.domainLabel">🌐 Domain:</label>
         <div class="ref-domain-selector" id="refDomainSelector">
           <!-- Заполняется динамически -->
         </div>
@@ -145,20 +146,20 @@ const referralsModule = {
       <div class="ref-setting-row ref-antiban-row">
         <label>
           <input type="checkbox" id="refAntiBanToggle" checked>
-          🛡️ Антибан (ротация доменов)
+          <span data-translate="ref.antibanLabel">🛡️ Anti-ban (domain rotation)</span>
         </label>
-        <span class="ref-antiban-hint">Каждая ссылка — через разный домен</span>
+        <span class="ref-antiban-hint" data-translate="ref.antibanHint">Each link through a different domain</span>
       </div>
 
       <button class="ref-generate-btn" id="refGenerateBtn">
-        ⚡ Сгенерировать короткую ссылку
+        <span data-translate="ref.generateBtn">⚡ Generate short link</span>
       </button>
     </div>
   </div>
 
   <!-- РЕЗУЛЬТАТ -->
   <div class="ref-result" id="refResult" style="display:none;">
-    <h3>📋 Ваша ссылка готова</h3>
+    <h3 data-translate="ref.linkReady">📋 Your link is ready</h3>
     
     <!-- Превью как будет в мессенджере -->
     <div class="ref-messenger-preview" id="refMessengerPreview">
@@ -168,9 +169,9 @@ const referralsModule = {
     <!-- КОРОТКАЯ ССЫЛКА (главная) -->
     <div class="ref-link-box">
       <div class="ref-link-short">
-        <span class="ref-link-short-label">Короткая ссылка:</span>
+        <span class="ref-link-short-label" data-translate="ref.shortLink">Short link:</span>
         <span class="ref-link-short-text" id="refShortLink">—</span>
-        <button class="ref-btn" id="refCopyShort">📋 Копировать</button>
+        <button class="ref-btn" id="refCopyShort"><span data-translate="ref.copy">📋 Copy</span></button>
       </div>
     </div>
 
@@ -201,9 +202,9 @@ const referralsModule = {
 
   <!-- ИСТОРИЯ -->
   <div class="ref-history">
-    <h3>📊 Мои ссылки</h3>
+    <h3 data-translate="ref.myLinks">📊 My Links</h3>
     <div class="ref-history-list" id="refHistoryList">
-      <p class="ref-history-empty">Ещё не создано ни одной ссылки</p>
+      <p class="ref-history-empty" data-translate="ref.noLinks">No links created yet</p>
     </div>
   </div>
 
@@ -213,6 +214,10 @@ const referralsModule = {
   // ═══════════════════════════════════════════════════════════════
   // ПРИВЯЗКА СОБЫТИЙ
   // ═══════════════════════════════════════════════════════════════
+  _translateAfterRender() {
+    if (window.i18n?.translatePage) window.i18n.translatePage();
+  },
+
   bindEvents() {
     // Выбор направления
     document.querySelectorAll('.direction-card').forEach(card => {
@@ -273,7 +278,7 @@ const referralsModule = {
     const images = CONFIG.REFERRAL?.previewImages?.[dir] || [];
 
     if (images.length === 0) {
-      container.innerHTML = '<span class="ref-no-previews">Превью ещё не загружены. Используется стандартное.</span>';
+      container.innerHTML = '<span class="ref-no-previews" data-translate="ref.noPreview">No previews uploaded yet. Using default.</span>'; if (window.i18n?.translatePage) window.i18n.translatePage();
       return;
     }
 
@@ -541,7 +546,7 @@ const referralsModule = {
 
     const history = this.state.generatedLinks;
     if (!history.length) {
-      container.innerHTML = '<p class="ref-history-empty">Ещё не создано ни одной ссылки</p>';
+      container.innerHTML = '<p class="ref-history-empty" data-translate="ref.noLinks">No links created yet</p>';
       return;
     }
 
@@ -618,7 +623,7 @@ const referralsModule = {
       localStorage.removeItem(key);
     } catch (e) {}
     this.renderHistory();
-    app?.showNotification?.('История очищена', 'success');
+    app?.showNotification?.('History cleared', 'success');
   },
 
   escapeHtml(str) {
