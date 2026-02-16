@@ -358,16 +358,39 @@
   max-width: 250px;
 }
 .ref-hist-date { display: block; color: var(--text-muted); font-size: var(--font-size-xs); margin-top: 2px; }
-.ref-hist-copy {
+.ref-hist-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.ref-hist-btn {
   background: none;
   border: 1px solid var(--border-gold);
   border-radius: var(--radius-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: 6px 10px;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
+  font-size: 14px;
 }
-.ref-hist-copy:hover { border-color: var(--gold); color: var(--gold); }
+.ref-hist-copy-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(255,215,0,0.08); }
+.ref-hist-del-btn { border-color: rgba(255,68,68,0.3); }
+.ref-hist-del-btn:hover { border-color: #ff4444; color: #ff4444; background: rgba(255,68,68,0.08); }
+.ref-clear-all-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255, 68, 68, 0.06);
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  border-radius: 10px;
+  color: rgba(255, 68, 68, 0.7);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+.ref-clear-all-btn:hover { background: rgba(255, 68, 68, 0.12); color: #ff4444; }
 
 
 /* ═══════════════════════════════════════════════════════════════
