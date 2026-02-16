@@ -381,7 +381,7 @@ const referralsModule = {
     // ═══ Query параметры (только если есть кастомные значения) ═══
     const params = new URLSearchParams();
     if (previewIdx > 0) params.set('p', previewIdx);
-    if (slogan) params.set('s', slogan);
+    // Слоган НЕ добавляем в URL — он берётся серверно через api/r.js
     if (userName) params.set('n', userName);
 
     const queryString = params.toString();
