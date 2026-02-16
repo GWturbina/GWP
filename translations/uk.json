@@ -215,7 +215,7 @@
     "title": "Наші проекти",
     "about": "Про проект",
     "openProject": "Відкрити проєкт",
-    "proposeProject": "Запропонувати проєкт",
+    "proposeProject": "Залишити заявку",
     "author": "Автор",
     "contact": "Контакт",
     "sphere": "Сфера діяльності",
@@ -244,7 +244,23 @@
     "viewDocs": "Подивитися документацію",
     "news": "Новини",
     "newsTitle": "Заголовок новини",
-    "newsDesc": "Опис новини"
+    "newsDesc": "Опис новини",
+    "cardgiftDesc": "Платформа цифрових вітальних листівок",
+    "globalTubDesc": "Децентралізована відео платформа",
+    "globalMarketDesc": "P2P маркетплейс товарів та послуг",
+    "globalGameDesc": "Ігрова екосистема Play-to-Earn",
+    "globalNetDesc": "Децентралізована соціальна мережа",
+    "globalBankDesc": "DeFi платформа для банківських операцій",
+    "globalEduDesc": "Освітня платформа",
+    "globalAIDesc": "Штучний інтелект для бізнесу",
+    "ecoVillagesDesc": "Еко-поселення та сталий розвиток",
+    "statusActive": "Активний",
+    "statusDev": "В розробці",
+    "statusSoon": "Незабаром",
+    "statusPlanned": "Заплановано",
+    "yourProject": "Тут може з'явитися\nтвій проект",
+    "yourProjectDesc": "Запропонуй свою ідею для екосистеми GlobalWay",
+    "needLevel": "Потрібен рівень"
   },
   "admin": {
     "title": "Адмін Панель",
@@ -379,7 +395,8 @@
     "next": "Далі",
     "previous": "Попередній",
     "continue": "Продовжити",
-    "finish": "Завершити"
+    "finish": "Завершити",
+    "openProject": "Відкрити проект"
   },
   "roadmap": {
     "2025": "Запуск платформи та 8 проєктів",
