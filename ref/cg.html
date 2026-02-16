@@ -3,94 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- OG Preview Tags - CardGift -->
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="GlobalWay Ecosystem">
-  <meta property="og:title" content="GlobalWay — Присоединяйся к децентрализованной экосистеме!">
-  <meta property="og:description" content="Построй свой бизнес в Web3 вместе с GlobalWay. 12 уровней, бинарная матрица, токены GWT.">
-  <meta property="og:image" content="https://gwp-navy.vercel.app/assets/og/gw-preview.png">
+  <meta property="og:site_name" content="CardGift by GlobalWay">
+  <meta property="og:title" content="CardGift — Создавай и дари цифровые открытки!">
+  <meta property="og:description" content="Уникальные цифровые открытки с AI-генерацией. Создавай, отправляй, зарабатывай! Присоединяйся по приглашению.">
+  <meta property="og:image" content="https://gwp-navy.vercel.app/assets/og/cg-preview.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:url" content="https://gwp-navy.vercel.app/ref/gw.html">
+  <meta property="og:url" content="https://gwp-navy.vercel.app/ref/cg.html">
+  
+  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="GlobalWay — Децентрализованная экосистема на opBNB">
-  <meta name="twitter:description" content="Построй свой бизнес в Web3. 12 уровней, матрица, токены GWT.">
-  <meta name="twitter:image" content="https://gwp-navy.vercel.app/assets/og/gw-preview.png">
-  <meta name="telegram:channel" content="@globalway_official">
-  <title>GlobalWay — Invitation</title>
+  <meta name="twitter:title" content="CardGift — Цифровые открытки нового поколения">
+  <meta name="twitter:description" content="AI-генерация открыток. Создавай, отправляй, зарабатывай!">
+  <meta name="twitter:image" content="https://gwp-navy.vercel.app/assets/og/cg-preview.png">
+  
+  <title>CardGift — Приглашение</title>
   <link rel="icon" href="../assets/icons/favicon.ico">
   <link rel="stylesheet" href="../css/ref-landing.css">
 </head>
-<body data-dir="gw">
+<body data-dir="cg">
   <div class="bg-particles"></div>
-  <div class="loading" data-i18n="loading">Loading...</div>
+  
+  <div class="loading">Загрузка...</div>
   
   <div class="card">
-    <img class="logo" src="../assets/icons/logo.png" alt="GlobalWay" onerror="this.style.display='none'">
-    <h1><span class="dir-accent">GlobalWay</span></h1>
-    <p class="subtitle" data-i18n="subtitle">Decentralized ecosystem on opBNB</p>
+    <img class="logo" src="../assets/icons/CardGift.png" alt="CardGift" onerror="this.style.display='none'">
+    
+    <h1><span class="dir-accent">CardGift</span></h1>
+    <p class="subtitle">Цифровые открытки от экосистемы GlobalWay</p>
     
     <div class="invite-info">
-      <div class="invite-label" data-i18n="inviteLabel">You are invited by</div>
+      <div class="invite-label">Вас приглашает</div>
       <div class="invite-id" id="sponsorId">—</div>
       <div class="invite-name" id="sponsorName"></div>
     </div>
 
     <div class="features">
       <div class="feature">
-        <span class="feature-icon">📊</span>
-        <span class="feature-text" data-i18n="feat1">12 Levels</span>
+        <span class="feature-icon">🎨</span>
+        <span class="feature-text">AI-генерация</span>
       </div>
       <div class="feature">
-        <span class="feature-icon">🔗</span>
-        <span class="feature-text" data-i18n="feat2">Binary Matrix</span>
+        <span class="feature-icon">🎁</span>
+        <span class="feature-text">Отправляй друзьям</span>
       </div>
       <div class="feature">
-        <span class="feature-icon">💎</span>
-        <span class="feature-text" data-i18n="feat3">GWT Tokens</span>
+        <span class="feature-icon">💰</span>
+        <span class="feature-text">Зарабатывай</span>
       </div>
       <div class="feature">
         <span class="feature-icon">🛡️</span>
-        <span class="feature-text" data-i18n="feat4">opBNB Blockchain</span>
+        <span class="feature-text">Блокчейн opBNB</span>
       </div>
     </div>
 
-    <a id="ctaBtn" class="cta-btn" href="../index.html" data-i18n="cta">Join Now</a>
-    <p class="powered" data-i18n="powered">Powered by <span>opBNB Blockchain</span> • 98% to participants</p>
+    <a id="ctaBtn" class="cta-btn" href="../index.html">
+      Присоединиться
+    </a>
+
+    <p class="powered">Часть экосистемы <span>GlobalWay</span></p>
   </div>
 
   <script>
     (function() {
-      const T = {
-        en: { loading:'Loading...', subtitle:'Decentralized ecosystem on opBNB', inviteLabel:'You are invited by', feat1:'12 Levels', feat2:'Binary Matrix', feat3:'GWT Tokens', feat4:'opBNB Blockchain', cta:'Join Now', powered:'Powered by <span>opBNB Blockchain</span> • 98% to participants' },
-        ru: { loading:'Загрузка...', subtitle:'Децентрализованная экосистема на opBNB', inviteLabel:'Вас приглашает', feat1:'12 уровней', feat2:'Бинарная матрица', feat3:'Токены GWT', feat4:'Блокчейн opBNB', cta:'Присоединиться', powered:'Работает на <span>opBNB Blockchain</span> • 98% участникам' },
-        uk: { loading:'Завантаження...', subtitle:'Децентралізована екосистема на opBNB', inviteLabel:'Вас запрошує', feat1:'12 рівнів', feat2:'Бінарна матриця', feat3:'Токени GWT', feat4:'Блокчейн opBNB', cta:'Приєднатися', powered:'Працює на <span>opBNB Blockchain</span> • 98% учасникам' }
-      };
-
       const params = new URLSearchParams(window.location.search);
       const ref = params.get('ref') || params.get('id') || params.get('r');
       const name = params.get('name') || params.get('n');
-      const langParam = params.get('lang');
-      const browserLang = (navigator.language || '').slice(0, 2);
-      const lang = langParam || (['ru','uk'].includes(browserLang) ? browserLang : 'en');
-      const t = T[lang] || T.en;
-
-      document.documentElement.lang = lang;
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.dataset.i18n;
-        if (t[key]) el.innerHTML = t[key];
-      });
-
+      const baseUrl = window.location.origin;
+      
       if (ref) {
         document.getElementById('sponsorId').textContent = 'ID: ' + ref;
         const ogTitle = document.querySelector('meta[property="og:title"]');
-        if (ogTitle) ogTitle.content = 'GlobalWay — ' + (lang === 'ru' ? 'Приглашение от' : lang === 'uk' ? 'Запрошення від' : 'Invitation from') + ' ID ' + ref;
+        if (ogTitle) ogTitle.content = 'CardGift — Приглашение от ID ' + ref;
       }
+      
       if (name) {
         document.getElementById('sponsorName').textContent = name;
+        const ogDesc = document.querySelector('meta[property="og:description"]');
+        if (ogDesc) ogDesc.content = name + ' приглашает вас в CardGift! Создавай цифровые открытки.';
       }
-
+      
+      const ogImages = document.querySelectorAll('meta[property="og:image"], meta[name="twitter:image"]');
+      ogImages.forEach(img => {
+        if (!img.content || img.content === '') {
+          img.content = baseUrl + '/assets/og/cg-preview.png';
+        }
+      });
+      
       const ctaBtn = document.getElementById('ctaBtn');
-      if (ref) ctaBtn.href = '../index.html?ref=' + ref;
+      if (ref) {
+        ctaBtn.href = '../index.html?ref=' + ref;
+      }
     })();
   </script>
 </body>
