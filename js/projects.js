@@ -27,9 +27,9 @@ const projectsModule = {
       icon: 'GlobalTub.png',
       description: 'projects.globalTubDesc',
       url: '#',
-      status: 'development',
-      statusText: 'projects.statusDev',
-      releaseDate: 'Q3 2025',
+      status: 'coming',
+      statusText: 'projects.statusSoon',
+      releaseDate: 'Q2 2026',
       requiredLevel: 1
     },
     {
@@ -40,7 +40,7 @@ const projectsModule = {
       url: '#',
       status: 'coming',
       statusText: 'projects.statusSoon',
-      releaseDate: 'Q4 2025',
+      releaseDate: 'Q2 2026',
       requiredLevel: 1
     },
     {
@@ -62,7 +62,7 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'projects.statusPlanned',
-      releaseDate: 'Q2 2026',
+      releaseDate: 'Q3 2026',
       requiredLevel: 2
     },
     {
@@ -73,7 +73,7 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'projects.statusPlanned',
-      releaseDate: 'Q3 2026',
+      releaseDate: 'Q4 2026',
       requiredLevel: 3
     },
     {
@@ -84,7 +84,7 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'projects.statusPlanned',
-      releaseDate: 'Q4 2026',
+      releaseDate: 'Q3 2026',
       requiredLevel: 2
     },
     {
@@ -95,7 +95,7 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'projects.statusPlanned',
-      releaseDate: 'Q1 2027',
+      releaseDate: 'Q3 2026',
       requiredLevel: 4
     },
     {
@@ -106,7 +106,7 @@ const projectsModule = {
       url: '#',
       status: 'planned',
       statusText: 'projects.statusPlanned',
-      releaseDate: 'Q2 2027',
+      releaseDate: 'Q2 2026',
       requiredLevel: 4
     }
   ],
@@ -608,6 +608,9 @@ const projectsModule = {
     const yourProjectCard = this.createYourProjectCard();
     container.appendChild(yourProjectCard);
 
+    // Переводим все data-translate элементы
+    if (window.i18n?.translatePage) window.i18n.translatePage();
+
     console.log('✅ Projects displayed:', this.projects.length + 1);
   },
 
@@ -618,10 +621,10 @@ const projectsModule = {
     return `
       <div class="projects-connect-message">
         <div class="wallet-icon">🔗</div>
-        <h2>${_t ? _t('projects.connectWallet') : 'Connect Wallet'}</h2>
-        <p>${_t ? _t('projects.connectWalletDesc') : 'Connect SafePal wallet'}</p>
+        <h2>Подключите кошелёк</h2>
+        <p>Для просмотра и использования проектов GlobalWay необходимо подключить кошелёк SafePal</p>
         <button class="connect-btn" onclick="app.connectWallet()">
-          ${_t ? _t('projects.connectWallet') : 'Connect SafePal'}
+          Подключить SafePal
         </button>
       </div>
     `;
@@ -634,10 +637,10 @@ const projectsModule = {
     return `
       <div class="projects-locked-message">
         <div class="lock-icon">🔒</div>
-        <h2>${_t ? _t('projects.registrationRequired') : 'Registration Required'}</h2>
-        <p>${_t ? _t('projects.registrationDesc') : 'Register in GlobalWay to access projects.'}</p>
+        <h2>Требуется регистрация в GlobalWay</h2>
+        <p>Для доступа к проектам экосистемы необходимо зарегистрироваться в GlobalWay. После регистрации вам станут доступны все инструменты.</p>
         <button class="register-btn" onclick="showPage('dashboard')">
-          ${_t ? _t('common.register') : 'Register'}
+          Зарегистрироваться
         </button>
       </div>
     `;
@@ -663,24 +666,25 @@ const projectsModule = {
 
     // ✅ НОВОЕ: Бейдж уровня для заблокированных
     const levelBadge = isLocked 
-      ? `<div class="level-required-badge">🔒 Level ${project.requiredLevel}+</div>` 
+      ? `<div class="level-required-badge">🔒 Уровень ${project.requiredLevel}+</div>` 
       : '';
 
     // ✅ НОВОЕ: Определяем текст и состояние кнопки
-    let buttonText = (_t ? _t('common.openProject') : 'Open project');
+    let buttonText = 'common.openProject';
     let buttonDisabled = true;
     
     if (isActive && hasAccess) {
       buttonDisabled = false;
     } else if (isLocked) {
-      buttonText = `🔒 Need Level ${project.requiredLevel}`;
+      const lvlText = window.i18n?.getTranslation?.('projects.needLevel') || 'Need level';
+      buttonText = `🔒 ${lvlText} ${project.requiredLevel}`;
     } else if (project.status !== 'active') {
-      buttonText = (_t ? _t('common.openProject') : 'Open project');
+      buttonText = 'common.openProject';
     }
 
     // ✅ НОВОЕ: Статус для активных проектов
     const statusClass = project.status === 'active' ? 'active' : project.status;
-    const statusText = project.status === 'active' ? '✅ ' + (_t ? _t('projects.statusActive') : 'Active') : `${_t ? _t(project.statusText) : project.statusText} • ${project.releaseDate}`;
+    const statusText = project.status === 'active' ? 'projects.statusActive' : `${project.statusText} • ${project.releaseDate}`;
 
     card.innerHTML = `
       ${levelBadge}
@@ -691,17 +695,19 @@ const projectsModule = {
         onerror="this.src='assets/icons/projects.png'"
       >
       <h3 class="project-name">${project.name}</h3>
-      <p class="project-description">${_t ? _t(project.description) : project.description}</p>
+      <p class="project-description" data-translate="${project.description}">${project.description}</p>
       <div class="project-buttons">
         <button 
           class="project-btn-open" 
           onclick="projectsModule.openProject('${project.id}')"
           ${buttonDisabled ? 'disabled' : ''}
         >
-          ${buttonText}
+          <span data-translate="${buttonText}">${buttonText}</span>
         </button>
         <button class="project-btn-status ${statusClass}">
-          ${statusText}
+          ${project.status === 'active' 
+            ? '<span data-translate="projects.statusActive">projects.statusActive</span>' 
+            : '<span data-translate="' + project.statusText + '">' + project.statusText + '</span> • ' + project.releaseDate}
         </button>
       </div>
     `;
@@ -719,16 +725,16 @@ const projectsModule = {
     card.innerHTML = `
       <img 
         src="assets/icons/projects.png" 
-        alt="Your project" 
+        alt="Твой проект" 
         class="project-icon"
       >
-      <h3 class="your-project-title">Your project<br>could be here</h3>
+      <h3 class="your-project-title" data-translate="projects.yourProject">Your Project</h3>
       <div class="project-buttons">
         <button 
           class="project-btn-open your-project-btn" 
           onclick="projectsModule.scrollToForm()"
         >
-          Submit application
+          <span data-translate="projects.proposeProject">Submit Proposal</span>
         </button>
       </div>
     `;
@@ -746,12 +752,12 @@ const projectsModule = {
     // ✅ НОВОЕ: Проверяем уровень
     const requiredLevel = project.requiredLevel || 0;
     if (this.userState.userLevel < requiredLevel) {
-      app.showNotification(`${project.name} requires Level ${requiredLevel}. Your level: ${this.userState.userLevel}`, 'warning');
+      app.showNotification(`Для доступа к ${project.name} нужен уровень ${requiredLevel}. Ваш уровень: ${this.userState.userLevel}`, 'warning');
       return;
     }
 
     if (project.status !== 'active') {
-      app.showNotification(`${project.name} is in development. Launch: ${project.releaseDate}`, 'info');
+      app.showNotification(`${project.name} находится в разработке. Запуск: ${project.releaseDate}`, 'info');
       return;
     }
 
@@ -778,7 +784,7 @@ const projectsModule = {
         window.open(targetUrl, '_blank');
       }
     } else {
-      app.showNotification('Project coming soon!', 'info');
+      app.showNotification('Проект скоро будет доступен!', 'info');
     }
   },
 
@@ -812,7 +818,7 @@ const projectsModule = {
     const formData = new FormData(form);
 
     const proposal = {
-      name: formData.get('name') || 'Anonymous',
+      name: formData.get('name') || 'Аноним',
       contact: formData.get('contact'),
       projectName: formData.get('projectName'),
       description: formData.get('description'),
@@ -821,7 +827,7 @@ const projectsModule = {
 
     // Валидация
     if (!proposal.contact || !proposal.projectName || !proposal.description) {
-      app.showNotification('Fill in all required fields', 'error');
+      app.showNotification('Заполните все обязательные поля', 'error');
       return;
     }
 
