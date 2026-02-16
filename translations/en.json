@@ -215,7 +215,7 @@
     "title": "Our Projects",
     "about": "About Project",
     "openProject": "Open Project",
-    "proposeProject": "Propose Project",
+    "proposeProject": "Submit Proposal",
     "author": "Author",
     "contact": "Contact",
     "sphere": "Sphere of Activity",
@@ -244,7 +244,23 @@
     "viewDocs": "View Documentation",
     "news": "News",
     "newsTitle": "News Title",
-    "newsDesc": "News Description"
+    "newsDesc": "News Description",
+    "cardgiftDesc": "Digital greeting cards platform",
+    "globalTubDesc": "Decentralized video platform",
+    "globalMarketDesc": "P2P marketplace for goods and services",
+    "globalGameDesc": "Play-to-Earn gaming ecosystem",
+    "globalNetDesc": "Decentralized social network",
+    "globalBankDesc": "DeFi banking platform",
+    "globalEduDesc": "Educational platform",
+    "globalAIDesc": "Artificial intelligence for business",
+    "ecoVillagesDesc": "Eco-villages and sustainable development",
+    "statusActive": "Active",
+    "statusDev": "In Development",
+    "statusSoon": "Coming Soon",
+    "statusPlanned": "Planned",
+    "yourProject": "Here your project\ncould appear",
+    "yourProjectDesc": "Submit your idea for the GlobalWay ecosystem",
+    "needLevel": "Need level"
   },
   "admin": {
     "title": "Admin Panel",
@@ -379,7 +395,8 @@
     "next": "Next",
     "previous": "Previous",
     "continue": "Continue",
-    "finish": "Finish"
+    "finish": "Finish",
+    "openProject": "Open Project"
   },
   "roadmap": {
     "2025": "Platform launch and 8 projects",
