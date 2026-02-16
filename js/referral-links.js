@@ -547,8 +547,9 @@ const referralsModule = {
 
     const directions = CONFIG.REFERRAL?.directions || {};
 
-    container.innerHTML = history.slice(0, 20).map(item => {
+    let html = history.slice(0, 20).map((item, idx) => {
       const dir = directions[item.direction] || {};
+      const link = item.shortLink || item.fullLink || '';
       const date = new Date(item.timestamp).toLocaleDateString('ru-RU', { 
         day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' 
       });
@@ -557,27 +558,69 @@ const referralsModule = {
           <div class="ref-hist-icon">${dir.icon || '🔗'}</div>
           <div class="ref-hist-info">
             <span class="ref-hist-dir">${dir.name || item.direction}</span>
-            <span class="ref-hist-link">${item.shortLink || item.fullLink}</span>
+            <span class="ref-hist-link">${link}</span>
             <span class="ref-hist-date">${date}</span>
           </div>
-          <button class="ref-hist-copy" onclick="referralsModule.copyText('${(item.shortLink || item.fullLink).replace(/'/g, "\\'")}')">📋</button>
+          <div class="ref-hist-actions">
+            <button class="ref-hist-btn ref-hist-copy-btn" onclick="referralsModule.copyLink(${idx})">📋</button>
+            <button class="ref-hist-btn ref-hist-del-btn" onclick="referralsModule.deleteLink(${idx})">🗑️</button>
+          </div>
         </div>
       `;
     }).join('');
+
+    html += '<button class="ref-clear-all-btn" onclick="referralsModule.clearHistory()">🗑️ Очистить историю</button>';
+    container.innerHTML = html;
   },
 
-  async copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      app?.showNotification?.('✅ Скопировано!', 'success');
-    } catch (e) {
-      console.warn('Copy failed:', e);
+  copyLink(idx) {
+    const link = this.state.generatedLinks[idx]?.shortLink || this.state.generatedLinks[idx]?.fullLink || '';
+    if (!link) return;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(link).then(() => {
+        app?.showNotification?.('✅ Ссылка скопирована!', 'success');
+      }).catch(() => this._fallbackCopy(link));
+    } else {
+      this._fallbackCopy(link);
     }
   },
 
-  // ═══════════════════════════════════════════════════════════════
-  // УТИЛИТА: экранирование HTML
-  // ═══════════════════════════════════════════════════════════════
+  _fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      app?.showNotification?.('✅ Ссылка скопирована!', 'success');
+    } catch (e) {
+      prompt('Скопируйте ссылку:', text);
+    }
+    document.body.removeChild(ta);
+  },
+
+  deleteLink(idx) {
+    this.state.generatedLinks.splice(idx, 1);
+    try {
+      const key = `gw_ref_history_${this.state.userId}`;
+      localStorage.setItem(key, JSON.stringify(this.state.generatedLinks));
+    } catch (e) {}
+    this.renderHistory();
+  },
+
+  clearHistory() {
+    if (!confirm('Очистить всю историю ссылок?')) return;
+    this.state.generatedLinks = [];
+    try {
+      const key = `gw_ref_history_${this.state.userId}`;
+      localStorage.removeItem(key);
+    } catch (e) {}
+    this.renderHistory();
+    app?.showNotification?.('История очищена', 'success');
+  },
+
   escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
