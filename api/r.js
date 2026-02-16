@@ -26,17 +26,30 @@ export default function handler(req, res) {
   }
 
   // ═══ ПАРСИНГ КОРОТКОГО КОДА ═══
-  const dirMap = { g: 'gw', c: 'cg', n: 'nss' };
-  const dirChar = code[0].toLowerCase();
-  const direction = dirMap[dirChar];
-
-  if (!direction) {
+  // Поддержка 2 форматов:
+  // Новый: c5sjfx (1 буква: g/c/n + base36)
+  // Старый: CG5SJFX1J (2 буквы: GW/CG/NS + base36)
+  const dirMap1 = { g: 'gw', c: 'cg', n: 'nss' };
+  const dirMap2 = { gw: 'gw', cg: 'cg', ns: 'nss' };
+  
+  let direction, userIdBase36;
+  const twoChar = code.substring(0, 2).toLowerCase();
+  const oneChar = code[0].toLowerCase();
+  
+  if (dirMap2[twoChar] && code.length > 2) {
+    // Старый формат: 2-буквенный префикс
+    direction = dirMap2[twoChar];
+    userIdBase36 = code.substring(2);
+  } else if (dirMap1[oneChar]) {
+    // Новый формат: 1-буквенный префикс
+    direction = dirMap1[oneChar];
+    userIdBase36 = code.substring(1);
+  } else {
     res.writeHead(302, { Location: '/' });
     res.end();
     return;
   }
 
-  const userIdBase36 = code.substring(1);
   const userId = parseInt(userIdBase36, 36);
 
   if (isNaN(userId) || userId < 1) {
