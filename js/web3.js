@@ -30,7 +30,7 @@ class Web3Manager {
     this.isSafePalBrowser = this.detectSafePalBrowser();
   }
 
-  // 🔥 УЛУЧШЕННАЯ детекция SafePal
+  // ✅ УЛУЧШЕННАЯ детекция SafePal (все варианты включая DApp Browser)
   detectSafePalBrowser() {
     try {
       const ua = navigator.userAgent || '';
@@ -38,26 +38,31 @@ class Web3Manager {
       console.log('🔍 Detecting SafePal browser...');
       console.log('User-Agent:', ua);
       
-      if (ua.includes('SafePal') || ua.includes('safepal')) {
+      // User-Agent проверки
+      if (ua.includes('SafePal') || ua.includes('safepal') || ua.includes('SAFEPAL')) {
         console.log('✅ SafePal detected via User-Agent');
         return true;
       }
       
+      // URL проверки
       if (window.location.href && window.location.href.includes('safepal')) {
         console.log('✅ SafePal detected via URL');
         return true;
       }
       
-      if (window.safepal) {
-        console.log('✅ SafePal detected via window.safepal');
+      // window.safepal (проверяем что это EVM-совместимый провайдер)
+      if (window.safepal && typeof window.safepal.request === 'function') {
+        console.log('✅ SafePal detected via window.safepal (EVM)');
         return true;
       }
       
+      // window.ethereum flags
       if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
         console.log('✅ SafePal detected via window.ethereum flags');
         return true;
       }
       
+      // ethereum.providers массив
       if (window.ethereum && Array.isArray(window.ethereum.providers)) {
         for (const p of window.ethereum.providers) {
           if (p && (p.isSafePal || p.isSafePalWallet || p.isSafePalProvider)) {
@@ -65,6 +70,13 @@ class Web3Manager {
             return true;
           }
         }
+      }
+      
+      // SafePal DApp Browser может не показывать себя в UA, но инжектирует провайдер
+      // Если мы на мобильном и есть window.ethereum — скорее всего это браузер кошелька
+      if (this.isMobile && window.ethereum) {
+        console.log('✅ Mobile + ethereum provider — treating as wallet browser');
+        return true;
       }
       
       console.log('⚠️ SafePal NOT detected');
@@ -75,40 +87,45 @@ class Web3Manager {
     return false;
   }
 
-  // 🔥 НОВОЕ: Проверка на Solana провайдер (не EVM)
+  // ✅ ИСПРАВЛЕНО: Проверка на Solana провайдер (не EVM)
+  // ВАЖНО: SafePal может иметь publicKey в window.safepal даже в EVM режиме!
+  // Поэтому проверяем только ОТСУТСТВИЕ EVM-метода request(), а не наличие Solana-полей
   isSolanaProvider(provider) {
     try {
       if (!provider) return false;
       
-      // Признак 1: адрес не начинается с 0x (это Base58 Solana адрес)
-      if (provider.address && typeof provider.address === 'string') {
-        if (!provider.address.startsWith('0x') && provider.address.length > 30) {
-          console.log('⚠️ Solana address detected:', provider.address.substring(0, 10) + '...');
-          return true;
-        }
+      // Главный признак EVM провайдера — метод request()
+      // Если request() есть — это EVM, даже если есть publicKey (SafePal dual-chain)
+      if (typeof provider.request === 'function') {
+        console.log('✅ EVM provider confirmed (has request method)');
+        return false;
       }
       
-      // Признак 2: publicKey в формате Base58
-      if (provider.publicKey && typeof provider.publicKey === 'string') {
-        if (!provider.publicKey.startsWith('0x') && provider.publicKey.length > 30) {
-          console.log('⚠️ Solana publicKey detected');
-          return true;
-        }
-      }
-      
-      // Признак 3: isPhantom без EVM методов
+      // Признак 1: isPhantom без EVM методов — точно Solana
       if (provider.isPhantom && !provider.request) {
         console.log('⚠️ Phantom Solana provider detected');
         return true;
       }
       
-      // Признак 4: Solana-специфичные методы
+      // Признак 2: только Solana методы, нет EVM request
       if (typeof provider.signTransaction === 'function' && 
           typeof provider.signAllTransactions === 'function' &&
-          typeof provider.request !== 'function') {
-        console.log('⚠️ Solana provider methods detected');
+          typeof provider.request !== 'function' &&
+          typeof provider.send !== 'function') {
+        console.log('⚠️ Solana-only provider methods detected');
         return true;
       }
+      
+      // Признак 3: адрес не начинается с 0x И нет request() — точно не EVM
+      if (provider.address && typeof provider.address === 'string') {
+        if (!provider.address.startsWith('0x') && provider.address.length > 30 && !provider.request) {
+          console.log('⚠️ Non-EVM address + no request method:', provider.address.substring(0, 10) + '...');
+          return true;
+        }
+      }
+      
+      // УДАЛЕНО: проверка publicKey — SafePal EVM провайдер тоже имеет publicKey!
+      // Это вызывало ложное срабатывание (false positive)
       
       return false;
     } catch (e) {
@@ -307,8 +324,9 @@ async connect() {
 
   hasSafePalProvider() {
     try {
-      if (window.safepal) {
-        console.log('✅ SafePal provider: window.safepal');
+      // window.safepal — проверяем что это EVM провайдер (имеет метод request)
+      if (window.safepal && typeof window.safepal.request === 'function') {
+        console.log('✅ SafePal EVM provider: window.safepal');
         return true;
       }
       
@@ -338,37 +356,53 @@ async connect() {
   async connectSafePal() {
     try {
       let provider = null;
-      let rawProvider = null; // 🔥 Сохраняем raw провайдер для проверки
+      let rawProvider = null;
       
-      if (window.safepal) {
-        console.log('🔗 Connecting via window.safepal');
+      // Приоритет 1: window.safepal (только если это EVM провайдер)
+      if (window.safepal && typeof window.safepal.request === 'function') {
+        console.log('🔗 Connecting via window.safepal (EVM)');
         rawProvider = window.safepal;
-      } else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+      }
+      // Приоритет 2: ethereum.providers массив
+      else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
         console.log('🔗 Connecting via ethereum.providers');
         rawProvider = window.ethereum.providers.find(p => 
           p && (p.isSafePal || p.isSafePalWallet || p.isSafePalProvider)
         );
-      } else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
-        console.log('🔗 Connecting via window.ethereum');
+        // Если SafePal не найден в массиве — используем первый EVM провайдер
+        if (!rawProvider) {
+          rawProvider = window.ethereum.providers.find(p => 
+            p && typeof p.request === 'function'
+          );
+          if (rawProvider) console.log('🔗 Using first available EVM provider from providers array');
+        }
+      }
+      // Приоритет 3: window.ethereum с флагами SafePal
+      else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
+        console.log('🔗 Connecting via window.ethereum (SafePal flags)');
+        rawProvider = window.ethereum;
+      }
+      // Приоритет 4: любой window.ethereum на мобильном (DApp browser)
+      else if (this.isMobile && window.ethereum && typeof window.ethereum.request === 'function') {
+        console.log('🔗 Mobile DApp browser: connecting via window.ethereum');
         rawProvider = window.ethereum;
       }
 
-      // 🔥 НОВОЕ: Проверка на Solana провайдер ПЕРЕД созданием ethers провайдера
+      // ✅ ИСПРАВЛЕНО: Проверка на Solana провайдер
       if (rawProvider && this.isSolanaProvider(rawProvider)) {
         console.error('❌ Solana provider detected, cannot use with EVM DApp');
         this.showSolanaNetworkError();
-        return; // showSolanaNetworkError выбросит ошибку
+        return;
       }
 
       if (!rawProvider) {
         throw new Error('SafePal provider not found after detection');
       }
 
-      // Создаём ethers провайдер только если это EVM
+      // Создаём ethers провайдер
       try {
         provider = new ethers.providers.Web3Provider(rawProvider);
       } catch (providerError) {
-        // 🔥 Ловим ошибку "unsupported provider" и показываем понятное сообщение
         if (providerError.code === 'INVALID_ARGUMENT' || 
             providerError.message.includes('unsupported provider')) {
           console.error('❌ Unsupported provider - likely Solana:', providerError);
@@ -385,7 +419,7 @@ async connect() {
         throw new Error('No accounts returned from wallet');
       }
 
-      // 🔥 НОВОЕ: Проверка что адрес начинается с 0x
+      // Проверка что адрес начинается с 0x (EVM адрес)
       const account = accounts[0];
       if (!account.startsWith('0x')) {
         console.error('❌ Non-EVM address returned:', account);
@@ -395,7 +429,7 @@ async connect() {
 
       this.provider = provider;
       this.signer = provider.getSigner();
-      this.address = account.toLowerCase(); // 🔥 FIX: Normalize to lowercase
+      this.address = account.toLowerCase();
       
       console.log('✅ SafePal connected successfully');
       console.log('📍 Address:', this.address);
@@ -403,7 +437,6 @@ async connect() {
     } catch (error) {
       console.error('❌ SafePal connection error:', error);
       
-      // 🔥 НОВОЕ: Дополнительная проверка на Solana ошибку
       if (error.code === 'INVALID_ARGUMENT' || 
           (error.message && error.message.includes('unsupported provider'))) {
         this.showSolanaNetworkError();
@@ -693,19 +726,19 @@ async connect() {
   // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ 2: isFounder()
   // ═══════════════════════════════════════════════════════════════
   isFounder() {
-    if (!this.address || !CONFIG.ADMIN) return false;
+    if (!this.address || !CONFIG || !CONFIG.ADMIN) return false;
     const addr = this.address.toLowerCase();
     
-    // ✅ ИСПРАВЛЕНО: founders - массив объектов {address, id}
+    // ✅ ИСПРАВЛЕНО: founders — массив строк-адресов
     const result = this.isOwner() || 
       (Array.isArray(CONFIG.ADMIN.founders) && 
        CONFIG.ADMIN.founders.some(f => {
-         const founderAddr = f;
+         // Поддержка обоих форматов: строка-адрес или объект {address, id}
+         const founderAddr = typeof f === 'string' ? f : (f && f.address ? f.address : '');
          return founderAddr.toLowerCase() === addr;
        }));
     
     console.log('🔍 isFounder check:', this.address, '→', result);
-    console.log('📋 Founders list:', CONFIG.ADMIN.founders);
     return result;
   }
 }
