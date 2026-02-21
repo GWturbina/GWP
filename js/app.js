@@ -440,8 +440,9 @@ const app = {
     console.log('🔍 Getting sponsor ID for ref code:', refCode);
     
     if (!refCode) {
-      console.log('ℹ️ No referral code, using default sponsor ID: 1');
-      return '1';
+      const rootId = (typeof CONFIG !== 'undefined' && CONFIG.ROOT_ID) ? CONFIG.ROOT_ID : '1';
+      console.log('ℹ️ No referral code, using ROOT_ID:', rootId);
+      return rootId;
     }
 
     try {
@@ -487,8 +488,9 @@ const app = {
       console.error('❌ Error getting sponsor ID:', error);
     }
 
-    console.log('ℹ️ Falling back to default sponsor ID: 1');
-    return '1';
+    const rootId = (typeof CONFIG !== 'undefined' && CONFIG.ROOT_ID) ? CONFIG.ROOT_ID : '1';
+    console.log('ℹ️ Falling back to ROOT_ID:', rootId);
+    return rootId;
   },
 
 
