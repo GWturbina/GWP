@@ -48,9 +48,9 @@ const projectsModule = {
       name: 'GlobalGame',
       icon: 'GlobalGame.png',
       description: 'projects.globalGameDesc',
-      url: '#',
-      status: 'coming',
-      statusText: 'projects.statusSoon',
+      url: 'https://nss-azure.vercel.app/',
+      status: 'active',
+      statusText: 'projects.statusActive',
       releaseDate: 'Q1 2026',
       requiredLevel: 1
     },
