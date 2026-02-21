@@ -463,8 +463,10 @@ const matrixModule = {
       const isSponsoredByRoot = sponsorId === rootId;
       
       if (pos.depth === 1 && !isSponsoredByRoot && sponsorId !== '7777777') {
-        console.warn(`⚠️ GW${pos.userId}: СПОНСОР GW${sponsorId} ≠ ROOT GW${rootId} (${parentBinaryText})`);
-        misplaced++;
+        // ✅ НОРМАЛЬНО: в бинарной матрице место размещения ≠ спонсор
+        // Алгоритм ставит человека туда где есть свободное место, а не к своему спонсору
+        // Это стандартное поведение бинарной матрицы (forced matrix placement)
+        misplaced++; // убрали лог — это не ошибка, просто информация
       }
       
       // Логируем первые 2 линии для визуальной проверки
