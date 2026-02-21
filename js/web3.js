@@ -169,21 +169,26 @@ class Web3Manager {
     }
   }
 
-  // 🔥 ИСПРАВЛЕНО: Упрощённый метод подключения
+  // ✅ ПОЛНОСТЬЮ ПЕРЕПИСАН: быстрое подключение без блокирующих задержек
 async connect() {
     try {
       console.log('🔌 Starting wallet connection...');
       console.log('📱 Device:', this.isMobile ? 'Mobile' : 'Desktop');
       console.log('🦊 SafePal Browser:', this.isSafePalBrowser);
       
-      // 🔥 ИСПРАВЛЕНО: Минимальная задержка
-      const initialDelay = this.isMobile ? 1000 : 500; // 🔥 Уменьшено!
-      console.log(`⏳ Initial delay: ${initialDelay}ms`);
-      await new Promise(resolve => setTimeout(resolve, initialDelay));
+      // ✅ ИСПРАВЛЕНО: минимальная задержка только если провайдер ещё не готов
+      if (!this.hasSafePalProvider() && !window.ethereum) {
+        console.log('⏳ Provider not yet ready, short wait...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
       
-      // 🔥 ИСПРАВЛЕНО: Умное ожидание SafePal
-      console.log('🔍 Waiting for SafePal provider...');
-      const safePalFound = await this.waitForSafePal(4000); // 🔥 4 секунды вместо 8
+      // ✅ ИСПРАВЛЕНО: короткое ожидание — максимум 1.5 секунды вместо 5
+      if (!this.hasSafePalProvider()) {
+        console.log('🔍 Waiting for SafePal provider (max 1.5s)...');
+        await this.waitForSafePal(1500);
+      }
+      
+      const safePalFound = this.hasSafePalProvider();
       console.log('🔍 SafePal provider found:', safePalFound);
       
       // Priority 1: SafePal provider
@@ -219,14 +224,8 @@ async connect() {
       else if (this.isMobile && !this.isSafePalBrowser) {
         console.log('📱 Mobile but not SafePal browser. Triggering deep-link...');
         
-        const userConfirmed = confirm(
-          'To connect your wallet:\n\n1. SafePal app will open\n2. Approve connection\n3. Return to this page\n4. Click Connect again\n\nPress OK to continue'
-        );
-        
-        if (!userConfirmed) {
-          throw new Error('Connection cancelled by user');
-        }
-        
+        // ✅ ИСПРАВЛЕНО: убрали confirm() — открываем SafePal напрямую
+        console.log('📱 Opening SafePal deep link...');
         await this.openSafePalApp();
         throw new Error('Please complete connection in SafePal app and return. Then click Connect again.');
       }
@@ -544,19 +543,12 @@ async connect() {
     // Пробуем открыть приложение
     window.location.href = deepLink;
   
-    // Через 2.5 сек проверяем — если страница ещё видна, значит SafePal не установлен
+    // Через 2.5 сек — если страница ещё видна, значит SafePal не установлен
     await new Promise(resolve => setTimeout(resolve, 2500));
   
-    // Если мы всё ещё здесь — приложение не открылось
-    const install = confirm(
-      'SafePal not installed.\n\n' +
-      'Install SafePal Wallet?\n\n' +
-      'After installation, open this link in SafePal browser ("Browser" tab in the app).'
-    );
-  
-    if (install) {
-      window.open(storeUrl, '_blank');
-    }
+    // ✅ ИСПРАВЛЕНО: вместо confirm() — тихо открываем стор (не блокируем UI)
+    console.log('📲 SafePal not installed, opening store:', storeUrl);
+    window.open(storeUrl, '_blank');
   }
 
   async checkNetwork() {
