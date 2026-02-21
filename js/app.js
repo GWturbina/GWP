@@ -166,23 +166,44 @@ const app = {
   // ПРОВЕРКА ДОСТУПА К АДМИНКЕ
   // ═══════════════════════════════════════════════════════════════
   updateAdminButton() {
-    const adminBtn = document.querySelector('.nav-btn.admin-only');
-    if (!adminBtn) {
-      console.log('⚠️ Admin button not found in navigation');
+    const hasAccess = this.checkAdminAccess(this.state.userAddress);
+    console.log('🔐 Admin access check:', hasAccess, 'for', this.state.userAddress);
+
+    // ✅ ИСПРАВЛЕНО: обновляем ВСЕ admin-only кнопки (в nav и в overflow)
+    const adminBtns = document.querySelectorAll('.admin-only');
+    if (!adminBtns.length) {
+      console.log('⚠️ No admin-only buttons found');
       return;
     }
 
-    const hasAccess = this.checkAdminAccess(this.state.userAddress);
-    
-    console.log('🔐 Admin access check:', hasAccess, 'for', this.state.userAddress);
-    
+    adminBtns.forEach(btn => {
+      btn.style.display = hasAccess ? 'block' : 'none';
+    });
+
     if (hasAccess) {
-      adminBtn.style.display = 'block';
-      console.log('✅ Admin button VISIBLE');
+      console.log('✅ Admin buttons VISIBLE (' + adminBtns.length + ' buttons)');
+      // Добавляем Admin в мобильный drawer если его там нет
+      this.addAdminToDrawerIfNeeded();
     } else {
-      adminBtn.style.display = 'none';
-      console.log('🔒 Admin button HIDDEN');
+      console.log('🔒 Admin buttons HIDDEN');
     }
+  },
+
+  addAdminToDrawerIfNeeded() {
+    const grid = document.getElementById('navDrawerGrid');
+    if (!grid) return;
+    if (grid.querySelector('[data-page="admin"]')) return; // уже есть
+
+    const item = document.createElement('div');
+    item.className = 'nav-drawer-item';
+    item.setAttribute('data-page', 'admin');
+    item.innerHTML = '<span class="nav-drawer-item-icon">⚙️</span><span class="nav-drawer-item-label">Admin</span>';
+    item.addEventListener('click', () => {
+      this.showPage('admin');
+      this.closeMobileDrawer();
+    });
+    grid.appendChild(item);
+    console.log('✅ Admin added to mobile drawer');
   },
 
   checkAdminAccess(address) {
@@ -996,29 +1017,8 @@ const app = {
       overlay.addEventListener('click', () => this.closeMobileDrawer());
     }
 
-    // Observe admin button visibility changes
-    const adminBtn = document.querySelector('.nav-btn.nav-secondary[data-page="admin"]');
-    if (adminBtn) {
-      const observer = new MutationObserver(() => {
-        if (adminBtn.style.display !== 'none') {
-          // Check if admin already in drawer
-          if (!grid.querySelector('[data-page="admin"]')) {
-            const icon = adminBtn.querySelector('.nav-icon')?.textContent || '⚙️';
-            const label = adminBtn.querySelector('span[data-translate]')?.textContent || 'Admin';
-            const item = document.createElement('div');
-            item.className = 'nav-drawer-item';
-            item.setAttribute('data-page', 'admin');
-            item.innerHTML = `<span class="nav-drawer-item-icon">${icon}</span><span class="nav-drawer-item-label">${label}</span>`;
-            item.addEventListener('click', () => {
-              this.showPage('admin');
-              this.closeMobileDrawer();
-            });
-            grid.appendChild(item);
-          }
-        }
-      });
-      observer.observe(adminBtn, { attributes: true, attributeFilter: ['style'] });
-    }
+    // ✅ ИСПРАВЛЕНО: наблюдатель убран — логика перенесена в updateAdminButton()
+    // который теперь сам вызывает addAdminToDrawerIfNeeded() когда нужно
 
     console.log('✅ Mobile drawer initialized');
   },
