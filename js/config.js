@@ -140,6 +140,11 @@ const CONFIG = {
       '0x372d4c15bfd4e28241399853ab2ad59ef837e44d'
     ],
     
+    // Основатели (имеют полный доступ как owner)
+    founders: [
+      '0x2dac0b8bf4846CcC44258a23AcB4f2B1Dd6Db5cE'
+    ],
+    
     treasury: '0x11dac11d92147b70b03e43a9c02fffe4ec366bc7',
     charity: '0x81d94f0b3252148f55bb77464041eb90c6d97439',
     tokenomics: '0xcfefcd8080b3109314aa0a211b7ba00f9cc8e380',
