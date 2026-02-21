@@ -22,7 +22,8 @@
   "landing": {
     "enterDapp": "Enter DApp",
     "welcome": "Welcome to GlobalWay",
-    "features": "Platform Features"
+    "features": "Platform Features",
+    "connectWallet": "Connect Wallet"
   },
   "planets": {
     "club": "GlobalWay Club",
@@ -95,7 +96,29 @@
     "insufficientFunds": "Insufficient funds",
     "quarterlyRequired": "Pay quarterly activity",
     "previousLevelRequired": "Activate previous level first",
-    "levelAlreadyActive": "Level already active"
+    "levelAlreadyActive": "Level already active",
+    "activateFirst": "Activate previous level first",
+    "activateLevel": "Activate Level",
+    "activateQuarterly": "Pay quarterly fee first",
+    "availableIn": "Available in",
+    "canActivate": "Can activate",
+    "continue": "Continue",
+    "cost": "Cost",
+    "levelActivated": "Level activated!",
+    "notActivated": "Not activated",
+    "payQuarterlyConfirm": "Pay quarterly fee 0.075 BNB?",
+    "paymentIn": "Payment in",
+    "quarter": "Quarter",
+    "quarterExpired": "Quarter expired! Pay now",
+    "received": "Received",
+    "reward": "Reward",
+    "txTypes": {
+      "levelPurchase": "Level purchase",
+      "matrixBonus": "Matrix bonus",
+      "partnerBonus": "Partner bonus",
+      "partnerUpline": "Upline bonus",
+      "quarterlyActivity": "Quarterly fee"
+    }
   },
   "ranks": {
     "none": "Nobody",
@@ -115,7 +138,8 @@
     "visionary": "AI Visionary",
     "leader": "Quantum Leader",
     "titan": "Global Tech Titan",
-    "total": "Total Income"
+    "total": "Total Income",
+    "nobody": "Nobody"
   },
   "partners": {
     "title": "Partners Structure",
@@ -396,7 +420,18 @@
     "previous": "Previous",
     "continue": "Continue",
     "finish": "Finish",
-    "openProject": "Open Project"
+    "openProject": "Open Project",
+    "copied": "Copied!",
+    "copyError": "Copy failed",
+    "days": "days",
+    "daysShort": "d.",
+    "linkEmpty": "Link is empty",
+    "loadError": "Load error",
+    "myMatrix": "My Matrix",
+    "noTransactions": "No transactions",
+    "noTransactionsType": "No transactions of this type",
+    "today": "Today",
+    "viewing": "Viewing"
   },
   "roadmap": {
     "2025": "Platform launch and 8 projects",
@@ -438,7 +473,29 @@
     "pleaseSwitchNetwork": "Please switch to opBNB network",
     "pleaseConnectWallet": "Please connect wallet",
     "pleaseRegister": "Please register",
-    "quarterlyRequired": "Pay quarterly activity"
+    "quarterlyRequired": "Pay quarterly activity",
+    "alreadyOnMatrix": "Already on matrix",
+    "buyError": "Level buy error",
+    "connectWalletFirst": "Connect wallet first",
+    "dashboardError": "Dashboard load error",
+    "initError": "Initialization error",
+    "insufficientBNB": "Insufficient BNB",
+    "insufficientFunds": "Insufficient funds",
+    "levelAlreadyActive": "Level already active",
+    "matrixError": "Matrix load error",
+    "partnersError": "Partners load error",
+    "paymentError": "Payment error",
+    "paymentNotAvailable": "Payment not available yet",
+    "registerFirst": "Please register first",
+    "tokensError": "Token load error",
+    "txRejected": "Transaction rejected",
+    "txSent": "Transaction sent",
+    "updated": "Updated",
+    "userNotFound": "User not found",
+    "walletConnectError": "Wallet connection failed",
+    "walletConnected": "Wallet connected",
+    "walletConnecting": "Connecting wallet...",
+    "web3NotLoaded": "Web3 not loaded. Refresh page"
   },
   "ref": {
     "title": "🔗 Referral Links",
@@ -464,5 +521,9 @@
     "noLinks": "No links created yet",
     "noPreview": "No previews uploaded yet. Using default.",
     "namePlaceholder": "Your name"
+  },
+  "web3": {
+    "solanaMsg": "GlobalWay runs on opBNB (EVM). Switch to opBNB network in SafePal.",
+    "switchNetwork": "Switch to opBNB network manually"
   }
 }
