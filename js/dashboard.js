@@ -553,16 +553,40 @@ async loadQuarterlyInfo() {
     `).join('');
   },
 
+  // ✅ ИСПРАВЛЕНО: queryFilter с чанками — opBNB реальный безопасный лимит 5000 блоков
+  async queryFilterChunked(contract, filter, blocksBack = 50000, chunkSize = 5000) {
+    try {
+      const provider = contract.provider;
+      const currentBlock = await provider.getBlockNumber();
+      const fromBlock = Math.max(0, currentBlock - blocksBack);
+      
+      const results = [];
+      for (let start = fromBlock; start <= currentBlock; start += chunkSize) {
+        const end = Math.min(start + chunkSize - 1, currentBlock);
+        try {
+          const chunk = await contract.queryFilter(filter, start, end);
+          results.push(...chunk);
+        } catch (e) {
+          console.warn(`⚠️ Chunk ${start}-${end} failed: ${e.message}`);
+        }
+      }
+      return results;
+    } catch (e) {
+      console.warn('⚠️ queryFilterChunked error:', e.message);
+      return [];
+    }
+  },
+
   async getTransactionEvents() {
     const { address } = this.userData;
     const events = [];
   
     try {
-      const BLOCKS_BACK = 2000000; // opBNB генерирует блоки быстро
+      const BLOCKS_BACK = 50000; // ✅ FIX: уменьшено — opBNB стабильно работает с 50k блоков при чанках по 5k
       
       try {
         const levelFilter = this.contracts.globalWay.filters.LevelActivated(address);
-        const levelEvents = await this.contracts.globalWay.queryFilter(levelFilter, -BLOCKS_BACK);
+        const levelEvents = await this.queryFilterChunked(this.contracts.globalWay, levelFilter, BLOCKS_BACK);
         
         for (const event of levelEvents) {
           events.push({
@@ -581,7 +605,7 @@ async loadQuarterlyInfo() {
       
       try {
         const sponsorFilter = this.contracts.partnerProgram.filters.SponsorPaid(null, address);
-        const sponsorEvents = await this.contracts.partnerProgram.queryFilter(sponsorFilter, -BLOCKS_BACK);
+        const sponsorEvents = await this.queryFilterChunked(this.contracts.partnerProgram, sponsorFilter, BLOCKS_BACK);
         
         for (const event of sponsorEvents) {
           events.push({
@@ -596,7 +620,7 @@ async loadQuarterlyInfo() {
         }
         
         const uplineFilter = this.contracts.partnerProgram.filters.UplinePaid(null, address);
-        const uplineEvents = await this.contracts.partnerProgram.queryFilter(uplineFilter, -BLOCKS_BACK);
+        const uplineEvents = await this.queryFilterChunked(this.contracts.partnerProgram, uplineFilter, BLOCKS_BACK);
       
         for (const event of uplineEvents) {
           events.push({
@@ -615,7 +639,7 @@ async loadQuarterlyInfo() {
     
       try {
         const matrixFilter = this.contracts.matrixPayments.filters.MatrixPaymentSent(null, address);
-        const matrixEvents = await this.contracts.matrixPayments.queryFilter(matrixFilter, -BLOCKS_BACK);
+        const matrixEvents = await this.queryFilterChunked(this.contracts.matrixPayments, matrixFilter, BLOCKS_BACK);
         
         for (const event of matrixEvents) {
           events.push({
@@ -634,7 +658,7 @@ async loadQuarterlyInfo() {
     
       try {
         const quarterlyFilter = this.contracts.quarterlyPayments.filters.QuarterlyPaid(address);
-        const quarterlyEvents = await this.contracts.quarterlyPayments.queryFilter(quarterlyFilter, -BLOCKS_BACK);
+        const quarterlyEvents = await this.queryFilterChunked(this.contracts.quarterlyPayments, quarterlyFilter, BLOCKS_BACK);
       
         for (const event of quarterlyEvents) {
           events.push({
@@ -1121,13 +1145,13 @@ async loadQuarterlyInfo() {
   
   getRankName(rankId) {
     const ranks = {
-      0: (_t ? _t('ranks.nobody') : 'Nobody'),
-      1: (_t ? _t('ranks.bronze') : 'Bronze'),
-      2: (_t ? _t('ranks.silver') : 'Silver 🥈'),
-      3: (_t ? _t('ranks.gold') : 'Gold 🥇'),
-      4: (_t ? _t('ranks.platinum') : 'Platinum 💎')
+      0: (_t ? _t('ranks.none') : 'Никто'),   // ✅ FIX: был ranks.nobody → ranks.none
+      1: (_t ? _t('ranks.bronze') : 'Бронза 🥉'),
+      2: (_t ? _t('ranks.silver') : 'Серебро 🥈'),
+      3: (_t ? _t('ranks.gold') : 'Золото 🥇'),
+      4: (_t ? _t('ranks.platinum') : 'Платина 💎')
     };
-    return ranks[rankId] || (_t ? _t('ranks.nobody') : 'Nobody');
+    return ranks[rankId] ?? (_t ? _t('ranks.none') : 'Никто');
   },
 
   filterHistory() {
