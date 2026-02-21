@@ -91,6 +91,19 @@ const app = {
   },
 
   async connectWallet() {
+    const connectBtn = document.getElementById('connectBtn');
+    
+    // ✅ ИСПРАВЛЕНО: блокируем кнопку сразу — предотвращаем двойное нажатие
+    if (connectBtn) {
+      if (connectBtn._connecting) {
+        console.log('⚠️ Connection already in progress, ignoring click');
+        return;
+      }
+      connectBtn._connecting = true;
+      connectBtn.disabled = true;
+      connectBtn.textContent = '⏳ Connecting...';
+    }
+    
     try {
       if (!window.web3Manager) {
         this.showNotification(_t('notifications.web3NotLoaded'), 'error');
@@ -115,6 +128,18 @@ const app = {
     } catch (error) {
       console.error('❌ Connect wallet error:', error);
       this.showNotification(_t('notifications.walletConnectError'), 'error');
+      
+      // ✅ ИСПРАВЛЕНО: разблокируем кнопку при ошибке
+      if (connectBtn && !window.web3Manager?.isConnected) {
+        connectBtn.disabled = false;
+        connectBtn.textContent = _t ? _t('landing.connectWallet') : 'Connect Wallet';
+        connectBtn._connecting = false;
+      }
+    } finally {
+      // ✅ ИСПРАВЛЕНО: сбрасываем флаг блокировки в любом случае
+      if (connectBtn) {
+        connectBtn._connecting = false;
+      }
     }
   },
 
@@ -261,7 +286,63 @@ const app = {
   },
 
 
-  async checkAndAutoRegister() {
+  // ✅ НОВОЕ: Модал подтверждения регистрации (вместо confirm())
+  showRegistrationConfirmModal(referralCode, sponsorId) {
+    return new Promise((resolve) => {
+      // Удаляем старый модал если есть
+      const existing = document.getElementById('regConfirmModal');
+      if (existing) existing.remove();
+      
+      const sponsorText = referralCode && sponsorId
+        ? `<p style="color:#aaa;margin:8px 0 0">Вас пригласил партнёр ID: <strong style="color:#ffd700">${sponsorId}</strong></p>`
+        : '';
+
+      const modal = document.createElement('div');
+      modal.id = 'regConfirmModal';
+      modal.style.cssText = `
+        position:fixed;top:0;left:0;width:100%;height:100%;
+        background:rgba(0,0,0,0.85);z-index:99999;
+        display:flex;align-items:center;justify-content:center;
+        padding:20px;box-sizing:border-box;
+      `;
+      modal.innerHTML = `
+        <div style="
+          background:linear-gradient(135deg,#0d1117,#1a1f2e);
+          border:1px solid #ffd70044;border-radius:16px;
+          padding:32px 24px;max-width:360px;width:100%;
+          text-align:center;box-shadow:0 0 40px #ffd70022;
+        ">
+          <div style="font-size:48px;margin-bottom:12px">🌐</div>
+          <h2 style="color:#ffd700;margin:0 0 8px;font-size:22px">GlobalWay</h2>
+          <p style="color:#ccc;margin:0 0 4px;font-size:15px">Регистрация бесплатна и займёт несколько секунд.</p>
+          ${sponsorText}
+          <div style="display:flex;gap:12px;margin-top:24px">
+            <button id="regNo" style="
+              flex:1;padding:14px;border:1px solid #555;border-radius:10px;
+              background:transparent;color:#aaa;font-size:15px;cursor:pointer;
+            ">Отмена</button>
+            <button id="regYes" style="
+              flex:1;padding:14px;border:none;border-radius:10px;
+              background:linear-gradient(135deg,#ffd700,#ff9500);
+              color:#000;font-weight:700;font-size:15px;cursor:pointer;
+            ">✅ Зарегистрироваться</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      
+      const cleanup = (result) => {
+        modal.remove();
+        resolve(result);
+      };
+      
+      document.getElementById('regYes').onclick = () => cleanup(true);
+      document.getElementById('regNo').onclick  = () => cleanup(false);
+      modal.onclick = (e) => { if (e.target === modal) cleanup(false); };
+    });
+  },
+
+    async checkAndAutoRegister() {
     if (!this.state.userAddress) {
       console.log('⚠️ No user address, skipping registration check');
       return;
@@ -309,11 +390,10 @@ const app = {
         console.log('🎯 Resolved sponsor ID:', sponsorId);
       }
       
-      const message = referralCode 
-        ? `Welcome to GlobalWay!\n\nYou were invited by partner ID: ${sponsorId}\n\nRegistration is FREE and takes a few seconds.\n\nRegister now?`
-        : `Welcome to GlobalWay!\n\nTo get started, you need to register.\nRegistration is FREE and takes a few seconds.\n\nRegister now?`;
+      console.log('🚀 Showing registration modal...');
       
-      const wantsToRegister = confirm(message);
+      // ✅ ИСПРАВЛЕНО: заменяем confirm() на модал — confirm() блокирует весь UI на мобильных!
+      const wantsToRegister = await this.showRegistrationConfirmModal(referralCode, sponsorId);
       
       if (!wantsToRegister) {
         this.showNotification('Registration cancelled', 'info');
