@@ -146,19 +146,37 @@ const app = {
   updateWalletUI() {
     const walletAddress = document.getElementById('walletAddress');
     const connectBtn = document.getElementById('connectBtn');
+    const floatingBtn = document.getElementById('floatingConnectBtn');
     
     if (this.state.userAddress) {
+      // Кошелёк подключён
       if (walletAddress) {
         walletAddress.textContent = this.formatAddress(this.state.userAddress);
       }
       if (connectBtn) {
-        connectBtn.textContent = 'Connected';
-        connectBtn.style.background = '#00ff00';
+        connectBtn.textContent = '✅ Connected';
+        connectBtn.style.background = 'linear-gradient(135deg, #ffd700, #ffed4e)';
+        connectBtn.style.color = '#000';
+        connectBtn.style.borderColor = '#ffd700';
         connectBtn.disabled = true;
+        connectBtn._connecting = false;
       }
-      
-      // ✅ Проверяем доступ к админке
+      // ✅ Скрываем плавающую кнопку после подключения
+      if (floatingBtn) floatingBtn.classList.add('hidden');
+
       this.updateAdminButton();
+    } else {
+      // Кошелёк не подключён — показываем плавающую кнопку
+      if (walletAddress) walletAddress.textContent = 'Not connected';
+      if (connectBtn) {
+        connectBtn.textContent = 'Connect';
+        connectBtn.style.background = '';
+        connectBtn.style.color = '';
+        connectBtn.style.borderColor = '';
+        connectBtn.disabled = false;
+        connectBtn._connecting = false;
+      }
+      if (floatingBtn) floatingBtn.classList.remove('hidden');
     }
   },
 
@@ -239,10 +257,13 @@ const app = {
   async checkWalletConnection() {
     if (window.web3Manager && window.web3Manager.isConnected) {
       this.state.userAddress = window.web3Manager.currentAccount;
-      this.updateWalletUI();  // ✅ Это вызовет updateAdminButton
+      this.updateWalletUI();
       await this.loadUserData();
       await this.checkAndAutoRegister();
       this.checkAndShowActivationModal();
+    } else {
+      // ✅ Не подключён — показываем плавающую кнопку на мобильном
+      this.updateWalletUI();
     }
   },
 
@@ -511,6 +532,11 @@ const app = {
       // Закрываем прогресс при ошибке
       this.hideTransactionProgress();
       
+      // ✅ После ошибки — убеждаемся что плавающая кнопка видна (если кошелёк отвалился)
+      if (!window.web3Manager?.isConnected) {
+        this.updateWalletUI();
+      }
+
       if (error.code === 4001) {
         this.showNotification('Action cancelled by user', 'info');
       } else if (error.code === -32603) {
