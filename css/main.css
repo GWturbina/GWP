@@ -302,6 +302,7 @@ body {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  flex-shrink: 0;
 }
 
 #walletAddress {
@@ -313,6 +314,10 @@ body {
   font-family: 'Courier New', monospace;
   font-size: 12px;
   font-weight: 600;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #connectBtn {
@@ -325,8 +330,9 @@ body {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 100px;
+  min-width: 90px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 #connectBtn:hover {
@@ -340,6 +346,51 @@ body {
   color: var(--cosmic-black);
   border-color: var(--gold);
   cursor: default;
+}
+
+/* ✅ Плавающая кнопка Connect для мобильных */
+#floatingConnectBtn {
+  display: none;
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 9998;
+  background: linear-gradient(135deg, #28a745, #1e7e34);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 22px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(40, 167, 69, 0.6);
+  animation: pulse-connect 2s infinite;
+}
+
+@keyframes pulse-connect {
+  0%   { box-shadow: 0 4px 20px rgba(40,167,69,0.6); }
+  50%  { box-shadow: 0 4px 30px rgba(40,167,69,0.9); transform: scale(1.04); }
+  100% { box-shadow: 0 4px 20px rgba(40,167,69,0.6); }
+}
+
+@media (max-width: 768px) {
+  #floatingConnectBtn {
+    display: block;
+  }
+  #floatingConnectBtn.hidden {
+    display: none !important;
+  }
+  /* На мобильном "Not connected" текст укорачиваем */
+  #walletAddress {
+    max-width: 90px;
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+  #connectBtn {
+    font-size: 11px;
+    padding: 6px 10px;
+    min-width: 70px;
+  }
 }
 
 /* Navigation */
