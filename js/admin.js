@@ -261,6 +261,29 @@ const adminModule = {
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- ЗАМЕНА КОШЕЛЬКА -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <section class="admin-section ${ownerOnlyClass}">
+          <h3 class="admin-section-title">🔄 Замена кошелька</h3>
+          <p class="admin-desc">Привязать существующий ID к новому адресу кошелька (emergencyFixNodeAddress)</p>
+          
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>User ID (число, без GW)</label>
+              <input type="text" id="changeWalletUserId" class="admin-input" placeholder="9729645">
+            </div>
+            <div class="admin-form-group">
+              <label>Новый адрес кошелька</label>
+              <input type="text" id="changeWalletNewAddress" class="admin-input" placeholder="0x...">
+            </div>
+          </div>
+          
+          <button class="admin-btn admin-btn-warning" id="changeWalletBtn">
+            🔄 Заменить кошелёк
+          </button>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
         <!-- ПРИСВОЕНИЕ РАНГА -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <section class="admin-section ${ownerOnlyClass}">
@@ -1487,6 +1510,15 @@ const adminModule = {
       });
     }
     
+    // ✅ Замена кошелька
+    const changeWalletBtn = document.getElementById('changeWalletBtn');
+    if (changeWalletBtn) {
+      changeWalletBtn.addEventListener('click', () => {
+        console.log('🔄 Замена кошелька...');
+        self.changeUserWallet();
+      });
+    }
+    
     // Ранги
     const setRankBtn = document.getElementById('setRankBtn');
     if (setRankBtn) {
@@ -1905,6 +1937,109 @@ const adminModule = {
     } catch (error) {
       console.error('Ошибка:', error);
       app.showNotification('Ошибка: ' + error.message, 'error');
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ЗАМЕНА КОШЕЛЬКА (emergencyFixNodeAddress)
+  // ═══════════════════════════════════════════════════════════════
+  async changeUserWallet() {
+    if (!this.access.isOwner) {
+      app.showNotification('Только владелец может выполнять это действие', 'error');
+      return;
+    }
+
+    const userIdInput = document.getElementById('changeWalletUserId');
+    const newAddressInput = document.getElementById('changeWalletNewAddress');
+
+    if (!userIdInput || !newAddressInput) return;
+
+    const userId = userIdInput.value.trim().replace(/^GW/i, '');
+    const newAddress = newAddressInput.value.trim();
+
+    if (!userId || !/^\d+$/.test(userId)) {
+      app.showNotification('Введите числовой ID пользователя (без GW)', 'error');
+      return;
+    }
+
+    if (!newAddress || !newAddress.startsWith('0x') || newAddress.length !== 42) {
+      app.showNotification('Введите корректный адрес кошелька (0x...)', 'error');
+      return;
+    }
+
+    try {
+      // Проверяем текущий адрес
+      const matrixRegistry = await app.getContract('MatrixRegistry');
+      const currentAddress = await matrixRegistry.getAddressById(userId);
+      
+      if (currentAddress === ethers.constants.AddressZero) {
+        app.showNotification(`ID ${userId} не найден в MatrixRegistry`, 'error');
+        return;
+      }
+
+      // Проверяем что новый адрес ещё не зарегистрирован
+      const isNewRegistered = await matrixRegistry.isRegistered(newAddress);
+      if (isNewRegistered) {
+        app.showNotification(`Адрес ${newAddress.slice(0,10)}... уже зарегистрирован!`, 'error');
+        return;
+      }
+
+      const confirmed = await new Promise((resolve) => {
+        const existing = document.getElementById('changeWalletModal');
+        if (existing) existing.remove();
+        
+        const modal = document.createElement('div');
+        modal.id = 'changeWalletModal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        modal.innerHTML = `
+          <div style="background:linear-gradient(135deg,#0d1117,#1a1f2e);border:1px solid #ff990044;border-radius:16px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 0 40px #ff990022;">
+            <div style="font-size:40px;margin-bottom:10px">🔄</div>
+            <h3 style="color:#ff9900;margin:0 0 12px;font-size:18px">Замена кошелька</h3>
+            <p style="color:#ccc;margin:4px 0;font-size:13px">ID: <strong style="color:#fff">GW${userId}</strong></p>
+            <p style="color:#ccc;margin:4px 0;font-size:13px">Было: <strong style="color:#ff6666">${currentAddress.slice(0,10)}...${currentAddress.slice(-6)}</strong></p>
+            <p style="color:#ccc;margin:4px 0;font-size:13px">Стало: <strong style="color:#66ff66">${newAddress.slice(0,10)}...${newAddress.slice(-6)}</strong></p>
+            <p style="color:#ff9900;margin:16px 0 0;font-size:12px">⚠️ Это необратимое действие!</p>
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button id="cwNo" style="flex:1;padding:14px;border:1px solid #555;border-radius:10px;background:transparent;color:#aaa;font-size:15px;cursor:pointer;">Отмена</button>
+              <button id="cwYes" style="flex:1;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#ff9900,#ff6600);color:#000;font-weight:700;font-size:15px;cursor:pointer;">✅ Заменить</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        const cleanup = (val) => { modal.remove(); resolve(val); };
+        document.getElementById('cwYes').onclick = () => cleanup(true);
+        document.getElementById('cwNo').onclick = () => cleanup(false);
+        modal.onclick = (e) => { if (e.target === modal) cleanup(false); };
+      });
+
+      if (!confirmed) return;
+
+      app.showNotification('🔄 Замена кошелька...', 'info');
+
+      const matrixRegistrySigned = await app.getSignedContract('MatrixRegistry');
+      const tx = await matrixRegistrySigned.emergencyFixNodeAddress(userId, newAddress, {
+        gasLimit: 500000
+      });
+
+      app.showNotification('⏳ Ожидание подтверждения...', 'info');
+      await tx.wait();
+
+      app.showNotification(`✅ Кошелёк для GW${userId} успешно заменён!`, 'success');
+      
+      // Очищаем форму
+      userIdInput.value = '';
+      newAddressInput.value = '';
+
+    } catch (error) {
+      console.error('❌ Change wallet error:', error);
+      
+      if (error.code === 4001) {
+        app.showNotification('Транзакция отменена', 'error');
+      } else if (error.message && error.message.includes('Only owner')) {
+        app.showNotification('Только владелец контракта может менять адреса', 'error');
+      } else {
+        app.showNotification('Ошибка: ' + (error.reason || error.message || 'Неизвестная ошибка'), 'error');
+      }
     }
   },
 
