@@ -118,7 +118,16 @@
       "partnerBonus": "Бонус партнера",
       "partnerUpline": "Бонус верхньої лінії",
       "quarterlyActivity": "Квартальний внесок"
-    }
+    },
+    "address": "Адреса",
+    "balance": "Баланс",
+    "cabinet": "Особистий кабінет",
+    "days": "днів",
+    "earnings": "Заробіток",
+    "payActivity": "Оплатити активність",
+    "paymentDue": "Оплата до",
+    "rank": "Ранг",
+    "tokens": "Токени"
   },
   "ranks": {
     "none": "Ніхто",
@@ -233,7 +242,8 @@
     "decimals": "Децимали",
     "network": "Мережа",
     "addWallet": "Додати в гаманець",
-    "viewExplorer": "Дивитись в провіднику"
+    "viewExplorer": "Дивитись в провіднику",
+    "viewContract": "Переглянути контракт в Explorer"
   },
   "projects": {
     "title": "Наші проекти",
@@ -386,7 +396,13 @@
     "withdrawalAmount": "Сума (BNB)",
     "withdrawalNote": "Примітка/Причина",
     "withdrawalPool": "Пул виведення",
-    "amount": "Сума"
+    "amount": "Сума",
+    "freeActivation": "Безкоштовна активація",
+    "ownerRights": "Права власника",
+    "removeReason": "Причина видалення",
+    "totalBoardMembers": "Всього членів ради",
+    "voting": "Голосування",
+    "votingQuorum": "Кворум голосування"
   },
   "common": {
     "withdraw": "Вивести",
@@ -431,7 +447,20 @@
     "noTransactions": "Немає транзакцій",
     "noTransactionsType": "Немає транзакцій цього типу",
     "today": "Сьогодні",
-    "viewing": "Перегляд"
+    "viewing": "Перегляд",
+    "address": "Адреса",
+    "amount": "Сума",
+    "copy": "Копіювати",
+    "date": "Дата",
+    "level": "Рівень",
+    "locked": "Заблоковано",
+    "number": "№",
+    "refresh": "Оновити",
+    "search": "Пошук",
+    "soon": "Скоро",
+    "status": "Статус",
+    "type": "Тип",
+    "copyManual": "Скопіюйте посилання:"
   },
   "roadmap": {
     "2025": "Запуск платформи та 8 проєктів",
@@ -525,5 +554,65 @@
   "web3": {
     "solanaMsg": "GlobalWay працює на opBNB (EVM). Перемкніться на мережу opBNB в SafePal.",
     "switchNetwork": "Перемкніться на мережу opBNB вручну"
+  },
+  "exchange": {
+    "title": "💱 Обмін",
+    "subtitle": "Купівля та продаж GWT токенів",
+    "amountGWT": "Кількість GWT",
+    "buyCommission": "Комісія купівлі",
+    "completed": "Завершено",
+    "createOnChain": "Створити ордер у блокчейні",
+    "createOrder": "Створити ордер",
+    "current": "Поточна",
+    "fee": "Комісія",
+    "gwtPrice": "Ціна GWT",
+    "myOrders": "Мої ордери",
+    "pricePerGWT": "Ціна за 1 GWT",
+    "slippage": "Прослизання",
+    "total": "Разом",
+    "totalOrders": "Всього ордерів",
+    "volume": "Об'єм",
+    "youGet": "Ви отримаєте",
+    "youPay": "Ви заплатите"
+  },
+  "safevault": {
+    "title": "🔐 SafeVault",
+    "subtitle": "Захист ваших коштів",
+    "cancelChange": "Скасувати зміну",
+    "changeCold": "Змінити холодний гаманець",
+    "changeColdHint": "Зміна набуде чинності через 48 годин",
+    "changeMode": "Змінити режим",
+    "changePin": "Змінити PIN",
+    "coldLabel": "Адреса холодного гаманця",
+    "coldWallet": "Холодний гаманець",
+    "confirmChange": "Підтвердити зміну",
+    "disableVault": "Вимкнути Vault",
+    "guardian": "Гарант",
+    "guardianHint": "Гарант може допомогти відновити доступ",
+    "guardianNotSet": "Не встановлено",
+    "guardianTitle": "Гарант безпеки",
+    "lockedDesc": "Vault активний і захищає ваші кошти",
+    "lockedTitle": "Vault активний",
+    "manageTitle": "Управління Vault",
+    "mode": "Режим",
+    "modeFull": "Повний захист",
+    "modeLabel": "Оберіть режим захисту",
+    "modeSplit": "Розділення (% на холодний)",
+    "modeThreshold": "Поріг (автовивід при сумі)",
+    "notConfigured": "Не налаштовано",
+    "paramPercent": "Відсоток на холодний (1-99)",
+    "paramThreshold": "Поріг виводу (BNB)",
+    "pinConfirm": "Підтвердьте PIN",
+    "pinLabel": "PIN-код (мін. 4 символи)",
+    "requestChange": "Запросити зміну",
+    "securityTitle": "Налаштування безпеки",
+    "setGuardian": "Встановити гаранта",
+    "setupBtn": "Налаштувати SafeVault",
+    "setupHint": "Налаштуйте захист коштів",
+    "setupTitle": "Налаштування SafeVault",
+    "status": "Статус",
+    "toCold": "На холодний",
+    "toHot": "На гарячий",
+    "totalReceived": "Всього отримано"
   }
 }
