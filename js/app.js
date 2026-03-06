@@ -1401,11 +1401,39 @@ const app = {
   
   async copyToClipboard(text) {
     try {
-      await navigator.clipboard.writeText(text);
-      this.showNotification('Скопировано! ✓', 'success');
-    } catch (error) {
-      console.error('Copy failed:', error);
-      this.showNotification('Ошибка копирования', 'error');
+      // Пробуем современный API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        this.showNotification(_t ? _t('common.copied') : 'Скопировано! ✓', 'success');
+        return;
+      }
+    } catch (e) {
+      console.warn('clipboard.writeText failed:', e);
+    }
+    
+    // ✅ FIX: Фолбек для мобильных (SafePal DApp Browser, iOS Safari)
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+      textarea.setAttribute('readonly', '');
+      document.body.appendChild(textarea);
+      
+      // iOS Safari требует специальной обработки
+      const range = document.createRange();
+      range.selectNodeContents(textarea);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      textarea.setSelectionRange(0, text.length);
+      
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      this.showNotification(_t ? _t('common.copied') : 'Скопировано! ✓', 'success');
+    } catch (fallbackError) {
+      console.error('Copy fallback failed:', fallbackError);
+      // Последний фолбек — показываем prompt
+      prompt(_t ? _t('common.copyManual') : 'Скопируйте ссылку:', text);
     }
   },
 
@@ -1460,16 +1488,45 @@ const app = {
 // ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
 // ═══════════════════════════════════════════════════════════════════
 
-window.addEventListener('accountsChanged', async (accounts) => {
-  console.log('👤 Account changed');
-  app.state.userAddress = accounts[0] || null;
-  await app.refreshUserData();
-});
+// ✅ FIX: accountsChanged/chainChanged — события провайдера, а НЕ window!
+function setupProviderListeners() {
+  const provider = window.ethereum || window.safepal;
+  if (!provider || provider._gwListenersSet) return;
+  
+  provider.on('accountsChanged', async (accounts) => {
+    console.log('👤 Account changed:', accounts);
+    if (accounts.length === 0) {
+      app.state.userAddress = null;
+      app.state.isRegistered = false;
+      app.updateWalletUI();
+    } else {
+      app.state.userAddress = accounts[0].toLowerCase();
+      app.state.contracts = {}; // сбрасываем кеш контрактов
+      app.updateWalletUI();
+      await app.loadUserData();
+      await app.loadCurrentPage();
+    }
+  });
+  
+  provider.on('chainChanged', () => {
+    console.log('🔗 Chain changed, reloading...');
+    window.location.reload();
+  });
+  
+  provider._gwListenersSet = true;
+  console.log('✅ Provider event listeners set');
+}
 
-window.addEventListener('chainChanged', async () => {
-  console.log('🔗 Chain changed');
-  window.location.reload();
-});
+// Пытаемся установить слушатели при загрузке и после подключения
+if (window.ethereum || window.safepal) {
+  setupProviderListeners();
+}
+// Также вызываем после подключения кошелька
+const _origConnect = app.connectWallet.bind(app);
+app.connectWallet = async function() {
+  await _origConnect();
+  setupProviderListeners();
+};
 
 // Экспорт в window
 window.app = app;
