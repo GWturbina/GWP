@@ -118,7 +118,16 @@
       "partnerBonus": "Partner bonus",
       "partnerUpline": "Upline bonus",
       "quarterlyActivity": "Quarterly fee"
-    }
+    },
+    "address": "Address",
+    "balance": "Balance",
+    "cabinet": "Dashboard",
+    "days": "days",
+    "earnings": "Earnings",
+    "payActivity": "Pay activity",
+    "paymentDue": "Payment due",
+    "rank": "Rank",
+    "tokens": "Tokens"
   },
   "ranks": {
     "none": "Nobody",
@@ -233,7 +242,8 @@
     "decimals": "Decimals",
     "network": "Network",
     "addWallet": "Add to Wallet",
-    "viewExplorer": "View on Explorer"
+    "viewExplorer": "View on Explorer",
+    "viewContract": "View contract on Explorer"
   },
   "projects": {
     "title": "Our Projects",
@@ -386,7 +396,13 @@
     "withdrawalAmount": "Amount (BNB)",
     "withdrawalNote": "Note/Reason",
     "withdrawalPool": "Withdrawal Pool",
-    "amount": "Amount"
+    "amount": "Amount",
+    "freeActivation": "Free activation",
+    "ownerRights": "Owner rights",
+    "removeReason": "Removal reason",
+    "totalBoardMembers": "Total board members",
+    "voting": "Voting",
+    "votingQuorum": "Voting quorum"
   },
   "common": {
     "withdraw": "Withdraw",
@@ -431,7 +447,20 @@
     "noTransactions": "No transactions",
     "noTransactionsType": "No transactions of this type",
     "today": "Today",
-    "viewing": "Viewing"
+    "viewing": "Viewing",
+    "address": "Address",
+    "amount": "Amount",
+    "copy": "Copy",
+    "date": "Date",
+    "level": "Level",
+    "locked": "Locked",
+    "number": "#",
+    "refresh": "Refresh",
+    "search": "Search",
+    "soon": "Soon",
+    "status": "Status",
+    "type": "Type",
+    "copyManual": "Copy the link:"
   },
   "roadmap": {
     "2025": "Platform launch and 8 projects",
@@ -525,5 +554,65 @@
   "web3": {
     "solanaMsg": "GlobalWay runs on opBNB (EVM). Switch to opBNB network in SafePal.",
     "switchNetwork": "Switch to opBNB network manually"
+  },
+  "exchange": {
+    "title": "💱 Exchange",
+    "subtitle": "Buy and sell GWT tokens",
+    "amountGWT": "Amount GWT",
+    "buyCommission": "Buy commission",
+    "completed": "Completed",
+    "createOnChain": "Create on-chain order",
+    "createOrder": "Create order",
+    "current": "Current",
+    "fee": "Fee",
+    "gwtPrice": "GWT Price",
+    "myOrders": "My orders",
+    "pricePerGWT": "Price per 1 GWT",
+    "slippage": "Slippage",
+    "total": "Total",
+    "totalOrders": "Total orders",
+    "volume": "Volume",
+    "youGet": "You receive",
+    "youPay": "You pay"
+  },
+  "safevault": {
+    "title": "🔐 SafeVault",
+    "subtitle": "Protect your funds",
+    "cancelChange": "Cancel change",
+    "changeCold": "Change cold wallet",
+    "changeColdHint": "Change takes effect after 48 hours",
+    "changeMode": "Change mode",
+    "changePin": "Change PIN",
+    "coldLabel": "Cold wallet address",
+    "coldWallet": "Cold wallet",
+    "confirmChange": "Confirm change",
+    "disableVault": "Disable Vault",
+    "guardian": "Guardian",
+    "guardianHint": "Guardian can help restore access",
+    "guardianNotSet": "Not set",
+    "guardianTitle": "Security guardian",
+    "lockedDesc": "Vault is active and protecting your funds",
+    "lockedTitle": "Vault active",
+    "manageTitle": "Manage Vault",
+    "mode": "Mode",
+    "modeFull": "Full protection",
+    "modeLabel": "Select protection mode",
+    "modeSplit": "Split (% to cold)",
+    "modeThreshold": "Threshold (auto-withdraw at amount)",
+    "notConfigured": "Not configured",
+    "paramPercent": "Percent to cold (1-99)",
+    "paramThreshold": "Withdrawal threshold (BNB)",
+    "pinConfirm": "Confirm PIN",
+    "pinLabel": "PIN code (min 4 chars)",
+    "requestChange": "Request change",
+    "securityTitle": "Security settings",
+    "setGuardian": "Set guardian",
+    "setupBtn": "Setup SafeVault",
+    "setupHint": "Configure fund protection",
+    "setupTitle": "SafeVault Setup",
+    "status": "Status",
+    "toCold": "To cold",
+    "toHot": "To hot",
+    "totalReceived": "Total received"
   }
 }
