@@ -804,15 +804,16 @@ async loadQuarterlyInfo() {
   },
 
   updateBalancesUI() {
-    const { partner, leader, investment } = this.userData.balances;
+    const { leader, investment, pension } = this.userData.balances;
 
-    const partnerBalance = document.getElementById('marketingBalance');
+    // ✅ FIX: partner удалён (платежи идут сразу на кошелёк), показываем pension вместо partner
     const leaderBalance = document.getElementById('leaderBalance');
     const investmentBalance = document.getElementById('investmentBalance');
+    const pensionBalance = document.getElementById('marketingBalance'); // переиспользуем слот для pension
 
-    if (partnerBalance) partnerBalance.textContent = `${app.formatNumber(partner, 4)} BNB`;
     if (leaderBalance) leaderBalance.textContent = `${app.formatNumber(leader, 4)} BNB`;
     if (investmentBalance) investmentBalance.textContent = `${app.formatNumber(investment, 4)} BNB`;
+    if (pensionBalance) pensionBalance.textContent = `${app.formatNumber(pension || '0', 4)} BNB`;
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -908,9 +909,32 @@ async loadQuarterlyInfo() {
       console.log('✅ Balance sufficient');
       console.log('6️⃣ Asking user confirmation...');
       
-      const confirmed = confirm(
-        `${_t('dashboard.activateLevel')} ${level}?\n\n${_t('dashboard.cost')}: ${price} BNB\n${_t('dashboard.reward')}: ${CONFIG.TOKEN_REWARDS[level - 1]} GWT\n\n${_t('dashboard.continue')}`
-      );
+      // ✅ FIX: Заменяем confirm() на не-блокирующий модал для мобильных
+      const confirmed = await new Promise((resolve) => {
+        const existing = document.getElementById('buyLevelConfirmModal');
+        if (existing) existing.remove();
+        
+        const modal = document.createElement('div');
+        modal.id = 'buyLevelConfirmModal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        modal.innerHTML = `
+          <div style="background:linear-gradient(135deg,#0d1117,#1a1f2e);border:1px solid #ffd70044;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 0 40px #ffd70022;">
+            <div style="font-size:40px;margin-bottom:10px">🚀</div>
+            <h3 style="color:#ffd700;margin:0 0 12px;font-size:20px">${_t('dashboard.activateLevel')} ${level}</h3>
+            <p style="color:#ccc;margin:4px 0;font-size:14px">${_t('dashboard.cost')}: <strong style="color:#fff">${price} BNB</strong></p>
+            <p style="color:#ccc;margin:4px 0;font-size:14px">${_t('dashboard.reward')}: <strong style="color:#ffd700">${CONFIG.TOKEN_REWARDS[level - 1]} GWT</strong></p>
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button id="blcNo" style="flex:1;padding:14px;border:1px solid #555;border-radius:10px;background:transparent;color:#aaa;font-size:15px;cursor:pointer;">❌</button>
+              <button id="blcYes" style="flex:1;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#ffd700,#ff9500);color:#000;font-weight:700;font-size:15px;cursor:pointer;">✅ ${_t('dashboard.continue')}</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        const cleanup = (val) => { modal.remove(); resolve(val); };
+        document.getElementById('blcYes').onclick = () => cleanup(true);
+        document.getElementById('blcNo').onclick = () => cleanup(false);
+        modal.onclick = (e) => { if (e.target === modal) cleanup(false); };
+      });
       
       if (!confirmed) {
         console.log('❌ User cancelled');
@@ -993,11 +1017,33 @@ async loadQuarterlyInfo() {
         return;
       }
 
-      // Подтверждение
+      // ✅ FIX: Модал вместо confirm() для мобильных
       const cost = CONFIG.QUARTERLY_COST;
-      const confirmed = confirm(
-        `${_t('dashboard.payQuarterlyConfirm')}\n\n${_t('dashboard.quarter')}: ${quarter + 1}\n${_t('dashboard.cost')}: ${cost} BNB\n\n${_t('dashboard.continue')}`
-      );
+      const confirmed = await new Promise((resolve) => {
+        const existing = document.getElementById('quarterlyConfirmModal');
+        if (existing) existing.remove();
+        
+        const modal = document.createElement('div');
+        modal.id = 'quarterlyConfirmModal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        modal.innerHTML = `
+          <div style="background:linear-gradient(135deg,#0d1117,#1a1f2e);border:1px solid #ffd70044;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 0 40px #ffd70022;">
+            <div style="font-size:40px;margin-bottom:10px">📅</div>
+            <h3 style="color:#ffd700;margin:0 0 12px;font-size:20px">${_t('dashboard.payQuarterlyConfirm')}</h3>
+            <p style="color:#ccc;margin:4px 0;font-size:14px">${_t('dashboard.quarter')}: <strong style="color:#fff">${quarter + 1}</strong></p>
+            <p style="color:#ccc;margin:4px 0;font-size:14px">${_t('dashboard.cost')}: <strong style="color:#fff">${cost} BNB</strong></p>
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button id="qpcNo" style="flex:1;padding:14px;border:1px solid #555;border-radius:10px;background:transparent;color:#aaa;font-size:15px;cursor:pointer;">❌</button>
+              <button id="qpcYes" style="flex:1;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#ffd700,#ff9500);color:#000;font-weight:700;font-size:15px;cursor:pointer;">✅ ${_t('dashboard.continue')}</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        const cleanup = (val) => { modal.remove(); resolve(val); };
+        document.getElementById('qpcYes').onclick = () => cleanup(true);
+        document.getElementById('qpcNo').onclick = () => cleanup(false);
+        modal.onclick = (e) => { if (e.target === modal) cleanup(false); };
+      });
       
       if (!confirmed) {
         return;
@@ -1075,18 +1121,8 @@ async loadQuarterlyInfo() {
           return;
         }
         
-        try {
-          await navigator.clipboard.writeText(refLinkInput.value);
-          app.showNotification(_t('common.copied'), 'success');
-        } catch (error) {
-          try {
-            refLinkInput.select();
-            document.execCommand('copy');
-            app.showNotification(_t('common.copied'), 'success');
-          } catch (fallbackError) {
-            app.showNotification(_t('common.copyError'), 'error');
-          }
-        }
+        // ✅ FIX: Используем улучшенный app.copyToClipboard с мобильным фолбеком
+        await app.copyToClipboard(refLinkInput.value);
       };
       
       copyBtn.addEventListener('click', handleCopy);
