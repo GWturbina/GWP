@@ -178,9 +178,21 @@ const tokensModule = {
         this.state.stats.burned = '0';
       }
 
-      // Circulating supply (можно рассчитать через события Transfer)
-      // Пока используем 0, потом можно добавить точный подсчет
-      this.state.stats.circulating = '0';
+      // Circulating supply = totalSupply - burned - owner's balance (tokenomics wallet)
+      try {
+        const tokenomicsBalance = await this.contracts.token.balanceOf(
+          CONFIG.ADMIN.tokenomics || ethers.constants.AddressZero
+        );
+        const totalSupplyBN = totalSupply;
+        const burnedBN = await this.contracts.token.balanceOf(ethers.constants.AddressZero).catch(() => ethers.BigNumber.from(0));
+        const circulating = totalSupplyBN.sub(burnedBN).sub(tokenomicsBalance);
+        this.state.stats.circulating = ethers.utils.formatEther(circulating.lt(0) ? ethers.BigNumber.from(0) : circulating);
+      } catch (e) {
+        // Фолбек: circulating = totalSupply - burned
+        const burned = ethers.utils.parseEther(this.state.stats.burned || '0');
+        const circ = totalSupply.sub(burned);
+        this.state.stats.circulating = ethers.utils.formatEther(circ.lt(0) ? ethers.BigNumber.from(0) : circ);
+      }
 
       // Market Cap
       this.state.stats.marketCap = (
@@ -443,7 +455,7 @@ const tokensModule = {
       try {
         tx = await contract.buyTokens({
           value: ethers.utils.parseEther(cost),
-          gasLimit: CONFIG.GAS.transaction
+          gasLimit: CONFIG.GAS.buyLevel
         });
       } catch (e) {
         app.showNotification('Buy function not available', 'error');
@@ -502,7 +514,7 @@ const tokensModule = {
       try {
         tx = await contract.sellTokens(
           ethers.utils.parseEther(amount.toString()),
-          { gasLimit: CONFIG.GAS.transaction }
+          { gasLimit: CONFIG.GAS.buyLevel }
         );
       } catch (e) {
         app.showNotification('Sell function not available', 'error');
@@ -610,6 +622,33 @@ const tokensModule = {
 
     // Пулы токенов
     this.renderPools();
+
+    // ✅ FIX: Добавляем ссылку «Посмотреть контракт» на opBNBscan
+    const contractLinkContainer = document.getElementById('tokenContractLink');
+    if (contractLinkContainer) {
+      contractLinkContainer.innerHTML = `
+        <a href="${CONFIG.NETWORK.blockExplorer}/address/${CONFIG.CONTRACTS.GWTToken}" 
+           target="_blank" rel="noopener" class="token-contract-link">
+          🔗 ${_t ? _t('tokens.viewContract') : 'View contract on Explorer'}
+        </a>
+      `;
+    } else {
+      // Если элемент не существует, добавляем после tokenPools
+      const poolsEl = document.getElementById('tokenPools');
+      if (poolsEl) {
+        const linkDiv = document.createElement('div');
+        linkDiv.id = 'tokenContractLink';
+        linkDiv.style.cssText = 'text-align:center;margin:15px 0;';
+        linkDiv.innerHTML = `
+          <a href="${CONFIG.NETWORK.blockExplorer}/address/${CONFIG.CONTRACTS.GWTToken}" 
+             target="_blank" rel="noopener" 
+             style="color:#00d4ff;text-decoration:none;font-size:14px;padding:10px 20px;border:1px solid #00d4ff33;border-radius:10px;display:inline-block;transition:all 0.3s;">
+            🔗 ${_t ? _t('tokens.viewContract') : 'View contract on Explorer'}
+          </a>
+        `;
+        poolsEl.parentNode.insertBefore(linkDiv, poolsEl.nextSibling);
+      }
+    }
 
     // Статус торговли
     this.updateTradingUI();
