@@ -118,7 +118,16 @@
       "partnerBonus": "Бонус партнёра",
       "partnerUpline": "Апстрим бонус",
       "quarterlyActivity": "Квартальный взнос"
-    }
+    },
+    "address": "Адрес",
+    "balance": "Баланс",
+    "cabinet": "Личный кабинет",
+    "days": "дней",
+    "earnings": "Заработок",
+    "payActivity": "Оплатить активность",
+    "paymentDue": "Оплата до",
+    "rank": "Ранг",
+    "tokens": "Токены"
   },
   "ranks": {
     "none": "Никто",
@@ -233,7 +242,8 @@
     "decimals": "Децималы",
     "network": "Сеть",
     "addWallet": "Добавить в кошелек",
-    "viewExplorer": "Смотреть в проводнике"
+    "viewExplorer": "Смотреть в проводнике",
+    "viewContract": "Посмотреть контракт в Explorer"
   },
   "projects": {
     "title": "Наши проекты",
@@ -386,7 +396,13 @@
     "withdrawalAmount": "Сумма (BNB)",
     "withdrawalNote": "Примечание/Причина",
     "withdrawalPool": "Пул вывода",
-    "amount": "Сумма"
+    "amount": "Сумма",
+    "freeActivation": "Бесплатная активация",
+    "ownerRights": "Права владельца",
+    "removeReason": "Причина удаления",
+    "totalBoardMembers": "Всего членов совета",
+    "voting": "Голосование",
+    "votingQuorum": "Кворум голосования"
   },
   "common": {
     "withdraw": "Вывести",
@@ -431,7 +447,20 @@
     "noTransactions": "Нет транзакций",
     "noTransactionsType": "Нет транзакций этого типа",
     "today": "Сегодня",
-    "viewing": "Просмотр"
+    "viewing": "Просмотр",
+    "address": "Адрес",
+    "amount": "Сумма",
+    "copy": "Копировать",
+    "date": "Дата",
+    "level": "Уровень",
+    "locked": "Заблокировано",
+    "number": "№",
+    "refresh": "Обновить",
+    "search": "Поиск",
+    "soon": "Скоро",
+    "status": "Статус",
+    "type": "Тип",
+    "copyManual": "Скопируйте ссылку:"
   },
   "roadmap": {
     "2025": "Запуск платформы и 8 проектов",
@@ -525,5 +554,65 @@
   "web3": {
     "solanaMsg": "GlobalWay работает на opBNB (EVM). Переключитесь на сеть opBNB в SafePal.",
     "switchNetwork": "Переключитесь на сеть opBNB вручную"
+  },
+  "exchange": {
+    "title": "💱 Обмен",
+    "subtitle": "Покупка и продажа GWT токенов",
+    "amountGWT": "Количество GWT",
+    "buyCommission": "Комиссия покупки",
+    "completed": "Завершено",
+    "createOnChain": "Создать ордер в блокчейне",
+    "createOrder": "Создать ордер",
+    "current": "Текущая",
+    "fee": "Комиссия",
+    "gwtPrice": "Цена GWT",
+    "myOrders": "Мои ордера",
+    "pricePerGWT": "Цена за 1 GWT",
+    "slippage": "Проскальзывание",
+    "total": "Итого",
+    "totalOrders": "Всего ордеров",
+    "volume": "Объём",
+    "youGet": "Вы получите",
+    "youPay": "Вы заплатите"
+  },
+  "safevault": {
+    "title": "🔐 SafeVault",
+    "subtitle": "Защита ваших средств",
+    "cancelChange": "Отменить изменение",
+    "changeCold": "Сменить холодный кошелёк",
+    "changeColdHint": "Изменение вступит в силу через 48 часов",
+    "changeMode": "Сменить режим",
+    "changePin": "Сменить PIN",
+    "coldLabel": "Адрес холодного кошелька",
+    "coldWallet": "Холодный кошелёк",
+    "confirmChange": "Подтвердить изменение",
+    "disableVault": "Отключить Vault",
+    "guardian": "Гарант",
+    "guardianHint": "Гарант может помочь восстановить доступ",
+    "guardianNotSet": "Не установлен",
+    "guardianTitle": "Гарант безопасности",
+    "lockedDesc": "Vault активен и защищает ваши средства",
+    "lockedTitle": "Vault активен",
+    "manageTitle": "Управление Vault",
+    "mode": "Режим",
+    "modeFull": "Полная защита",
+    "modeLabel": "Выберите режим защиты",
+    "modeSplit": "Разделение (% на холодный)",
+    "modeThreshold": "Порог (автовывод при сумме)",
+    "notConfigured": "Не настроен",
+    "paramPercent": "Процент на холодный (1-99)",
+    "paramThreshold": "Порог вывода (BNB)",
+    "pinConfirm": "Подтвердите PIN",
+    "pinLabel": "PIN-код (мин. 4 символа)",
+    "requestChange": "Запросить изменение",
+    "securityTitle": "Настройки безопасности",
+    "setGuardian": "Установить гаранта",
+    "setupBtn": "Настроить SafeVault",
+    "setupHint": "Настройте защиту ваших средств",
+    "setupTitle": "Настройка SafeVault",
+    "status": "Статус",
+    "toCold": "На холодный",
+    "toHot": "На горячий",
+    "totalReceived": "Всего получено"
   }
 }
