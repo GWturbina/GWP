@@ -615,8 +615,31 @@ const referralsModule = {
     this.renderHistory();
   },
 
-  clearHistory() {
-    if (!confirm('Очистить всю историю ссылок?')) return;
+  async clearHistory() {
+    // ✅ FIX: Модал вместо confirm()
+    const confirmed = await new Promise((resolve) => {
+      const existing = document.getElementById('clearHistoryModal');
+      if (existing) existing.remove();
+      const modal = document.createElement('div');
+      modal.id = 'clearHistoryModal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+      modal.innerHTML = `
+        <div style="background:linear-gradient(135deg,#0d1117,#1a1f2e);border:1px solid #ffd70044;border-radius:16px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">
+          <p style="color:#fff;font-size:16px;margin:0 0 20px">🗑️ Очистить всю историю ссылок?</p>
+          <div style="display:flex;gap:10px">
+            <button id="chNo" style="flex:1;padding:12px;border:1px solid #555;border-radius:10px;background:transparent;color:#aaa;cursor:pointer;">Нет</button>
+            <button id="chYes" style="flex:1;padding:12px;border:none;border-radius:10px;background:#ff4444;color:#fff;font-weight:700;cursor:pointer;">Да, очистить</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      const cleanup = (val) => { modal.remove(); resolve(val); };
+      document.getElementById('chYes').onclick = () => cleanup(true);
+      document.getElementById('chNo').onclick = () => cleanup(false);
+      modal.onclick = (e) => { if (e.target === modal) cleanup(false); };
+    });
+    
+    if (!confirmed) return;
     this.state.generatedLinks = [];
     try {
       const key = `gw_ref_history_${this.state.userId}`;
