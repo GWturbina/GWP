@@ -25,6 +25,15 @@ export default function handler(req, res) {
     return;
   }
 
+  // ═══ БЕЗОПАСНОСТЬ: whitelist хостов ═══
+  const ALLOWED_HOSTS = [
+    'gwp-navy.vercel.app'
+    // Добавляй новые домены сюда
+  ];
+  const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
+  const safeHost = ALLOWED_HOSTS.includes(rawHost) ? rawHost : ALLOWED_HOSTS[0];
+  const baseUrl = `https://${safeHost}`;
+
   // ═══ ПАРСИНГ КОРОТКОГО КОДА ═══
   // Поддержка 2 форматов:
   // Новый: c5sjfx (1 буква: g/c/n + base36)
@@ -82,10 +91,7 @@ export default function handler(req, res) {
   const slogan = s ? decodeURIComponent(s) : dir.desc;
   const inviterName = n ? decodeURIComponent(n) : '';
 
-  // ═══ ФОРМИРУЕМ URL-ы ═══
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const baseUrl = `${protocol}://${host}`;
+  // baseUrl уже определён выше через whitelist
 
   // OG Image: assets/og/{direction}-{previewIndex}.png
   // Если previewIndex=0 → используем default
@@ -148,7 +154,7 @@ a{color:#ffd700;text-decoration:none}
 <p>Перенаправление в ${escapeHtml(dir.name)}...</p>
 <p style="margin-top:8px"><a href="${landingUrl}">Нажмите, если не перенаправило</a></p>
 </div>
-<script>window.location.replace('${landingUrl}');</script>
+<script>window.location.replace(${JSON.stringify(landingUrl)});</script>
 </body>
 </html>`;
 
