@@ -15,11 +15,23 @@ const projectsModule = {
       name: 'KardGift',
       icon: 'CardGift.png',
       description: 'projects.cardgiftDesc',
-      url: 'https://cgm-brown.vercel.app/dashboard.html',  // ✅ CardGift Dashboard
-      status: 'active',                             // ✅ ИЗМЕНЕНО: development → active
-      statusText: 'projects.statusActive',                        // ✅ ИЗМЕНЕНО
+      url: 'https://cgm-brown.vercel.app/dashboard.html',
+      status: 'active',
+      statusText: 'projects.statusActive',
       releaseDate: 'Q1 2025',
-      requiredLevel: 0  // ✅ ДОБАВЛЕНО: минимальный уровень (0 = только регистрация)
+      requiredLevel: 0
+    },
+    {
+      id: 'diamondclub',
+      name: 'Diamond Club',
+      icon: 'DiamondClub.png',
+      description: 'projects.diamondClubDesc',
+      url: 'https://nst-murex.vercel.app/',
+      blogUrl: 'https://cgm-brown.vercel.app/b/gst',
+      status: 'active',
+      statusText: 'projects.statusActive',
+      releaseDate: 'Q1 2026',
+      requiredLevel: 0
     },
     {
       id: 'globaltub',
@@ -29,7 +41,7 @@ const projectsModule = {
       url: '#',
       status: 'coming',
       statusText: 'projects.statusSoon',
-      releaseDate: 'Q2 2026',
+      releaseDate: 'Q3 2026',
       requiredLevel: 1
     },
     {
@@ -40,7 +52,7 @@ const projectsModule = {
       url: '#',
       status: 'coming',
       statusText: 'projects.statusSoon',
-      releaseDate: 'Q2 2026',
+      releaseDate: 'Q3 2026',
       requiredLevel: 1
     },
     {
@@ -48,10 +60,10 @@ const projectsModule = {
       name: 'GlobalGame',
       icon: 'GlobalGame.png',
       description: 'projects.globalGameDesc',
-      url: 'https://nss-azure.vercel.app/',
-      status: 'active',
-      statusText: 'projects.statusActive',
-      releaseDate: 'Q1 2026',
+      url: '#',
+      status: 'coming',
+      statusText: 'projects.statusSoon',
+      releaseDate: 'Q3 2026',
       requiredLevel: 1
     },
     {
@@ -103,11 +115,11 @@ const projectsModule = {
       name: 'EcoVillages',
       icon: 'EcoVillages.png',
       description: 'projects.ecoVillagesDesc',
-      url: '#',
-      status: 'planned',
-      statusText: 'projects.statusPlanned',
+      url: 'https://nss-azure.vercel.app/',
+      status: 'active',
+      statusText: 'projects.statusActive',
       releaseDate: 'Q2 2026',
-      requiredLevel: 4
+      requiredLevel: 0
     }
   ],
 
@@ -415,10 +427,29 @@ const projectsModule = {
         width: 100%;
       }
       
-      /* ✅ НОВОЕ: Активный проект */
+      /* Активный проект */
       .project-btn-status.active {
         color: #4ade80;
         border-color: #4ade80;
+      }
+
+      /* Кнопка Блог */
+      .project-btn-blog {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: bold;
+        font-size: 0.85rem;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.3s ease;
+      }
+      .project-btn-blog:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
       }
       
       /* Карточка "Твой проект" - такая же как остальные */
@@ -639,7 +670,7 @@ const projectsModule = {
         <div class="lock-icon">🔒</div>
         <h2>Требуется регистрация в GlobalWay</h2>
         <p>Для доступа к проектам экосистемы необходимо зарегистрироваться в GlobalWay. После регистрации вам станут доступны все инструменты.</p>
-        <button class="register-btn" onclick="showPage('dashboard')">
+        <button class="register-btn" onclick="app.showPage('dashboard')">
           Зарегистрироваться
         </button>
       </div>
@@ -652,7 +683,6 @@ const projectsModule = {
   createProjectCard(project) {
     const card = document.createElement('div');
     
-    // ✅ НОВОЕ: Проверяем уровень для доступа
     const hasAccess = this.userState.userLevel >= (project.requiredLevel || 0);
     const isActive = project.status === 'active' && project.url && project.url !== '#';
     const isLocked = !hasAccess && project.requiredLevel > 0;
@@ -661,15 +691,12 @@ const projectsModule = {
     card.id = `project-${project.id}`;
     card.style.position = 'relative';
 
-    // Путь к иконке
     const iconPath = `assets/icons/${project.icon}`;
 
-    // ✅ НОВОЕ: Бейдж уровня для заблокированных
     const levelBadge = isLocked 
       ? `<div class="level-required-badge">🔒 Уровень ${project.requiredLevel}+</div>` 
       : '';
 
-    // ✅ НОВОЕ: Определяем текст и состояние кнопки
     let buttonText = 'common.openProject';
     let buttonDisabled = true;
     
@@ -682,9 +709,15 @@ const projectsModule = {
       buttonText = 'common.openProject';
     }
 
-    // ✅ НОВОЕ: Статус для активных проектов
     const statusClass = project.status === 'active' ? 'active' : project.status;
     const statusText = project.status === 'active' ? 'projects.statusActive' : `${project.statusText} • ${project.releaseDate}`;
+
+    // Кнопка Блог (если есть blogUrl)
+    const blogButton = project.blogUrl 
+      ? `<button class="project-btn-blog" onclick="projectsModule.openBlog('${project.id}')">
+           <span data-translate="projects.blog">📖 Блог</span>
+         </button>` 
+      : '';
 
     card.innerHTML = `
       ${levelBadge}
@@ -704,6 +737,7 @@ const projectsModule = {
         >
           <span data-translate="${buttonText}">${buttonText}</span>
         </button>
+        ${blogButton}
         <button class="project-btn-status ${statusClass}">
           ${project.status === 'active' 
             ? '<span data-translate="projects.statusActive">projects.statusActive</span>' 
@@ -713,6 +747,20 @@ const projectsModule = {
     `;
 
     return card;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ОТКРЫТИЕ БЛОГА ПРОЕКТА
+  // ═══════════════════════════════════════════════════════════════
+  openBlog(projectId) {
+    const project = this.projects.find(p => p.id === projectId);
+    if (!project || !project.blogUrl) return;
+
+    if (this.isSafePalBrowser()) {
+      window.location.href = project.blogUrl;
+    } else {
+      window.open(project.blogUrl, '_blank');
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════
