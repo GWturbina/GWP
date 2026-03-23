@@ -139,7 +139,12 @@ class Web3Manager {
     const message = 
       (_t ? _t('web3.solanaMsg') : 'GlobalWay runs on opBNB (EVM). Switch to opBNB in SafePal.');
     
-    alert(message);
+    // Не используем alert() — он блокирует UI на мобильных
+    if (window.app && typeof window.app.showNotification === 'function') {
+      window.app.showNotification(message, 'error');
+    } else {
+      console.error('⚠️ Solana network:', message);
+    }
     throw new Error('Solana wallet detected. Please switch to opBNB/BNB network in SafePal.');
   }
 
@@ -291,7 +296,9 @@ async connect() {
         const errorMsg = error.message || 'Connection failed. Please try again.';
         
         if (error.message.includes('SafePal') || error.message.includes('wallet') || error.message.includes('connection')) {
-          alert(errorMsg);
+          if (window.app && typeof window.app.showNotification === 'function') {
+            window.app.showNotification(errorMsg, 'error');
+          }
         }
       }
       
