@@ -18,16 +18,20 @@
     <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32x32.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192x192.png" />
     
+    <!-- Security -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://opbnb-mainnet-rpc.bnbchain.org https://*.vercel.app; img-src 'self' data: blob:;">
+
     <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css" />
     <link rel="stylesheet" href="css/main.css" />
     <link rel="stylesheet" href="css/components.css" />
-    <link rel="stylesheet" href="css/landing-modals.css" />  ← НОВЫЙ!
+    <link rel="stylesheet" href="css/landing-modals.css" />
     <link rel="stylesheet" href="css/v2-additional.css" />
     <link rel="stylesheet" href="css/exchange.css" />
     <link rel="stylesheet" href="css/referral-links.css" />
     <link rel="stylesheet" href="css/safevault.css" />
     <link rel="stylesheet" href="css/pages-fix.css" />
+    <link rel="stylesheet" href="css/mobile-nav.css" />
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -75,7 +79,7 @@
         // 🔥 УЛУЧШЕНО: Правильные deep-link схемы для разных платформ
         const deepLink = isAndroid
           ? `safepalwallet://open?url=${encoded}`
-          : `safepal://wc?uri=${encoded}`;
+          : `https://link.safepal.io/open?url=${encoded}`;
 
         // 🔥 ИСПРАВЛЕНО: Увеличенная задержка для безопасности
         setTimeout(() => {
@@ -83,27 +87,20 @@
           window.location.href = deepLink;
         }, 300); // 300ms вместо 120ms
 
-        // 🔥 ИСПРАВЛЕНО: Показываем инструкцию через 3 секунды (а не 2.2)
+        // Через 3 секунды — если SafePal не открылся, тихо предлагаем стор
         setTimeout(() => {
           try {
             const storeUrl = isAndroid
               ? 'https://play.google.com/store/apps/details?id=io.safepal.wallet'
               : 'https://apps.apple.com/app/safepal-wallet/id1548297139';
     
-            const wantsInstall = confirm(
-              'To use this DApp:\n\n' +
-              '1. Install SafePal Wallet (if not installed)\n' +
-              '2. Open this link in SafePal DApp Browser\n\n' +
-              'Press OK to open app store.'
-            );
-            
-            if (wantsInstall) {
-              window.open(storeUrl, '_blank');
-            }
+            // Не блокируем UI — просто открываем стор в новой вкладке
+            console.log('📲 SafePal not detected, opening store:', storeUrl);
+            window.open(storeUrl, '_blank');
           } catch (e) {
             console.warn('Deep-link store redirect error:', e);
           }
-        }, 3000); // 3 секунды вместо 2.2
+        }, 3000);
         
       } catch (e) {
         console.warn('SafePal deep-link error:', e);
@@ -1721,31 +1718,34 @@
 <!-- SCRIPTS -->
     
     <!-- Библиотеки -->
-    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+    
+    <!-- Preload критических ресурсов -->
+    <link rel="preload" href="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js" as="script" crossorigin="anonymous">
     
     <!-- Базовые -->
-    <script src="js/i18n.js?v=7"></script>
-    <script src="js/config.js?v=7"></script>
-    <script src="js/web3.js?v=10"></script>
+    <script src="js/i18n.js?v=8"></script>
+    <script src="js/config.js?v=8"></script>
+    <script src="js/web3.js?v=11"></script>
     
     <!-- Основной -->
-    <script src="js/app.js?v=13"></script>    <!-- ✅ ИЗМЕНЕНО: v=6 → v=7 -->
+    <script src="js/app.js?v=14"></script>
     
     <!-- Landing -->
-    <script src="js/landing.js?v=8"></script>    <!-- ✅ ИЗМЕНЕНО: v=6 → v=7 -->
+    <script src="js/landing.js?v=9"></script>
     
     <!-- Страницы -->
-    <script src="js/dashboard.js?v=17"></script>
-    <script src="js/partners.js?v=14"></script>
-    <script src="js/matrix.js?v=12"></script>
-    <script src="js/tokens.js?v=7"></script>
-    <script src="js/projects.js?v=10"></script> 
-    <script src="js/referral-links.js?v=3"></script>
-    <script src="js/exchange.js?v=3"></script>
-    <script src="js/safevault.js?v=1"></script>
-    <script src="js/admin.js?v=22"></script>
-    <script src="js/admin-extensions.js?v=1"></script>
+    <script src="js/dashboard.js?v=18"></script>
+    <script src="js/partners.js?v=15"></script>
+    <script src="js/matrix.js?v=13"></script>
+    <script src="js/tokens.js?v=8"></script>
+    <script src="js/projects.js?v=11"></script> 
+    <script src="js/referral-links.js?v=4"></script>
+    <script src="js/exchange.js?v=4"></script>
+    <script src="js/safevault.js?v=2"></script>
+    <script src="js/admin.js?v=23"></script>
+    <script src="js/admin-extensions.js?v=2"></script>
     
     <!-- Инициализация -->
     <script>
