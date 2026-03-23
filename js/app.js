@@ -240,17 +240,23 @@ const app = {
   },
 
   async waitForWeb3() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (window.web3Manager) {
         resolve();
-      } else {
-        const interval = setInterval(() => {
-          if (window.web3Manager) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 100);
+        return;
       }
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+        console.warn('⚠️ Web3Manager not loaded after 15s');
+        resolve(); // Не блокируем — продолжаем без web3
+      }, 15000);
+      const interval = setInterval(() => {
+        if (window.web3Manager) {
+          clearInterval(interval);
+          clearTimeout(timeout);
+          resolve();
+        }
+      }, 100);
     });
   },
 
@@ -1481,6 +1487,31 @@ const app = {
         await module.refresh();
       }
     }
+  },
+
+  // Неблокирующий модал — замена confirm() для мобильных
+  confirmAction(message) {
+    return new Promise((resolve) => {
+      const existing = document.getElementById('gwConfirmModal');
+      if (existing) existing.remove();
+      const modal = document.createElement('div');
+      modal.id = 'gwConfirmModal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+      const escaped = String(message).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+      modal.innerHTML = `
+        <div style="background:linear-gradient(135deg,#0d1117,#1a1f2e);border:1px solid #ffd70044;border-radius:16px;padding:28px 24px;max-width:380px;width:100%;text-align:center;">
+          <p style="color:#eee;font-size:15px;margin:0 0 20px;line-height:1.5">${escaped}</p>
+          <div style="display:flex;gap:12px">
+            <button id="gwConfNo" style="flex:1;padding:14px;border:1px solid #555;border-radius:10px;background:transparent;color:#aaa;font-size:15px;cursor:pointer;">Отмена</button>
+            <button id="gwConfYes" style="flex:1;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#ffd700,#ff9500);color:#000;font-weight:700;font-size:15px;cursor:pointer;">Подтвердить</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      const cleanup = (r) => { modal.remove(); resolve(r); };
+      document.getElementById('gwConfYes').onclick = () => cleanup(true);
+      document.getElementById('gwConfNo').onclick = () => cleanup(false);
+      modal.onclick = (e) => { if (e.target === modal) cleanup(false); };
+    });
   }
 };
 
