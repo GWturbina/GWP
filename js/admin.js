@@ -1783,7 +1783,7 @@ const adminModule = {
         return;
       }
       
-      const confirmed = confirm(
+      const confirmed = await app.confirmAction(
         `Регистрация:\n\n` +
         `Пользователь: ${userAddress}\n` +
         `Спонсор: GW${sponsorId}\n` +
@@ -1887,7 +1887,7 @@ const adminModule = {
         return;
       }
       
-      const confirmed = confirm(
+      const confirmed = await app.confirmAction(
         `Активация:\n\n` +
         `Пользователь: ${userAddress}\n` +
         `Текущий: ${currentLevel}\n` +
@@ -2066,7 +2066,7 @@ const adminModule = {
     }
     
     try {
-      const confirmed = confirm(
+      const confirmed = await app.confirmAction(
         `Присвоение ранга:\n\n` +
         `Пользователь: ${userAddress}\n` +
         `Ранг: ${this.RANK_NAMES[rank]}\n\n` +
@@ -2117,7 +2117,7 @@ const adminModule = {
     }
     
     try {
-      const confirmed = confirm(
+      const confirmed = await app.confirmAction(
         `${action === 'authorize' ? 'Авторизовать' : 'Отозвать авторизацию'}:\n` +
         `${address}\n\nПродолжить?`
       );
@@ -2161,7 +2161,7 @@ const adminModule = {
     }
     
     try {
-      const confirmed = confirm(`Добавить члена совета:\n${address}\n\nПродолжить?`);
+      const confirmed = await app.confirmAction(`Добавить члена совета:\n${address}\n\nПродолжить?`);
       if (!confirmed) return;
       
       app.showNotification('Добавление...', 'info');
@@ -2200,7 +2200,7 @@ const adminModule = {
     }
     
     try {
-      const confirmed = confirm(
+      const confirmed = await app.confirmAction(
         `⚠️ Удалить члена совета:\n${address}\n\n` +
         `Требуется минимум 3 члена!\n\nПродолжить?`
       );
@@ -2232,7 +2232,7 @@ const adminModule = {
       return;
     }
     
-    const confirmed = confirm('Приостановить контракт?\n\nВсе операции будут заблокированы!');
+    const confirmed = await app.confirmAction('Приостановить контракт?\n\nВсе операции будут заблокированы!');
     if (!confirmed) return;
     
     try {
@@ -2256,7 +2256,7 @@ const adminModule = {
       return;
     }
     
-    const confirmed = confirm('Возобновить работу контракта?');
+    const confirmed = await app.confirmAction('Возобновить работу контракта?');
     if (!confirmed) return;
     
     try {
@@ -2289,7 +2289,7 @@ const adminModule = {
     }
     
     try {
-      const confirmed = confirm(
+      const confirmed = await app.confirmAction(
         `Изменить адрес ${contractType}:\n${newAddress}\n\n` +
         `⚠️ Это критическое действие!\n\nПродолжить?`
       );
@@ -2358,7 +2358,7 @@ const adminModule = {
       return;
     }
     
-    const confirmed = confirm(
+    const confirmed = await app.confirmAction(
       '⚠️ ЭКСТРЕННЫЙ ВЫВОД ⚠️\n\n' +
       'Вывести ВСЕ средства?\n\n' +
       'Это действие НЕОБРАТИМО!'
@@ -2400,7 +2400,7 @@ const adminModule = {
       return;
     }
     
-    const confirmed = confirm(
+    const confirmed = await app.confirmAction(
       `⚠️ ПЕРЕДАЧА ВЛАДЕНИЯ ⚠️\n\n` +
       `Новый владелец: ${newOwner}\n\n` +
       `ЭТО НЕОБРАТИМО!\n\nПродолжить?`
