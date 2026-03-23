@@ -263,13 +263,13 @@
     bind('p2pRemoveTokenBtn', async function() {
       const addr = document.getElementById('p2pTokenAddr')?.value?.trim();
       if (!addr || !addr.startsWith('0x')) return;
-      if (!confirm('Удалить токен из разрешённых?')) return;
+      if (!(await app.confirmAction('Удалить токен из разрешённых?'))) return;
       await this._p2pTx('removeAllowedToken', [addr], 'Токен удалён');
     });
 
     // P2P — Pause/Unpause
     bind('p2pPauseBtn', async function() {
-      if (!confirm('Приостановить P2P контракт?')) return;
+      if (!(await app.confirmAction('Приостановить P2P контракт?'))) return;
       await this._p2pTx('pause', [], '⏸️ P2P приостановлен');
     });
     bind('p2pUnpauseBtn', async function() {
@@ -278,13 +278,13 @@
 
     // P2P — Emergency
     bind('p2pEmergencyBNBBtn', async function() {
-      if (!confirm('⚠️ ЭКСТРЕННЫЙ ВЫВОД всех BNB из P2P?')) return;
+      if (!(await app.confirmAction('⚠️ ЭКСТРЕННЫЙ ВЫВОД всех BNB из P2P?'))) return;
       await this._p2pTx('emergencyWithdraw', [], '🚨 BNB выведены');
     });
     bind('p2pEmergencyTokenBtn', async function() {
       const addr = document.getElementById('p2pEmergencyTokenAddr')?.value?.trim();
       if (!addr) return;
-      if (!confirm('⚠️ ЭКСТРЕННЫЙ ВЫВОД токена из P2P?')) return;
+      if (!(await app.confirmAction('⚠️ ЭКСТРЕННЫЙ ВЫВОД токена из P2P?'))) return;
       await this._p2pTx('emergencyWithdrawToken', [addr], '🚨 Токен выведен');
     });
 
