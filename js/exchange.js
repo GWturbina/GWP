@@ -307,7 +307,8 @@ const exchangeModule = {
   // ОТМЕНА ОРДЕРА
   // ═══════════════════════════════════════════════════════════════
   async cancelOrder(orderId) {
-    if (!confirm('Отменить ордер #' + orderId + '?')) return;
+    const confirmed = await this.confirmAction('Отменить ордер #' + orderId + '?');
+    if (!confirmed) return;
     this.setLoading(true, 'Отмена ордера...');
     try {
       const p2p = await app?.getSignedContract?.('P2PEscrow');
@@ -843,6 +844,30 @@ const exchangeModule = {
       this.state.userAddress = app.state.userAddress;
       await this.loadAll();
     }
+  },
+
+  // Неблокирующий модал вместо confirm()
+  confirmAction(message) {
+    return new Promise((resolve) => {
+      const existing = document.getElementById('exchangeConfirmModal');
+      if (existing) existing.remove();
+      const modal = document.createElement('div');
+      modal.id = 'exchangeConfirmModal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+      modal.innerHTML = `
+        <div style="background:linear-gradient(135deg,#0d1117,#1a1f2e);border:1px solid #ffd70044;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;">
+          <p style="color:#eee;font-size:15px;margin:0 0 20px">${message}</p>
+          <div style="display:flex;gap:12px">
+            <button id="exConfNo" style="flex:1;padding:12px;border:1px solid #555;border-radius:10px;background:transparent;color:#aaa;font-size:15px;cursor:pointer;">Нет</button>
+            <button id="exConfYes" style="flex:1;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#ffd700,#ff9500);color:#000;font-weight:700;font-size:15px;cursor:pointer;">Да</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      const cleanup = (r) => { modal.remove(); resolve(r); };
+      document.getElementById('exConfYes').onclick = () => cleanup(true);
+      document.getElementById('exConfNo').onclick = () => cleanup(false);
+      modal.onclick = (e) => { if (e.target === modal) cleanup(false); };
+    });
   }
 };
 
