@@ -365,3 +365,15 @@ CONFIG.isDirector = function(address) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = CONFIG;
 }
+
+// Production: подавляем console.log/warn (оставляем error)
+if (!CONFIG.FEATURES.debugMode && typeof window !== 'undefined') {
+  const noop = function() {};
+  const isDev = window.location.hostname === 'localhost' || 
+                window.location.hostname === '127.0.0.1' ||
+                window.location.protocol === 'file:';
+  if (!isDev) {
+    console.log = noop;
+    console.warn = noop;
+  }
+}
