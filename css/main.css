@@ -724,72 +724,8 @@ tr:hover td {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  /* Mobile Navigation */
-  .main-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    top: auto;
-    padding: 4px 4px 4px 4px;
-    justify-content: space-around;
-    gap: 3px;
-    border-top: 3px solid var(--gold);
-    border-bottom: none;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    z-index: var(--z-nav);
-    background: linear-gradient(135deg, rgba(0, 26, 51, 0.98), rgba(0, 40, 80, 0.95));
-    backdrop-filter: blur(20px);
-    box-shadow: 0 -4px 20px rgba(255, 215, 0, 0.3);
-    min-height: 0;
-  }
-  
-  .nav-btn {
-    min-width: 55px;
-    min-height: 46px;
-    font-size: 10px;
-    padding: var(--spacing-xs);
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.08));
-    border: 2px solid var(--border-gold);
-    color: var(--text-light);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .nav-btn span {
-    display: block;
-    font-size: 9px;
-    font-weight: 600;
-    margin-top: 2px;
-    line-height: 1;
-  }
-  
-  .nav-btn i {
-    font-size: var(--font-size-md);
-    color: var(--gold);
-    margin-bottom: 2px;
-  }
-  
-  .nav-btn:hover,
-  .nav-btn.active {
-    background: linear-gradient(135deg, var(--gold), #ffed4e);
-    color: var(--cosmic-black);
-    border-color: var(--gold);
-    transform: translateY(-2px);
-  }
-  
-  .nav-btn.active i,
-  .nav-btn:hover i {
-    color: var(--cosmic-black);
-  }
-  
-  .nav-btn.active span,
-  .nav-btn:hover span {
-    color: var(--cosmic-black);
-  }
+  /* Mobile Navigation — ВСЕ стили навбара в mobile-nav.css */
+  /* Не дублируем здесь чтобы не было конфликтов */
   
   .content {
     padding-bottom: 55px;
@@ -872,18 +808,7 @@ tr:hover td {
     margin-bottom: var(--spacing-md);
   }
   
-  .nav-btn {
-    min-width: 50px;
-    min-height: 42px;
-  }
-  
-  .nav-btn span {
-    font-size: 8px;
-  }
-  
-  .nav-btn i {
-    font-size: var(--font-size-sm);
-  }
+  /* nav-btn @480 — стили в mobile-nav.css */
   
   .info-item,
   .stat-item {
