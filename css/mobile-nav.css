@@ -27,6 +27,12 @@
    ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
 
+  /* ─── Гарантируем заполнение экрана до краёв ─── */
+  html, body {
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+  }
+
   /* Show icons on mobile */
   .nav-icon {
     display: block;
@@ -46,17 +52,30 @@
     align-items: center !important;
     gap: 4px !important;
     padding: 6px 4px !important;
-    padding-bottom: calc(6px + env(safe-area-inset-bottom, 8px)) !important;
-    min-height: 64px !important;
-    background: linear-gradient(180deg, rgba(0, 20, 45, 0.98), rgba(0, 12, 30, 0.99)) !important;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    min-height: 56px !important;
+    background: rgba(0, 12, 30, 0.99) !important;
     border-top: 2px solid rgba(255, 215, 0, 0.6) !important;
     border-bottom: none !important;
-    border-radius: 16px 16px 0 0 !important;
+    border-radius: 0 !important;
     z-index: 9990 !important;
     backdrop-filter: blur(25px) !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(255, 215, 0, 0.2) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5) !important;
     overflow: visible !important;
     flex-wrap: nowrap !important;
+  }
+
+  /* Заполняем ВСЮ область ниже навбара до края экрана */
+  .main-nav::after {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    bottom: -100px !important; /* гарантированно ниже экрана */
+    left: 0 !important;
+    right: 0 !important;
+    height: 100px !important;
+    background: rgba(0, 12, 30, 0.99) !important;
+    z-index: -1 !important;
   }
 
   /* ─── Hide secondary buttons from bottom bar ─── */
@@ -201,7 +220,7 @@
 
   /* ─── Content padding for bottom nav ─── */
   .content {
-    padding-bottom: 80px !important;
+    padding-bottom: 70px !important;
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -235,7 +254,7 @@
     display: block !important;
     position: fixed !important;
     /* Привязка: прямо над навбаром (64px + safe-area + 2px border) */
-    bottom: calc(66px + env(safe-area-inset-bottom, 8px)) !important;
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px)) !important;
     left: 8px !important;
     right: 8px !important;
     top: auto !important;
