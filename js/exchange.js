@@ -204,7 +204,7 @@ const exchangeModule = {
       const allowance = await gwtToken.allowance(this.state.userAddress, p2pAddr);
       if (allowance.lt(gwtWei)) {
         this.setLoading(true, 'Подтвердите approve в кошельке...');
-        const approveTx = await gwtToken.approve(p2pAddr, ethers.constants.MaxUint256, { gasLimit: 100000 });
+        const approveTx = await gwtToken.approve(p2pAddr, gwtWei, { gasLimit: 100000 });
         await approveTx.wait();
       }
 
@@ -288,7 +288,7 @@ const exchangeModule = {
         const allowance = await gwtToken.allowance(this.state.userAddress, p2pAddr);
         if (allowance.lt(order.buyAmount)) {
           this.setLoading(true, 'Approve GWT...');
-          const appTx = await gwtToken.approve(p2pAddr, ethers.constants.MaxUint256, { gasLimit: 100000 });
+          const appTx = await gwtToken.approve(p2pAddr, order.buyAmount, { gasLimit: 100000 });
           await appTx.wait();
         }
         this.setLoading(true, 'Исполнение...');
