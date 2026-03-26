@@ -351,25 +351,64 @@ const matrixModule = {
     }
   },
 
-  // Предзагрузка узлов пакетами
+  // Предзагрузка узлов через Multicall3 (1-2 batch-вызова вместо десятков)
   async preloadNodes(nodeIds) {
-    const toLoad = nodeIds.filter(id => !this._nodeCache[id]);
-    const batchSize = 10;
+    const mc = window.Multicall3;
+    const now = Date.now();
     
-    for (let i = 0; i < toLoad.length; i += batchSize) {
-      const batch = toLoad.slice(i, i + batchSize);
-      await Promise.all(batch.map(id => this.getNodeData(id)));
+    // Фильтруем уже кешированные
+    const toLoadNodes = nodeIds.filter(id => 
+      !this._nodeCache[id] || (now - (this._nodeCacheTime[id] || 0)) >= this.CACHE_TTL
+    );
+    
+    // Батч 1: загружаем matrixNodes для всех некешированных ID
+    if (toLoadNodes.length > 0) {
+      const nodeCalls = toLoadNodes.map(id => ({
+        contract: this.contracts.matrixRegistry,
+        method: 'matrixNodes',
+        args: [id]
+      }));
+      
+      console.log(`⚡ Matrix Multicall3: loading ${toLoadNodes.length} nodes in batch`);
+      const nodeResults = await mc.batchCall(nodeCalls);
+      
+      toLoadNodes.forEach((id, idx) => {
+        if (nodeResults[idx]) {
+          this._nodeCache[id] = nodeResults[idx];
+          this._nodeCacheTime[id] = now;
+        }
+      });
     }
     
-    // Также предзагружаем maxLevel
-    const addresses = nodeIds
-      .map(id => this._nodeCache[id]?.[1])
-      .filter(Boolean);
+    // Батч 2: загружаем getUserMaxLevel для адресов
+    const addressesToLoad = [];
+    const addressIds = [];
     
-    const addrBatchSize = 10;
-    for (let i = 0; i < addresses.length; i += addrBatchSize) {
-      const batch = addresses.slice(i, i + addrBatchSize);
-      await Promise.all(batch.map(addr => this.getUserMaxLevel(addr)));
+    for (const id of nodeIds) {
+      const addr = this._nodeCache[id]?.[1];
+      if (addr && addr !== ethers.constants.AddressZero) {
+        if (this._maxLevelCache[addr] === undefined || (now - (this._maxLevelCacheTime[addr] || 0)) >= this.CACHE_TTL) {
+          addressesToLoad.push(addr);
+          addressIds.push(id);
+        }
+      }
+    }
+    
+    if (addressesToLoad.length > 0) {
+      const levelCalls = addressesToLoad.map(addr => ({
+        contract: this.contracts.globalWay,
+        method: 'getUserMaxLevel',
+        args: [addr]
+      }));
+      
+      console.log(`⚡ Matrix Multicall3: loading ${addressesToLoad.length} maxLevels in batch`);
+      const levelResults = await mc.batchCall(levelCalls);
+      
+      addressesToLoad.forEach((addr, idx) => {
+        const level = levelResults[idx] != null ? Number(levelResults[idx]) : 0;
+        this._maxLevelCache[addr] = level;
+        this._maxLevelCacheTime[addr] = now;
+      });
     }
   },
 
