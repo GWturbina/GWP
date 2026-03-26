@@ -998,6 +998,18 @@ const app = {
         console.log(`🔘 Navigation clicked: ${page}`);
         this.showPage(page);
       });
+
+      // Touch fix для SafePal и мобильных браузеров — убираем 300ms задержку
+      let touchMoved = false;
+      link.addEventListener('touchstart', () => { touchMoved = false; }, { passive: true });
+      link.addEventListener('touchmove', () => { touchMoved = true; }, { passive: true });
+      link.addEventListener('touchend', (e) => {
+        if (touchMoved) return; // свайп, не тап
+        e.preventDefault();
+        const page = link.getAttribute('data-page');
+        console.log(`🔘 Navigation touch: ${page}`);
+        this.showPage(page);
+      }, { passive: false });
     });
 
     const hash = window.location.hash.substring(1);
@@ -1042,6 +1054,17 @@ const app = {
         this.showPage(page);
         this.closeMobileDrawer();
       });
+
+      // Touch fix для drawer items
+      let drawerTouchMoved = false;
+      item.addEventListener('touchstart', () => { drawerTouchMoved = false; }, { passive: true });
+      item.addEventListener('touchmove', () => { drawerTouchMoved = true; }, { passive: true });
+      item.addEventListener('touchend', (e) => {
+        if (drawerTouchMoved) return;
+        e.preventDefault();
+        this.showPage(page);
+        this.closeMobileDrawer();
+      }, { passive: false });
       
       grid.appendChild(item);
     });
@@ -1056,6 +1079,21 @@ const app = {
         this.openMobileDrawer();
       }
     });
+
+    // Touch fix для кнопки Ещё
+    let moreTouchMoved = false;
+    moreBtn.addEventListener('touchstart', () => { moreTouchMoved = false; }, { passive: true });
+    moreBtn.addEventListener('touchmove', () => { moreTouchMoved = true; }, { passive: true });
+    moreBtn.addEventListener('touchend', (e) => {
+      if (moreTouchMoved) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (drawer.classList.contains('active')) {
+        this.closeMobileDrawer();
+      } else {
+        this.openMobileDrawer();
+      }
+    }, { passive: false });
 
     // Overlay close
     if (overlay) {
