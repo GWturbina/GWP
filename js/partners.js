@@ -91,25 +91,37 @@ const partnersModule = {
   // ═══════════════════════════════════════════════════════════════
   // СТАТИСТИКА КОМАНДЫ - ИСПРАВЛЕННАЯ
   // ═══════════════════════════════════════════════════════════════
+  // Кеш для статистики команды (120 секунд)
+  _teamStatsCache: null,
+  _teamStatsCacheTime: 0,
+  _TEAM_STATS_TTL: 120000,
+
   async loadTeamStats() {
     try {
       const address = app.state.userAddress;
-      console.log('📊 Loading team stats for', address);
       
-      // 1. Лично приглашённых - из MatrixRegistry.getDirectReferrals
+      // Проверяем кеш
+      const now = Date.now();
+      if (this._teamStatsCache && (now - this._teamStatsCacheTime) < this._TEAM_STATS_TTL) {
+        console.log('📊 Team stats from cache');
+        this.state.stats = this._teamStatsCache;
+        this.updateStatsUI();
+        return;
+      }
+      
+      console.log('📊 Loading team stats for', address);
+      const mc = window.Multicall3;
+      
+      // 1. Лично приглашённых
       const directReferrals = await this.contracts.matrixRegistry.getDirectReferrals(address);
       const validDirect = directReferrals.filter(r => r && r !== ethers.constants.AddressZero);
       const personalCount = validDirect.length;
       console.log('👥 Direct referrals (1st line):', personalCount);
       
-      // 2. Собираем ВСЮ команду по всем 12 уровням — оптимизированный BFS
-      const allTeamSet = new Set(); // Set для O(1) проверки дубликатов
-      let activeCount = 0;
-      
-      // BFS по уровням — загружаем пакетами для скорости
+      // 2. BFS по 12 уровням с Multicall3 (вместо последовательных вызовов)
+      const allTeamSet = new Set();
       let currentLevelAddrs = validDirect.map(a => a.toLowerCase());
       
-      // Добавляем первую линию
       for (const addr of currentLevelAddrs) {
         allTeamSet.add(addr);
       }
@@ -117,66 +129,60 @@ const partnersModule = {
       for (let depth = 1; depth <= 12; depth++) {
         if (currentLevelAddrs.length === 0) break;
         
-        let nextLevelAddrs = [];
+        // Один Multicall3 батч для всего уровня
+        const calls = currentLevelAddrs.map(addr => ({
+          contract: this.contracts.matrixRegistry,
+          method: 'getDirectReferrals',
+          args: [addr]
+        }));
         
-        // Пакетная загрузка рефералов для текущего уровня
-        const batchSize = 5;
-        for (let i = 0; i < currentLevelAddrs.length; i += batchSize) {
-          const batch = currentLevelAddrs.slice(i, i + batchSize);
-          
-          const batchResults = await Promise.all(
-            batch.map(async (addr) => {
-              try {
-                const refs = await this.contracts.matrixRegistry.getDirectReferrals(addr);
-                return refs.filter(r => r && r !== ethers.constants.AddressZero);
-              } catch (e) {
-                return [];
-              }
-            })
-          );
-          
-          for (const refs of batchResults) {
+        const results = await mc.batchCall(calls);
+        
+        let nextLevelAddrs = [];
+        for (const refs of results) {
+          if (refs && Array.isArray(refs)) {
             for (const refAddr of refs) {
-              const lower = refAddr.toLowerCase();
-              if (!allTeamSet.has(lower)) {
-                allTeamSet.add(lower);
-                nextLevelAddrs.push(lower);
+              if (refAddr && refAddr !== ethers.constants.AddressZero) {
+                const lower = refAddr.toLowerCase();
+                if (!allTeamSet.has(lower)) {
+                  allTeamSet.add(lower);
+                  nextLevelAddrs.push(lower);
+                }
               }
             }
           }
         }
         
-        console.log(`  Level ${depth}: ${currentLevelAddrs.length} partners, next: ${nextLevelAddrs.length}`);
+        console.log(`  Level ${depth}: ${currentLevelAddrs.length} → ${nextLevelAddrs.length}`);
         currentLevelAddrs = nextLevelAddrs;
       }
       
-      // 3. Проверяем активность пакетами
+      // 3. Проверяем активность ОДНИМ батчем Multicall3
       const allAddrs = Array.from(allTeamSet);
-      const activeBatchSize = 10;
+      let activeCount = 0;
       
-      for (let i = 0; i < allAddrs.length; i += activeBatchSize) {
-        const batch = allAddrs.slice(i, i + activeBatchSize);
-        const results = await Promise.all(
-          batch.map(async (addr) => {
-            try {
-              const maxLevel = await this.contracts.globalWay.getUserMaxLevel(addr);
-              return Number(maxLevel) >= 1;
-            } catch (e) {
-              return false;
-            }
-          })
-        );
-        activeCount += results.filter(Boolean).length;
+      if (allAddrs.length > 0) {
+        const activeCalls = allAddrs.map(addr => ({
+          contract: this.contracts.globalWay,
+          method: 'getUserMaxLevel',
+          args: [addr]
+        }));
+        
+        const activeResults = await mc.batchCall(activeCalls);
+        activeCount = activeResults.filter(r => r != null && Number(r) >= 1).length;
       }
       
-      console.log('📊 Total team:', allTeamSet.size);
-      console.log('📊 Active partners:', activeCount);
+      console.log('📊 Total team:', allTeamSet.size, '| Active:', activeCount);
 
       this.state.stats = {
         personal: personalCount,
         active: activeCount,
         total: allTeamSet.size
       };
+      
+      // Сохраняем в кеш
+      this._teamStatsCache = { ...this.state.stats };
+      this._teamStatsCacheTime = Date.now();
 
       console.log('✅ Team stats:', this.state.stats);
       this.updateStatsUI();
@@ -353,7 +359,7 @@ const partnersModule = {
       console.log(`📋 Loading partners for depth ${depth}...`);
       tableBody.innerHTML = '<tr><td colspan="8" class="no-data">' + _t('common.loading') + '</td></tr>';
 
-      // Получаем партнёров на нужной глубине
+      // Получаем партнёров на нужной глубине (через Multicall3)
       const referrals = await this.getPartnersAtDepth(address, depth);
     
       console.log(`📋 Found ${referrals.length} partners at depth ${depth}`);
@@ -363,24 +369,22 @@ const partnersModule = {
         return;
       }
 
-      // Получаем детали для каждого партнера (максимум 100 для производительности)
+      // Получаем детали ПАКЕТНО через Multicall3 (максимум 100)
       const limitedReferrals = referrals.slice(0, 100);
-      
-      const partnersData = await Promise.all(
-        limitedReferrals.map(refAddress => this.getPartnerDetails(refAddress))
-      );
+      const partnersData = await this.getPartnerDetailsBatch(limitedReferrals);
   
       // Обновляем таблицу
+      const esc = window.escapeHtml;
       tableBody.innerHTML = partnersData.map((partner, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td>${partner.id}</td>
-          <td>${app.formatAddress(partner.address)}</td>
-          <td>${partner.sponsorId}</td>
-          <td>${partner.date}</td>
-          <td>${partner.level}</td>
-          <td>${partner.team}</td>
-          <td><span class="badge badge-${partner.rank.toLowerCase().replace(' ', '-')}">${partner.rank}</span></td>
+          <td>${esc(partner.id)}</td>
+          <td>${esc(app.formatAddress(partner.address))}</td>
+          <td>${esc(partner.sponsorId)}</td>
+          <td>${esc(partner.date)}</td>
+          <td>${esc(partner.level)}</td>
+          <td>${esc(partner.team)}</td>
+          <td><span class="badge badge-${esc(partner.rank.toLowerCase().replace(/[^a-z0-9-]/g, ''))}">${esc(partner.rank)}</span></td>
         </tr>
       `).join('');
 
@@ -398,7 +402,7 @@ const partnersModule = {
 
   // ═══════════════════════════════════════════════════════════════
   // ПОЛУЧИТЬ ПАРТНЁРОВ НА ОПРЕДЕЛЁННОЙ ГЛУБИНЕ
-  // Использует MatrixRegistry.getDirectReferrals()
+  // Использует Multicall3 для батч-загрузки getDirectReferrals
   // ═══════════════════════════════════════════════════════════════
   async getPartnersAtDepth(address, targetDepth) {
     try {
@@ -412,34 +416,36 @@ const partnersModule = {
         return validRefs;
       }
       
-      // Для глубины > 1 - идём рекурсивно
+      // Для глубины > 1 — BFS с Multicall3 на каждом уровне
       let currentLevel = [address];
       
       for (let depth = 1; depth <= targetDepth; depth++) {
-        let nextLevel = [];
+        if (currentLevel.length === 0) return [];
+
+        // Батч-запрос getDirectReferrals для всех адресов текущего уровня
+        const calls = currentLevel.map(addr => ({
+          contract: this.contracts.matrixRegistry,
+          method: 'getDirectReferrals',
+          args: [addr]
+        }));
         
-        for (const addr of currentLevel) {
-          try {
-            const refs = await this.contracts.matrixRegistry.getDirectReferrals(addr);
-            const validRefs = refs.filter(r => r && r !== ethers.constants.AddressZero);
-            nextLevel.push(...validRefs);
-          } catch (e) {
-            console.warn(`Error getting refs for ${addr}:`, e.message);
+        const results = await window.Multicall3.batchCall(calls);
+        
+        let nextLevel = [];
+        for (const refs of results) {
+          if (refs && Array.isArray(refs)) {
+            const valid = refs.filter(r => r && r !== ethers.constants.AddressZero);
+            nextLevel.push(...valid);
           }
         }
         
-        console.log(`  Level ${depth}: ${nextLevel.length} partners`);
+        console.log(`  Level ${depth}: ${currentLevel.length} parents → ${nextLevel.length} children`);
         
         if (depth === targetDepth) {
           return nextLevel;
         }
         
         currentLevel = nextLevel;
-        
-        // Если текущий уровень пустой, дальше искать нечего
-        if (currentLevel.length === 0) {
-          return [];
-        }
       }
       
       return [];
@@ -451,73 +457,134 @@ const partnersModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // ПОЛУЧИТЬ ДЕТАЛИ ПАРТНЁРА
+  // ПАКЕТНАЯ ЗАГРУЗКА ДЕТАЛЕЙ ПАРТНЁРОВ (Multicall3)
+  // ~600 RPC → 2-3 batch-вызова
+  // ═══════════════════════════════════════════════════════════════
+  async getPartnerDetailsBatch(addresses) {
+    const mc = window.Multicall3;
+    const reg = this.contracts.matrixRegistry;
+    const gw = this.contracts.globalWay;
+    const lp = this.contracts.leaderPool;
+    const defaultRank = (_t ? _t('ranks.nobody') : 'Nobody');
+
+    // ─── Раунд 1: собираем ВСЕ вызовы для всех адресов в ОДИН батч ───
+    // Для каждого адреса: getUserIdByAddress + getUserInfo + getUserMaxLevel + getDirectReferrals + getUserRankInfo
+    const round1Calls = [];
+    const CALLS_PER_ADDR = 5;
+    
+    for (const addr of addresses) {
+      round1Calls.push({ contract: reg, method: 'getUserIdByAddress', args: [addr] });
+      round1Calls.push({ contract: reg, method: 'getUserInfo', args: [addr] });
+      round1Calls.push({ contract: gw,  method: 'getUserMaxLevel', args: [addr] });
+      round1Calls.push({ contract: reg, method: 'getDirectReferrals', args: [addr] });
+      round1Calls.push({ contract: lp,  method: 'getUserRankInfo', args: [addr] });
+    }
+    
+    console.log(`⚡ Multicall3: ${round1Calls.length} calls in one batch (was ${round1Calls.length} individual RPCs)`);
+    const round1Results = await mc.batchCall(round1Calls);
+
+    // ─── Раунд 2: matrixNodes(userId) для дат ───
+    const round2Calls = [];
+    const userIds = [];
+    
+    for (let i = 0; i < addresses.length; i++) {
+      const userId = round1Results[i * CALLS_PER_ADDR]; // getUserIdByAddress result
+      const uid = userId ? userId.toString() : '0';
+      userIds.push(uid);
+      
+      if (uid !== '0') {
+        round2Calls.push({ contract: reg, method: 'matrixNodes', args: [uid] });
+      } else {
+        round2Calls.push(null);
+      }
+    }
+    
+    // Фильтруем null и запоминаем маппинг
+    const validR2 = [];
+    const validR2Map = [];
+    round2Calls.forEach((call, idx) => {
+      if (call) {
+        validR2Map.push(idx);
+        validR2.push(call);
+      }
+    });
+    
+    const round2Results = validR2.length > 0 ? await mc.batchCall(validR2) : [];
+    
+    // Раскладываем обратно
+    const nodeResults = new Array(addresses.length).fill(null);
+    validR2Map.forEach((origIdx, resultIdx) => {
+      nodeResults[origIdx] = round2Results[resultIdx];
+    });
+
+    // ─── Собираем результаты ───
+    const partnersData = [];
+    
+    for (let i = 0; i < addresses.length; i++) {
+      const addr = addresses[i];
+      const base = i * CALLS_PER_ADDR;
+      
+      const userId = round1Results[base];
+      const userInfo = round1Results[base + 1];
+      const maxLevel = round1Results[base + 2];
+      const directRefs = round1Results[base + 3];
+      const rankInfo = round1Results[base + 4];
+      const nodeData = nodeResults[i];
+      
+      // ID
+      const uid = userId ? userId.toString() : '0';
+      const id = uid !== '0' ? `GW${uid}` : app.formatAddress(addr);
+      
+      // Sponsor
+      let sponsorId = '-';
+      if (userInfo) {
+        try {
+          const sid = (userInfo.sponsorId || userInfo[2]).toString();
+          sponsorId = sid !== '0' ? `GW${sid}` : '-';
+        } catch (e) {}
+      }
+      
+      // Level
+      let level = 0;
+      if (maxLevel != null) {
+        try { level = Number(maxLevel); } catch (e) {}
+      }
+      
+      // Team
+      let team = 0;
+      if (directRefs && Array.isArray(directRefs)) {
+        team = directRefs.filter(r => r && r !== ethers.constants.AddressZero).length;
+      }
+      
+      // Rank
+      let rank = defaultRank;
+      if (rankInfo) {
+        try { rank = this.getRankName(Number(rankInfo.rank || rankInfo[0])); } catch (e) {}
+      }
+      
+      // Date
+      let date = '-';
+      if (nodeData) {
+        try {
+          const regTime = Number(nodeData[6]); // registeredAt
+          if (regTime > 0) {
+            date = new Date(regTime * 1000).toLocaleDateString('ru-RU');
+          }
+        } catch (e) {}
+      }
+      
+      partnersData.push({ address: addr, id, sponsorId, level, team, rank, date });
+    }
+    
+    return partnersData;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // ПОЛУЧИТЬ ДЕТАЛИ ПАРТНЁРА (fallback для единичных запросов)
   // ═══════════════════════════════════════════════════════════════
   async getPartnerDetails(address) {
-    try {
-      // 1. ID пользователя
-      const userId = await this.contracts.matrixRegistry.getUserIdByAddress(address);
-      const id = userId.toString() !== '0' ? `GW${userId.toString()}` : app.formatAddress(address);
-
-      // 2. Спонсор из UserInfo
-      let sponsorId = '-';
-      try {
-        const userInfo = await this.contracts.matrixRegistry.getUserInfo(address);
-        const sponsorUserId = userInfo.sponsorId || userInfo[2];
-        sponsorId = sponsorUserId.toString() !== '0' ? `GW${sponsorUserId.toString()}` : '-';
-      } catch (e) {
-        // Fallback через matrixNodes
-        try {
-          const node = await this.contracts.matrixRegistry.matrixNodes(userId);
-          const sid = node[2].toString();
-          sponsorId = sid !== '0' ? `GW${sid}` : '-';
-        } catch (e2) {}
-      }
-
-      // 3. Максимальный уровень (пакеты)
-      let maxLevel = 0;
-      try {
-        maxLevel = Number(await this.contracts.globalWay.getUserMaxLevel(address));
-      } catch (e) {}
-
-      // 4. Прямая команда (количество прямых рефералов)
-      let team = 0;
-      try {
-        const refs = await this.contracts.matrixRegistry.getDirectReferrals(address);
-        team = refs.filter(r => r && r !== ethers.constants.AddressZero).length;
-      } catch (e) {}
-
-      // 5. Ранг
-      let rank = (_t ? _t('ranks.nobody') : 'Nobody');
-      try {
-        const rankInfo = await this.contracts.leaderPool.getUserRankInfo(address);
-        rank = this.getRankName(Number(rankInfo.rank));
-      } catch (e) {}
-
-      // 6. Дата активации
-      const date = await this.getActivationDate(address, userId);
-
-      return {
-        address,
-        id,
-        sponsorId,
-        level: maxLevel,
-        team,
-        rank,
-        date
-      };
-    } catch (error) {
-      console.error('❌ Error getting partner details:', error);
-      return {
-        address,
-        id: app.formatAddress(address),
-        sponsorId: '-',
-        level: 0,
-        team: 0,
-        rank: (_t ? _t('ranks.nobody') : 'Nobody'),
-        date: '-'
-      };
-    }
+    const batch = await this.getPartnerDetailsBatch([address]);
+    return batch[0];
   },
 
   // ═══════════════════════════════════════════════════════════════
