@@ -55,16 +55,38 @@
 .nav-overflow { display: none; }
 
 /* ═══════════════════════════════════════
-   МОБИЛЬНЫЙ НАВБАР — ЖЁСТКО БЕЗ safe-area
+   МОБИЛЬНЫЙ НАВБАР — компактный, прижат к низу
    ═══════════════════════════════════════ */
 @media (max-width: 768px) {
 
   .main-nav {
     min-height: 0 !important;
     height: auto !important;
-    padding: 4px 4px 4px 4px !important;
+    padding: 4px 4px !important;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
     gap: 3px !important;
-    border-radius: 8px 8px 0 0 !important;
+    border-radius: 0 !important;
+    background: rgba(0, 12, 30, 0.99) !important;
+  }
+
+  /* Заполняем область ниже навбара до края экрана */
+  .main-nav::after {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    bottom: -100px !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 100px !important;
+    background: rgba(0, 12, 30, 0.99) !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+  }
+
+  .main-nav .nav-btn,
+  .nav-more-btn {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
 
   .main-nav .nav-btn {
@@ -107,85 +129,22 @@
     order: 99;
     margin: 0 !important;
   }
-  .nav-more-btn .more-icon { font-size: 16px; line-height: 1; color: #ffd700; }
-  .nav-more-btn .more-label { font-size: 8px; font-weight: 600; color: #fff; line-height: 1; }
-  .nav-more-btn.active {
+  .nav-more-btn .nav-icon { font-size: 16px !important; line-height: 1 !important; color: #ffd700 !important; }
+  .nav-more-btn span:last-child { font-size: 8px !important; font-weight: 600 !important; color: #fff !important; line-height: 1 !important; }
+  .nav-more-btn.active,
+  .nav-more-btn.drawer-open {
     background: linear-gradient(135deg, #ffd700, #ffed4e);
     border-color: #ffd700;
   }
-  .nav-more-btn.active .more-icon,
-  .nav-more-btn.active .more-label { color: #000; }
-
-  .nav-overflow {
-    position: fixed;
-    bottom: 54px;
-    left: 8px; right: 8px;
-    background: rgba(0, 20, 45, 0.97);
-    border: 2px solid #ffd700;
-    border-radius: 16px;
-    padding: 12px;
-    z-index: 10000;
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    box-shadow: 0 -8px 30px rgba(255, 215, 0, 0.2);
-    transform: translateY(20px);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.25s ease;
-  }
-  .nav-overflow.open {
-    display: block;
-    transform: translateY(0);
-    opacity: 1;
-    visibility: visible;
-  }
-  .nav-overflow-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-  .nav-overflow-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 4px;
-    background: rgba(255, 215, 0, 0.08);
-    border: 1px solid rgba(255, 215, 0, 0.2);
-    border-radius: 12px;
-    color: #e8ecf0;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 500;
-    gap: 4px;
-    transition: all 0.2s;
-  }
-  .nav-overflow-btn:hover, .nav-overflow-btn:active {
-    background: rgba(255, 215, 0, 0.2);
-    border-color: #ffd700;
-    color: #ffd700;
-  }
-  .nav-overflow-btn .ov-icon { font-size: 18px; }
-  .nav-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 9999;
-  }
-  .nav-overlay.open { display: block; }
+  .nav-more-btn.active .nav-icon,
+  .nav-more-btn.active span:last-child,
+  .nav-more-btn.drawer-open .nav-icon,
+  .nav-more-btn.drawer-open span:last-child { color: #000 !important; }
 
   .content {
-    padding-bottom: 55px !important;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
   }
   #dapp {
-    padding-bottom: 55px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav-overflow-grid {
-    grid-template-columns: repeat(3, 1fr);
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
