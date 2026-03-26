@@ -312,7 +312,7 @@
         el.innerHTML = html;
         el.style.display = 'block';
       } catch (e) {
-        el.innerHTML = `<p style="color:#ff4444;">Ошибка: ${e.message}</p>`;
+        el.innerHTML = `<p style="color:#ff4444;">Ошибка: ${escapeHtml(e.message)}</p>`;
         el.style.display = 'block';
       }
     });
