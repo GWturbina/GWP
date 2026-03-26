@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    MOBILE NAVIGATION — "More" Drawer Pattern
-   5 primary buttons + More → slide-up panel with rest
+   v5 — aggressive SafePal fix: no transforms, no slow transitions
    ═══════════════════════════════════════════════════════════════ */
 
 /* ─── Nav Icons (visible on both desktop & mobile) ─── */
@@ -8,7 +8,7 @@
   font-style: normal;
   font-size: 16px;
   line-height: 1;
-  display: none; /* Hidden on desktop by default */
+  display: none;
 }
 
 /* ─── More button — hidden on desktop ─── */
@@ -27,21 +27,16 @@
    ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
 
-  /* ─── Гарантируем заполнение экрана до краёв ─── */
-  html, body {
+  /* ─── ФИКС ПУСТОТЫ: html/body фон = цвет навбара ─── */
+  html {
+    background: #000c1e !important;
+    background-color: #000c1e !important;
+  }
+  body {
     min-height: 100vh !important;
     min-height: 100dvh !important;
     background-color: #000c1e !important;
-  }
-
-  /* ─── Touch fix: убираем 300ms задержку в мобильных браузерах ─── */
-  .nav-btn,
-  .nav-more-btn,
-  .nav-drawer-item {
-    touch-action: manipulation !important;
-    -webkit-tap-highlight-color: transparent !important;
-    user-select: none !important;
-    -webkit-user-select: none !important;
+    overscroll-behavior: none !important;
   }
 
   /* Show icons on mobile */
@@ -62,35 +57,50 @@
     justify-content: space-around !important;
     align-items: center !important;
     gap: 4px !important;
-    padding: 6px 4px !important;
-    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    /* 20px fallback для SafePal который не знает env() */
+    padding: 6px 4px 20px 4px !important;
+    padding-bottom: max(20px, calc(6px + env(safe-area-inset-bottom, 20px))) !important;
     min-height: 56px !important;
-    background: rgba(0, 12, 30, 0.99) !important;
+    max-height: none !important;
+    height: auto !important;
+    background: #000c1e !important;
     border-top: 2px solid rgba(255, 215, 0, 0.6) !important;
     border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
     border-radius: 0 !important;
     z-index: 9990 !important;
     backdrop-filter: blur(25px) !important;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5) !important;
     overflow: visible !important;
     flex-wrap: nowrap !important;
+    transform: none !important;
+    transition: none !important;
+    margin: 0 !important;
   }
 
-  /* Заполняем ВСЮ область ниже навбара до края экрана */
+  /* Заполняем область ниже навбара */
   .main-nav::after {
     content: '' !important;
     display: block !important;
     position: absolute !important;
-    bottom: -100px !important; /* гарантированно ниже экрана */
-    left: 0 !important;
-    right: 0 !important;
-    height: 100px !important;
-    background: rgba(0, 12, 30, 0.99) !important;
+    bottom: -200px !important;
+    left: -10px !important;
+    right: -10px !important;
+    height: 200px !important;
+    background: #000c1e !important;
     z-index: 1 !important;
     pointer-events: none !important;
   }
 
-  /* ─── Hide secondary buttons from bottom bar ─── */
+  /* Убираем ::before анимации от main.css/components.css */
+  .main-nav::before,
+  .nav-btn::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  /* ─── Hide secondary buttons ─── */
   .nav-btn.nav-secondary {
     display: none !important;
   }
@@ -104,17 +114,21 @@
     flex: 1 1 0 !important;
     min-width: 0 !important;
     max-width: 72px !important;
-    min-height: 52px !important;
+    min-height: 44px !important;
     padding: 4px 2px !important;
     border: none !important;
-    border-radius: 12px !important;
+    border-radius: 8px !important;
     background: transparent !important;
     color: rgba(255, 255, 255, 0.5) !important;
-    cursor: pointer;
-    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    transition: none !important;
+    transform: none !important;
     box-shadow: none !important;
     order: 99;
-    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
   }
 
   .nav-more-btn span {
@@ -128,16 +142,26 @@
   }
 
   .nav-more-btn:active {
-    transform: scale(0.92) !important;
-    background: rgba(255, 215, 0, 0.08) !important;
+    opacity: 0.7 !important;
+    transform: none !important;
   }
 
-  .nav-more-btn.active {
+  .nav-more-btn.active,
+  .nav-more-btn.drawer-open {
     color: #ffd700 !important;
     background: rgba(255, 215, 0, 0.12) !important;
   }
 
-  /* ─── Nav Buttons — compact mobile style ─── */
+  .nav-more-btn.drawer-open .nav-icon {
+    transform: rotate(90deg) !important;
+  }
+
+  .nav-more-btn .nav-icon {
+    font-size: 22px !important;
+    transition: none !important;
+  }
+
+  /* ─── Nav Buttons — ZERO animation, instant response ─── */
   .nav-btn {
     display: flex !important;
     flex-direction: column !important;
@@ -146,16 +170,23 @@
     flex: 1 1 0 !important;
     min-width: 0 !important;
     max-width: 72px !important;
-    min-height: 52px !important;
+    min-height: 44px !important;
     padding: 4px 2px !important;
     border: none !important;
-    border-radius: 12px !important;
+    border-radius: 8px !important;
     background: transparent !important;
     color: rgba(255, 255, 255, 0.5) !important;
-    cursor: pointer;
-    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    /* КРИТИЧНО: мгновенный отклик */
+    transition: none !important;
+    transform: none !important;
     box-shadow: none !important;
-    position: relative;
+    position: relative !important;
+    overflow: visible !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
   }
 
   .nav-btn span {
@@ -173,10 +204,11 @@
 
   .nav-btn .nav-icon {
     color: inherit !important;
-    transition: transform 0.2s ease;
+    transition: none !important;
+    transform: none !important;
   }
 
-  /* ─── Active state ─── */
+  /* ─── Active — мгновенный ─── */
   .nav-btn.active {
     color: #ffd700 !important;
     background: rgba(255, 215, 0, 0.12) !important;
@@ -186,53 +218,50 @@
   }
 
   .nav-btn.active .nav-icon {
-    transform: scale(1.15);
+    transform: none !important;
   }
 
-  /* ─── Tap/hover feedback ─── */
+  /* ─── Tap feedback — только opacity ─── */
   .nav-btn:active {
-    transform: scale(0.92) !important;
-    background: rgba(255, 215, 0, 0.08) !important;
+    opacity: 0.7 !important;
+    transform: none !important;
   }
 
-  .nav-btn:hover {
-    background: rgba(255, 215, 0, 0.06) !important;
-    color: rgba(255, 255, 255, 0.8) !important;
+  /* ─── Hover — полностью отключаем на тач ─── */
+  .nav-btn:hover,
+  .nav-btn:focus {
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.5) !important;
     transform: none !important;
     box-shadow: none !important;
     border: none !important;
   }
-
-  /* ─── More button specific ─── */
-  .nav-more-btn .nav-icon {
-    font-size: 22px !important;
-    transition: transform 0.3s ease;
-  }
-
-  .nav-more-btn.drawer-open {
+  .nav-btn.active:hover,
+  .nav-btn.active:focus {
+    background: rgba(255, 215, 0, 0.12) !important;
     color: #ffd700 !important;
-  }
-  
-  .nav-more-btn.drawer-open .nav-icon {
-    transform: rotate(90deg);
   }
 
   /* ─── Active indicator dot ─── */
   .nav-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: #ffd700;
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    bottom: 2px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 4px !important;
+    height: 4px !important;
+    border-radius: 50% !important;
+    background: #ffd700 !important;
   }
 
-  /* ─── Content padding for bottom nav ─── */
+  /* ─── Content padding ─── */
   .content {
-    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px)) !important;
+  }
+  #dapp {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px)) !important;
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -241,10 +270,7 @@
   .nav-drawer-overlay {
     display: block;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
     z-index: 9991;
@@ -259,14 +285,12 @@
   }
 
   /* ═══════════════════════════════════════════════════════════
-     SLIDE-UP DRAWER — компактная панель прямо над навбаром
-     !important для гарантии override кеша
+     SLIDE-UP DRAWER
      ═══════════════════════════════════════════════════════════ */
   .nav-drawer {
     display: block !important;
     position: fixed !important;
-    /* Привязка: прямо над навбаром (64px + safe-area + 2px border) */
-    bottom: calc(52px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(60px + env(safe-area-inset-bottom, 20px)) !important;
     left: 8px !important;
     right: 8px !important;
     top: auto !important;
@@ -274,15 +298,12 @@
     background: linear-gradient(180deg, #0a1e3d 0%, #06142b 100%) !important;
     border: 2px solid rgba(255, 215, 0, 0.5) !important;
     border-radius: 16px !important;
-    /* Минимальный padding — только для контента */
     padding: 10px 12px 12px !important;
     margin: 0 !important;
-    /* Анимация */
     transform: translateY(calc(100% + 20px)) !important;
     opacity: 0 !important;
     transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease !important;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5) !important;
-    /* НЕТ min-height, НЕТ max-height — строго по контенту */
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
@@ -294,7 +315,6 @@
     opacity: 1 !important;
   }
 
-  /* ─── Drag handle — маленький ─── */
   .nav-drawer-handle {
     width: 32px !important;
     height: 3px !important;
@@ -303,7 +323,6 @@
     margin: 0 auto 8px !important;
   }
 
-  /* ─── Drawer Grid — компактная 2-колоночная сетка ─── */
   .nav-drawer-grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -324,16 +343,19 @@
     font-size: 13px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    transition: all 0.2s ease !important;
+    transition: none !important;
+    transform: none !important;
+    touch-action: manipulation !important;
     -webkit-tap-highlight-color: transparent !important;
+    user-select: none !important;
     margin: 0 !important;
     min-height: 0 !important;
     height: auto !important;
   }
 
   .nav-drawer-item:active {
-    transform: scale(0.96);
-    background: rgba(255, 215, 0, 0.15) !important;
+    opacity: 0.7 !important;
+    transform: none !important;
   }
 
   .nav-drawer-item.active {
@@ -356,28 +378,15 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   EXTRA SMALL: ≤380px — even more compact
+   EXTRA SMALL: ≤380px
    ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 380px) {
   .nav-btn {
     max-width: 62px !important;
-    min-height: 48px !important;
+    min-height: 40px !important;
   }
-
-  .nav-btn .nav-icon {
-    font-size: 18px !important;
-  }
-
-  .nav-btn span {
-    font-size: 8px !important;
-  }
-
-  .nav-drawer-grid {
-    gap: 8px;
-  }
-
-  .nav-drawer-item {
-    padding: 12px 12px;
-    font-size: 12px;
-  }
+  .nav-btn .nav-icon { font-size: 18px !important; }
+  .nav-btn span { font-size: 8px !important; }
+  .nav-drawer-grid { gap: 8px !important; }
+  .nav-drawer-item { padding: 12px 12px !important; font-size: 12px !important; }
 }
