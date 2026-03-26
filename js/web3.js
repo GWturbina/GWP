@@ -164,12 +164,11 @@ class Web3Manager {
       }
     }
 
-    // Auto-connect если сохранён кошелёк
-    const savedAddress = localStorage.getItem('walletAddress');
+    // Auto-connect если был подключён ранее (адрес получим от провайдера)
     const walletConnected = localStorage.getItem('walletConnected');
 
-    if (savedAddress && walletConnected === 'true') {
-      console.log('🔄 Found saved wallet, attempting auto-connect...');
+    if (walletConnected === 'true') {
+      console.log('🔄 Was previously connected, attempting auto-connect...');
       await this.autoConnect();
     }
   }
@@ -641,9 +640,9 @@ async connect() {
   async saveConnection() {
     try {
       if (this.address) {
-        localStorage.setItem('walletAddress', this.address);
+        // ✅ БЕЗОПАСНОСТЬ: храним только флаг подключения, НЕ адрес кошелька
         localStorage.setItem('walletConnected', 'true');
-        console.log('💾 Connection saved to localStorage');
+        console.log('💾 Connection flag saved');
       }
     } catch (e) {
       console.warn('Failed to save connection', e);
@@ -657,7 +656,6 @@ async connect() {
     this.connected = false;
 
     try {
-      localStorage.removeItem('walletAddress');
       localStorage.removeItem('walletConnected');
     } catch (e) {
       // ignore
