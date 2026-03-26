@@ -31,6 +31,17 @@
   html, body {
     min-height: 100vh !important;
     min-height: 100dvh !important;
+    background-color: #000c1e !important;
+  }
+
+  /* ─── Touch fix: убираем 300ms задержку в мобильных браузерах ─── */
+  .nav-btn,
+  .nav-more-btn,
+  .nav-drawer-item {
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
   }
 
   /* Show icons on mobile */
@@ -75,7 +86,8 @@
     right: 0 !important;
     height: 100px !important;
     background: rgba(0, 12, 30, 0.99) !important;
-    z-index: -1 !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
   }
 
   /* ─── Hide secondary buttons from bottom bar ─── */
@@ -220,7 +232,7 @@
 
   /* ─── Content padding for bottom nav ─── */
   .content {
-    padding-bottom: 70px !important;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* ═══════════════════════════════════════════════════════════
