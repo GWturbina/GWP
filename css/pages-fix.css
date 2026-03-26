@@ -59,8 +59,5 @@
    Здесь только то что mobile-nav.css не покрывает
    ═══════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* Скрываем nav-btn с 6-го (secondary) — 5 основных видны */
-  .main-nav .nav-btn:nth-child(n+6) {
-    display: none !important;
-  }
+  /* nav-secondary скрываются в mobile-nav.css */
 }
