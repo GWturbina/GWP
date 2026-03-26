@@ -67,7 +67,43 @@
   /* ─── Show More button ─── */
   .nav-more-btn {
     display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 72px !important;
+    min-height: 52px !important;
+    padding: 4px 2px !important;
+    border: none !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+    cursor: pointer;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
     order: 99;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .nav-more-btn span {
+    display: block !important;
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    margin-top: 1px !important;
+    white-space: nowrap !important;
+    color: inherit !important;
+  }
+
+  .nav-more-btn:active {
+    transform: scale(0.92) !important;
+    background: rgba(255, 215, 0, 0.08) !important;
+  }
+
+  .nav-more-btn.active {
+    color: #ffd700 !important;
+    background: rgba(255, 215, 0, 0.12) !important;
   }
 
   /* ─── Nav Buttons — compact mobile style ─── */
