@@ -988,43 +988,17 @@ const app = {
 
     console.log('🔧 Initializing navigation...');
 
-    // Debounce для предотвращения двойного срабатывания touch+click
-    let lastNavTime = 0;
-    const NAV_DEBOUNCE = 400; // ms
-
-    const navigateTo = (page, source) => {
-      const now = Date.now();
-      if (now - lastNavTime < NAV_DEBOUNCE) {
-        console.log(`⏳ Nav debounced (${source}): ${page}`);
-        return;
-      }
-      lastNavTime = now;
-      console.log(`🔘 Navigation ${source}: ${page}`);
-      this.showPage(page);
-    };
-
     const navLinks = document.querySelectorAll('[data-page]');
     console.log(`📍 Found ${navLinks.length} navigation links`);
     
     navLinks.forEach(link => {
-      let touchMoved = false;
-
-      link.addEventListener('touchstart', () => { touchMoved = false; }, { passive: true });
-      link.addEventListener('touchmove', () => { touchMoved = true; }, { passive: true });
-      link.addEventListener('touchend', (e) => {
-        if (touchMoved) return;
-        e.preventDefault();
-        navigateTo(link.getAttribute('data-page'), 'touch');
-      }, { passive: false });
-
       link.addEventListener('click', (e) => {
         e.preventDefault();
-        navigateTo(link.getAttribute('data-page'), 'click');
+        const page = link.getAttribute('data-page');
+        console.log(`🔘 Navigation clicked: ${page}`);
+        this.showPage(page);
       });
     });
-
-    // Сохраняем navigateTo для использования в drawer
-    this._navigateTo = navigateTo;
 
     const hash = window.location.hash.substring(1);
     this.state.currentPage = hash || 'dashboard';
@@ -1047,27 +1021,12 @@ const app = {
     
     if (!moreBtn || !drawer || !grid) return;
 
-    // Debounce для кнопки "Ещё"
-    let lastMoreTime = 0;
-    const MORE_DEBOUNCE = 300;
-
-    const toggleDrawer = (e) => {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      const now = Date.now();
-      if (now - lastMoreTime < MORE_DEBOUNCE) return;
-      lastMoreTime = now;
-      if (drawer.classList.contains('active')) {
-        this.closeMobileDrawer();
-      } else {
-        this.openMobileDrawer();
-      }
-    };
-
     // Build drawer items from nav-secondary buttons
     const secondaryBtns = document.querySelectorAll('.nav-btn.nav-secondary');
     grid.innerHTML = '';
     
     secondaryBtns.forEach(btn => {
+      // Skip hidden admin button for non-admins
       if (btn.style.display === 'none') return;
       
       const page = btn.getAttribute('data-page');
@@ -1079,38 +1038,24 @@ const app = {
       item.setAttribute('data-page', page);
       item.innerHTML = `<span class="nav-drawer-item-icon">${escapeHtml(icon)}</span><span class="nav-drawer-item-label">${escapeHtml(label)}</span>`;
       
-      // Общий обработчик с debounce
-      const handleItemNav = (e) => {
-        if (e) e.preventDefault();
-        if (this._navigateTo) {
-          this._navigateTo(page, 'drawer');
-        } else {
-          this.showPage(page);
-        }
+      item.addEventListener('click', () => {
+        this.showPage(page);
         this.closeMobileDrawer();
-      };
-
-      let itemTouchMoved = false;
-      item.addEventListener('touchstart', () => { itemTouchMoved = false; }, { passive: true });
-      item.addEventListener('touchmove', () => { itemTouchMoved = true; }, { passive: true });
-      item.addEventListener('touchend', (e) => {
-        if (itemTouchMoved) return;
-        handleItemNav(e);
-      }, { passive: false });
-      item.addEventListener('click', handleItemNav);
+      });
       
       grid.appendChild(item);
     });
 
-    // More button — touch + click с debounce
-    let moreTouchMoved = false;
-    moreBtn.addEventListener('touchstart', () => { moreTouchMoved = false; }, { passive: true });
-    moreBtn.addEventListener('touchmove', () => { moreTouchMoved = true; }, { passive: true });
-    moreBtn.addEventListener('touchend', (e) => {
-      if (moreTouchMoved) return;
-      toggleDrawer(e);
-    }, { passive: false });
-    moreBtn.addEventListener('click', toggleDrawer);
+    // More button toggle
+    moreBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (drawer.classList.contains('active')) {
+        this.closeMobileDrawer();
+      } else {
+        this.openMobileDrawer();
+      }
+    });
 
     // Overlay close
     if (overlay) {
@@ -1118,6 +1063,7 @@ const app = {
     }
 
     // ✅ ИСПРАВЛЕНО: наблюдатель убран — логика перенесена в updateAdminButton()
+    // который теперь сам вызывает addAdminToDrawerIfNeeded() когда нужно
 
     console.log('✅ Mobile drawer initialized');
   },
