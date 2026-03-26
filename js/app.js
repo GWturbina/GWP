@@ -4,6 +4,18 @@
 // Date: 2025-01-19
 // ═══════════════════════════════════════════════════════════════════
 
+// ═══ Глобальная утилита: экранирование HTML (защита от XSS) ═══
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+window.escapeHtml = escapeHtml;
+
 const app = {
   // ═══════════════════════════════════════════════════════════════
   // STATE
@@ -15,6 +27,7 @@ const app = {
     userId: null,
     maxLevel: 0,
     contracts: {},
+    _contractPromises: {}, // Promise-кеш для предотвращения дублей
     pageModules: {},
     isLandingSkipped: false,
     navigationInitialized: false,
@@ -1023,7 +1036,7 @@ const app = {
       const item = document.createElement('div');
       item.className = 'nav-drawer-item';
       item.setAttribute('data-page', page);
-      item.innerHTML = `<span class="nav-drawer-item-icon">${icon}</span><span class="nav-drawer-item-label">${label}</span>`;
+      item.innerHTML = `<span class="nav-drawer-item-icon">${escapeHtml(icon)}</span><span class="nav-drawer-item-label">${escapeHtml(label)}</span>`;
       
       item.addEventListener('click', () => {
         this.showPage(page);
@@ -1177,10 +1190,30 @@ const app = {
   // РАБОТА С КОНТРАКТАМИ
   // ═══════════════════════════════════════════════════════════════
   async getContract(contractName) {
+    // Быстрый путь: уже загружен
     if (this.state.contracts[contractName]) {
       return this.state.contracts[contractName];
     }
 
+    // Promise-кеш: если уже загружается — ждём тот же promise
+    if (this.state._contractPromises[contractName]) {
+      return this.state._contractPromises[contractName];
+    }
+
+    // Запускаем загрузку и сохраняем promise
+    this.state._contractPromises[contractName] = this._loadContract(contractName);
+    
+    try {
+      const contract = await this.state._contractPromises[contractName];
+      return contract;
+    } catch (error) {
+      // Очищаем promise из кеша чтобы можно было повторить
+      delete this.state._contractPromises[contractName];
+      throw error;
+    }
+  },
+
+  async _loadContract(contractName) {
     try {
       const address = CONFIG.CONTRACTS[contractName];
       if (!address) {
