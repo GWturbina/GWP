@@ -528,7 +528,7 @@ const exchangeModule = {
 
       <div class="exch-buy-footer">
         <p>🔒 Безопасно. Ваши данные карты обрабатывает лицензированный платёжный провайдер. GlobalWay не хранит и не видит данные вашей карты.</p>
-        <p>Powered by <a href="https://onramper.com" target="_blank" rel="noopener">Onramper</a> — 30+ провайдеров, 190+ стран</p>
+        <p>Guardarian · ChangeNOW · MoonPay — лицензированные провайдеры</p>
       </div>
     </div>
   </div>
@@ -926,7 +926,7 @@ const exchangeModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // FIAT ON-RAMP — открываем в новом окне (без CORS/iframe проблем)
+  // FIAT ON-RAMP — несколько провайдеров на выбор
   // ═══════════════════════════════════════════════════════════════
 
   _updateBuyWallet() {
@@ -953,30 +953,93 @@ const exchangeModule = {
       return;
     }
 
-    // Открываем Onramper в новом окне — обходит все CORS/iframe проблемы
-    const params = new URLSearchParams({
-      apiKey: 'pk_test_01KMRAJ7NWPDXGPYWAZ0Q3V6K7',
-      defaultCrypto: 'BNB',
-      defaultFiat: 'USD',
-      defaultAmount: amount,
-      wallets: 'BNB:' + this.state.userAddress,
-      themeName: 'dark',
-      containerColor: '0d1117',
-      primaryColor: 'ffd700',
-      secondaryColor: '00d4ff',
-      cardColor: '1a1f2e',
-      primaryTextColor: 'ffffff',
-      secondaryTextColor: 'aaaaaa',
-      borderRadius: '0.75'
+    // Показываем модал выбора провайдера
+    this._showProviderModal(amount);
+  },
+
+  _showProviderModal(amount) {
+    const addr = this.state.userAddress;
+    const old = document.getElementById('buyProviderModal');
+    if (old) old.remove();
+
+    const providers = [
+      {
+        name: 'Guardarian',
+        desc: 'Visa/MC, без регистрации, 400+ криптовалют',
+        icon: '🛡️',
+        color: '#6c5ce7',
+        url: `https://guardarian.com/calculator?partner_api_token=free&default_fiat_currency=USD&default_crypto_currency=BNB&fiat_amount=${amount}&crypto_currency=BNB&wallet_address=${addr}`
+      },
+      {
+        name: 'ChangeNOW',
+        desc: 'Карты, банковский перевод, 900+ криптовалют',
+        icon: '⚡',
+        color: '#00c853',
+        url: `https://changenow.io/exchange?to=bnb&toAddress=${addr}&amount=${amount}&fiatMode=true&fiatCurrency=usd`
+      },
+      {
+        name: 'MoonPay',
+        desc: 'Apple Pay, Google Pay, карты',
+        icon: '🌙',
+        color: '#7c3aed',
+        url: `https://www.moonpay.com/buy/bnb?walletAddress=${addr}&currencyCode=bnb&baseCurrencyAmount=${amount}&baseCurrencyCode=usd`
+      }
+    ];
+
+    const modal = document.createElement('div');
+    modal.id = 'buyProviderModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;';
+
+    modal.innerHTML = `
+      <div style="background:linear-gradient(135deg,#0d1117,#1a1f2e);border:1px solid #ffd70044;border-radius:16px;padding:24px 20px;max-width:400px;width:100%;max-height:90vh;overflow-y:auto;">
+        <div style="text-align:center;margin-bottom:16px;">
+          <h3 style="color:#ffd700;margin:0 0 6px;font-size:18px;">💳 Выберите провайдер</h3>
+          <p style="color:#888;margin:0;font-size:13px;">Покупка ${amount} USD → BNB на ваш кошелёк</p>
+        </div>
+        ${providers.map(p => `
+          <div class="buy-provider-card" data-url="${p.url}" style="
+            background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;
+            padding:16px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:14px;
+            transition:border-color 0.2s;
+          ">
+            <div style="font-size:28px;flex-shrink:0;">${p.icon}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="color:#fff;font-weight:600;font-size:15px;">${p.name}</div>
+              <div style="color:#888;font-size:12px;margin-top:2px;">${p.desc}</div>
+            </div>
+            <div style="color:#ffd700;font-size:18px;flex-shrink:0;">→</div>
+          </div>
+        `).join('')}
+        <button id="buyProviderClose" style="
+          width:100%;margin-top:12px;padding:12px;border:1px solid #555;border-radius:10px;
+          background:transparent;color:#aaa;font-size:14px;cursor:pointer;
+        ">Отмена</button>
+        <p style="color:#555;font-size:11px;text-align:center;margin:12px 0 0;">
+          🔒 Ваши данные карты обрабатывает выбранный провайдер. GlobalWay не хранит данные карт.
+        </p>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Обработчики
+    modal.querySelectorAll('.buy-provider-card').forEach(card => {
+      card.onmouseenter = () => card.style.borderColor = '#ffd700';
+      card.onmouseleave = () => card.style.borderColor = 'rgba(255,255,255,0.1)';
+      card.onclick = () => {
+        window.open(card.dataset.url, '_blank');
+        modal.remove();
+        app?.showNotification?.('Окно покупки открыто. BNB придёт на ваш кошелёк после оплаты.', 'success');
+      };
     });
 
-    const url = `https://buy.onramper.com?${params.toString()}`;
-    window.open(url, '_blank');
-    app?.showNotification?.('Окно покупки открыто. Завершите оплату там, BNB придёт на ваш кошелёк.', 'success');
+    document.getElementById('buyProviderClose').onclick = () => modal.remove();
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
   },
 
   closeTransakWidget() {
-    // Не нужен для window.open, оставляем для совместимости
+    const modal = document.getElementById('buyProviderModal');
+    if (modal) modal.remove();
   }
 };
 
