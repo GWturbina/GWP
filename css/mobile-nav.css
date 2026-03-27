@@ -49,20 +49,18 @@
   /* ─── Bottom Nav Bar ─── */
   .main-nav {
     position: fixed !important;
-    /* ✅ КЛЮЧЕВОЙ ФИХ: поднимаем навбар ВЫШЕ системной навигации Android */
-    bottom: env(safe-area-inset-bottom, 0px) !important;
+    bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
     top: auto !important;
     display: flex !important;
     justify-content: space-around !important;
-    /* ✅ stretch — кнопки заполняют ВСЮ высоту навбара */
     align-items: stretch !important;
     gap: 4px !important;
-    padding: 4px 4px 6px 4px !important;
-    min-height: 56px !important;
-    max-height: 70px !important;
-    height: auto !important;
+    padding: 4px 4px 4px 4px !important;
+    min-height: 52px !important;
+    max-height: 60px !important;
+    height: 56px !important;
     background: #000c1e !important;
     border-top: 2px solid rgba(255, 215, 0, 0.6) !important;
     border-bottom: none !important;
@@ -72,7 +70,6 @@
     z-index: 9990 !important;
     backdrop-filter: blur(25px) !important;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5) !important;
-    /* ✅ Убиваем overflow-x:auto из main.css — он ломал клики */
     overflow: hidden !important;
     overflow-x: hidden !important;
     overflow-y: hidden !important;
@@ -82,21 +79,10 @@
     transition: none !important;
     margin: 0 !important;
     pointer-events: auto !important;
+    /* ✅ НЕТ env() — SafePal его не поддерживает корректно */
   }
 
-  /* ✅ Фон за навбаром (под safe-area) */
-  .main-nav::after {
-    content: '' !important;
-    display: block !important;
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    height: env(safe-area-inset-bottom, 0px) !important;
-    background: #000c1e !important;
-    z-index: -1 !important;
-    pointer-events: none !important;
-  }
+  /* ✅ Убираем ::after — не нужен без env() */
 
   /* Убираем ::before анимации от main.css/components.css */
   .main-nav::before,
@@ -252,17 +238,17 @@
     color: #ffd700 !important;
   }
 
-  /* ─── Active indicator — золотая подсветка вместо точки ─── */
+  /* ─── Active indicator — убрана точка ─── */
   .nav-btn.active::after {
     display: none !important;
   }
 
   /* ─── Content padding ─── */
   .content {
-    padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 62px !important;
   }
   #dapp {
-    padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 62px !important;
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -291,7 +277,7 @@
   .nav-drawer {
     display: block !important;
     position: fixed !important;
-    bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: 58px !important;
     left: 8px !important;
     right: 8px !important;
     top: auto !important;
