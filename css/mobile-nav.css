@@ -49,19 +49,19 @@
   /* ─── Bottom Nav Bar ─── */
   .main-nav {
     position: fixed !important;
-    bottom: 0 !important;
+    /* ✅ КЛЮЧЕВОЙ ФИХ: поднимаем навбар ВЫШЕ системной навигации Android */
+    bottom: env(safe-area-inset-bottom, 0px) !important;
     left: 0 !important;
     right: 0 !important;
     top: auto !important;
     display: flex !important;
     justify-content: space-around !important;
-    align-items: center !important;
+    /* ✅ stretch — кнопки заполняют ВСЮ высоту навбара */
+    align-items: stretch !important;
     gap: 4px !important;
-    /* 8px fallback для SafePal который не знает env() */
-    padding: 6px 4px 8px 4px !important;
-    padding-bottom: max(8px, calc(6px + env(safe-area-inset-bottom, 8px))) !important;
+    padding: 4px 4px 6px 4px !important;
     min-height: 56px !important;
-    max-height: none !important;
+    max-height: 70px !important;
     height: auto !important;
     background: #000c1e !important;
     border-top: 2px solid rgba(255, 215, 0, 0.6) !important;
@@ -72,11 +72,30 @@
     z-index: 9990 !important;
     backdrop-filter: blur(25px) !important;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5) !important;
-    overflow: visible !important;
+    /* ✅ Убиваем overflow-x:auto из main.css — он ломал клики */
+    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
     flex-wrap: nowrap !important;
     transform: none !important;
     transition: none !important;
     margin: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  /* ✅ Фон за навбаром (под safe-area) */
+  .main-nav::after {
+    content: '' !important;
+    display: block !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: env(safe-area-inset-bottom, 0px) !important;
+    background: #000c1e !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
   }
 
   /* Убираем ::before анимации от main.css/components.css */
@@ -173,6 +192,11 @@
     -webkit-tap-highlight-color: transparent !important;
     user-select: none !important;
     -webkit-user-select: none !important;
+    /* ✅ Принудительно принимаем клики */
+    pointer-events: auto !important;
+    /* ✅ Убиваем margin/width из main.css */
+    margin: 0 !important;
+    width: auto !important;
   }
 
   .nav-btn span {
@@ -228,26 +252,17 @@
     color: #ffd700 !important;
   }
 
-  /* ─── Active indicator dot ─── */
+  /* ─── Active indicator — золотая подсветка вместо точки ─── */
   .nav-btn.active::after {
-    content: '' !important;
-    display: block !important;
-    position: absolute !important;
-    bottom: 2px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 4px !important;
-    height: 4px !important;
-    border-radius: 50% !important;
-    background: #ffd700 !important;
+    display: none !important;
   }
 
   /* ─── Content padding ─── */
   .content {
-    padding-bottom: calc(65px + env(safe-area-inset-bottom, 8px)) !important;
+    padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
   }
   #dapp {
-    padding-bottom: calc(65px + env(safe-area-inset-bottom, 8px)) !important;
+    padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -276,7 +291,7 @@
   .nav-drawer {
     display: block !important;
     position: fixed !important;
-    bottom: calc(56px + env(safe-area-inset-bottom, 8px)) !important;
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
     left: 8px !important;
     right: 8px !important;
     top: auto !important;
