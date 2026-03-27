@@ -926,13 +926,8 @@ const exchangeModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // FIAT ON-RAMP (Onramper — агрегатор 30+ провайдеров)
-  // Работает в 190+ странах без гео-блокировок
+  // FIAT ON-RAMP — открываем в новом окне (без CORS/iframe проблем)
   // ═══════════════════════════════════════════════════════════════
-  
-  // Бесплатный публичный ключ Onramper (замени на свой для партнёрских комиссий)
-  // Регистрация: https://onramper.com
-  ONRAMP_API_KEY: 'pk_prod_01JPPN7P5QVESQFR18NKHB6XBZ',
 
   _updateBuyWallet() {
     const el = document.getElementById('buyWalletAddr');
@@ -958,17 +953,13 @@ const exchangeModule = {
       return;
     }
 
-    const container = document.getElementById('transakWidgetContainer');
-    const widgetDiv = document.getElementById('transakWidget');
-    if (!container || !widgetDiv) return;
-
+    // Открываем Onramper в новом окне — обходит все CORS/iframe проблемы
     const params = new URLSearchParams({
-      apiKey: this.ONRAMP_API_KEY,
-      defaultCrypto: 'BNB_OPBNB',
+      apiKey: 'pk_test_01KMRAJ7NWPDXGPYWAZ0Q3V6K7',
+      defaultCrypto: 'BNB',
       defaultFiat: 'USD',
       defaultAmount: amount,
-      wallets: 'BNB_OPBNB:' + this.state.userAddress,
-      onlyCryptos: 'BNB_OPBNB,BNB',
+      wallets: 'BNB:' + this.state.userAddress,
       themeName: 'dark',
       containerColor: '0d1117',
       primaryColor: 'ffd700',
@@ -979,22 +970,13 @@ const exchangeModule = {
       borderRadius: '0.75'
     });
 
-    widgetDiv.innerHTML = `<iframe 
-      src="https://buy.onramper.com?${params.toString()}"
-      style="width:100%;height:630px;border:none;border-radius:12px;"
-      title="Купить BNB"
-      allow="accelerometer;autoplay;camera;gyroscope;payment"
-    ></iframe>`;
-
-    container.style.display = 'block';
-    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const url = `https://buy.onramper.com?${params.toString()}`;
+    window.open(url, '_blank');
+    app?.showNotification?.('Окно покупки открыто. Завершите оплату там, BNB придёт на ваш кошелёк.', 'success');
   },
 
   closeTransakWidget() {
-    const container = document.getElementById('transakWidgetContainer');
-    const widgetDiv = document.getElementById('transakWidget');
-    if (container) container.style.display = 'none';
-    if (widgetDiv) widgetDiv.innerHTML = '';
+    // Не нужен для window.open, оставляем для совместимости
   }
 };
 
