@@ -1,849 +1,682 @@
-// ═══════════════════════════════════════════════════════════════════
-// GlobalWay DApp - Exchange & P2P Module v3.0
-// On-chain P2P через P2PEscrow контракт
-// Order book, история, рейтинг пользователей
-// February 15, 2026
-// ═══════════════════════════════════════════════════════════════════
-
-const exchangeModule = {
-  state: {
-    userAddress: null,
-    gwtBalance: '0',
-    bnbBalance: '0',
-    gwtPrice: '0.001',
-    mode: 'swap',
-    orders: [],
-    myOrders: [],
-    history: [],
-    nextOrderId: 1,
-    feeBP: 50,
-    totalOrders: 0,
-    totalCompleted: 0,
-    totalVolumeBNB: '0',
-    userRating: { completed: 0, cancelled: 0 },
-    loading: false,
-    GWT_ADDRESS: null
-  },
-
-  _swapPair: { from: 'BNB', to: 'GWT' },
-
-  // ═══════════════════════════════════════════════════════════════
-  // INIT
-  // ═══════════════════════════════════════════════════════════════
-  async init() {
-    console.log('💱 Exchange module v3.0 init');
-    this.state.GWT_ADDRESS = window.CONFIG?.CONTRACTS?.GWTToken || null;
-    this.render();
-    this.bindEvents();
-    if (app?.state?.userAddress) {
-      this.state.userAddress = app.state.userAddress;
-      await this.loadAll();
-    }
-  },
-
-  async loadAll() {
-    await Promise.all([
-      this.loadBalances(),
-      this.loadContractStats(),
-      this.loadOrders(),
-      this.loadUserRating()
-    ]);
-    this.updateBalancesUI();
-    this.renderOrderBook();
-    this.renderMyOrders();
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // БАЛАНСЫ
-  // ═══════════════════════════════════════════════════════════════
-  async loadBalances() {
-    try {
-      const gwtToken = await app?.getContract?.('GWTToken');
-      if (gwtToken && this.state.userAddress) {
-        const bal = await gwtToken.balanceOf(this.state.userAddress);
-        this.state.gwtBalance = this.fmt(bal);
-      }
-      if (window.web3Manager?.provider && this.state.userAddress) {
-        const bnb = await window.web3Manager.provider.getBalance(this.state.userAddress);
-        this.state.bnbBalance = this.fmt(bnb);
-      }
-    } catch (e) { console.warn('Balance load error:', e); }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // СТАТИСТИКА КОНТРАКТА
-  // ═══════════════════════════════════════════════════════════════
-  async loadContractStats() {
-    try {
-      const p2p = await app?.getContract?.('P2PEscrow');
-      if (!p2p) return;
-      const [nextId, feeBP, total, completed, volume] = await Promise.all([
-        p2p.nextOrderId(), p2p.feeBP(), p2p.totalOrders(),
-        p2p.totalCompleted(), p2p.totalVolumeBNB()
-      ]);
-      this.state.nextOrderId = parseInt(nextId.toString());
-      this.state.feeBP = parseInt(feeBP.toString());
-      this.state.totalOrders = parseInt(total.toString());
-      this.state.totalCompleted = parseInt(completed.toString());
-      this.state.totalVolumeBNB = this.fmt(volume);
-    } catch (e) { console.warn('Stats load error:', e); }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ЗАГРУЗКА ОРДЕРОВ ИЗ КОНТРАКТА
-  // ═══════════════════════════════════════════════════════════════
-  async loadOrders() {
-    try {
-      const p2p = await app?.getContract?.('P2PEscrow');
-      if (!p2p) return;
-      const nextId = this.state.nextOrderId;
-      const orders = [];
-      // Загружаем последние 50 ордеров (или все если меньше)
-      const startId = Math.max(1, nextId - 50);
-      const promises = [];
-      for (let i = startId; i < nextId; i++) {
-        promises.push(this._fetchOrder(p2p, i));
-      }
-      const results = await Promise.all(promises);
-      results.forEach(o => { if (o) orders.push(o); });
-
-      this.state.orders = orders.filter(o => o.status === 0); // Active only
-      this.state.history = orders.filter(o => o.status !== 0);
-      this.state.myOrders = orders.filter(o =>
-        o.seller?.toLowerCase() === this.state.userAddress?.toLowerCase() ||
-        o.buyer?.toLowerCase() === this.state.userAddress?.toLowerCase()
-      );
-
-      // Вычисляем цену GWT из ордеров
-      this._calcPriceFromOrders();
-    } catch (e) { console.warn('Orders load error:', e); }
-  },
-
-  async _fetchOrder(p2p, orderId) {
-    try {
-      const o = await p2p.getOrder(orderId);
-      return {
-        id: orderId,
-        seller: o.seller || o[0],
-        buyer: o.buyer || o[1],
-        sellToken: o.sellToken || o[2],
-        sellAmount: o.sellAmount || o[3],
-        buyToken: o.buyToken || o[4],
-        buyAmount: o.buyAmount || o[5],
-        status: parseInt((o.status ?? o[6]).toString()),
-        createdAt: parseInt((o.createdAt ?? o[7]).toString()),
-        expiresAt: parseInt((o.expiresAt ?? o[8]).toString())
-      };
-    } catch (e) { return null; }
-  },
-
-  _calcPriceFromOrders() {
-    const gwtAddr = this.state.GWT_ADDRESS?.toLowerCase();
-    if (!gwtAddr) return;
-    const ZERO = '0x0000000000000000000000000000000000000000';
-    const sellOrders = this.state.orders.filter(o => {
-      const st = (o.sellToken || '').toLowerCase();
-      const bt = (o.buyToken || '').toLowerCase();
-      return st === gwtAddr && (bt === ZERO || bt === '0x0000000000000000000000000000000000000000');
-    });
-    if (sellOrders.length > 0) {
-      // Лучшая цена (самая низкая) = sellAmount GWT / buyAmount BNB
-      let bestPrice = Infinity;
-      sellOrders.forEach(o => {
-        const gwt = parseFloat(this.fmt(o.sellAmount));
-        const bnb = parseFloat(this.fmt(o.buyAmount));
-        if (gwt > 0 && bnb > 0) {
-          const price = bnb / gwt;
-          if (price < bestPrice) bestPrice = price;
-        }
-      });
-      if (bestPrice < Infinity) this.state.gwtPrice = bestPrice.toFixed(6);
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // РЕЙТИНГ ПОЛЬЗОВАТЕЛЯ
-  // ═══════════════════════════════════════════════════════════════
-  async loadUserRating() {
-    try {
-      const p2p = await app?.getContract?.('P2PEscrow');
-      if (!p2p || !this.state.userAddress) return;
-      const r = await p2p.getUserRating(this.state.userAddress);
-      this.state.userRating = {
-        completed: parseInt((r.completed ?? r[0]).toString()),
-        cancelled: parseInt((r.cancelled ?? r[1]).toString())
-      };
-    } catch (e) {}
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // СОЗДАНИЕ ОРДЕРА: ПРОДАЖА GWT за BNB
-  // ═══════════════════════════════════════════════════════════════
-  async createSellGWT() {
-    if (!this.state.userAddress) { app?.showNotification?.('Подключите кошелёк', 'error'); return; }
-    const amountInput = document.getElementById('p2pAmount');
-    const priceInput = document.getElementById('p2pPrice');
-    const gwtAmount = parseFloat(amountInput?.value || 0);
-    const pricePerGWT = parseFloat(priceInput?.value || 0);
-    if (!gwtAmount || gwtAmount <= 0) { app?.showNotification?.('Укажите количество GWT', 'error'); return; }
-    if (!pricePerGWT || pricePerGWT <= 0) { app?.showNotification?.('Укажите цену', 'error'); return; }
-    if (gwtAmount > parseFloat(this.state.gwtBalance)) { app?.showNotification?.('Недостаточно GWT', 'error'); return; }
-
-    const ethers = window.ethers;
-    const gwtWei = ethers.utils.parseEther(gwtAmount.toString());
-    const bnbTotal = gwtAmount * pricePerGWT;
-    const bnbWei = ethers.utils.parseEther(bnbTotal.toFixed(18));
-    const gwtAddr = this.state.GWT_ADDRESS;
-    const ZERO = '0x0000000000000000000000000000000000000000';
-
-    this.setLoading(true, 'Approve GWT...');
-    try {
-      // 1. Approve GWT
-      const gwtToken = await app?.getSignedContract?.('GWTToken');
-      const p2pAddr = window.CONFIG?.CONTRACTS?.P2PEscrow;
-      const allowance = await gwtToken.allowance(this.state.userAddress, p2pAddr);
-      if (allowance.lt(gwtWei)) {
-        this.setLoading(true, 'Подтвердите approve в кошельке...');
-        const approveTx = await gwtToken.approve(p2pAddr, ethers.constants.MaxUint256, { gasLimit: 100000 });
-        await approveTx.wait();
-      }
-
-      // 2. Create order
-      this.setLoading(true, 'Создание ордера...');
-      const p2p = await app?.getSignedContract?.('P2PEscrow');
-      const tx = await p2p.createOrderSellToken(gwtAddr, gwtWei, ZERO, bnbWei, { gasLimit: 300000 });
-      await tx.wait();
-
-      app?.showNotification?.(`✅ Ордер создан: ${gwtAmount} GWT → ${bnbTotal.toFixed(6)} BNB`, 'success');
-      if (amountInput) amountInput.value = '';
-      if (priceInput) priceInput.value = '';
-      await this.loadAll();
-    } catch (err) {
-      app?.showNotification?.('❌ ' + this.parseError(err), 'error');
-    } finally { this.setLoading(false); }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // СОЗДАНИЕ ОРДЕРА: ПОКУПКА GWT за BNB
-  // ═══════════════════════════════════════════════════════════════
-  async createBuyGWT() {
-    if (!this.state.userAddress) { app?.showNotification?.('Подключите кошелёк', 'error'); return; }
-    const amountInput = document.getElementById('p2pAmount');
-    const priceInput = document.getElementById('p2pPrice');
-    const gwtAmount = parseFloat(amountInput?.value || 0);
-    const pricePerGWT = parseFloat(priceInput?.value || 0);
-    if (!gwtAmount || gwtAmount <= 0) { app?.showNotification?.('Укажите количество GWT', 'error'); return; }
-    if (!pricePerGWT || pricePerGWT <= 0) { app?.showNotification?.('Укажите цену', 'error'); return; }
-
-    const bnbTotal = gwtAmount * pricePerGWT;
-    if (bnbTotal > parseFloat(this.state.bnbBalance)) { app?.showNotification?.('Недостаточно BNB', 'error'); return; }
-
-    const ethers = window.ethers;
-    const gwtWei = ethers.utils.parseEther(gwtAmount.toString());
-    const bnbWei = ethers.utils.parseEther(bnbTotal.toFixed(18));
-    const gwtAddr = this.state.GWT_ADDRESS;
-
-    this.setLoading(true, 'Создание ордера...');
-    try {
-      const p2p = await app?.getSignedContract?.('P2PEscrow');
-      const tx = await p2p.createOrderSellBNB(gwtAddr, gwtWei, { value: bnbWei, gasLimit: 300000 });
-      await tx.wait();
-
-      app?.showNotification?.(`✅ Ордер создан: покупка ${gwtAmount} GWT за ${bnbTotal.toFixed(6)} BNB`, 'success');
-      if (amountInput) amountInput.value = '';
-      if (priceInput) priceInput.value = '';
-      await this.loadAll();
-    } catch (err) {
-      app?.showNotification?.('❌ ' + this.parseError(err), 'error');
-    } finally { this.setLoading(false); }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ПРИНЯТИЕ ОРДЕРА
-  // ═══════════════════════════════════════════════════════════════
-  async acceptOrder(orderId) {
-    if (!this.state.userAddress) { app?.showNotification?.('Подключите кошелёк', 'error'); return; }
-    const order = this.state.orders.find(o => o.id === orderId);
-    if (!order) { app?.showNotification?.('Ордер не найден', 'error'); return; }
-
-    const ZERO = '0x0000000000000000000000000000000000000000';
-    const ethers = window.ethers;
-    this.setLoading(true, 'Исполнение ордера...');
-
-    try {
-      const p2p = await app?.getSignedContract?.('P2PEscrow');
-
-      if ((order.buyToken || '').toLowerCase() === ZERO ||
-          order.buyToken === '0x0000000000000000000000000000000000000000') {
-        // Ордер хочет BNB — платим BNB
-        const tx = await p2p.acceptOrderWithBNB(orderId, {
-          value: order.buyAmount,
-          gasLimit: 350000
-        });
-        await tx.wait();
-      } else {
-        // Ордер хочет токен — approve + pay token
-        const gwtToken = await app?.getSignedContract?.('GWTToken');
-        const p2pAddr = window.CONFIG?.CONTRACTS?.P2PEscrow;
-        const allowance = await gwtToken.allowance(this.state.userAddress, p2pAddr);
-        if (allowance.lt(order.buyAmount)) {
-          this.setLoading(true, 'Approve GWT...');
-          const appTx = await gwtToken.approve(p2pAddr, ethers.constants.MaxUint256, { gasLimit: 100000 });
-          await appTx.wait();
-        }
-        this.setLoading(true, 'Исполнение...');
-        const tx = await p2p.acceptOrderWithToken(orderId, { gasLimit: 350000 });
-        await tx.wait();
-      }
-
-      app?.showNotification?.('✅ Ордер исполнен!', 'success');
-      await this.loadAll();
-    } catch (err) {
-      app?.showNotification?.('❌ ' + this.parseError(err), 'error');
-    } finally { this.setLoading(false); }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ОТМЕНА ОРДЕРА
-  // ═══════════════════════════════════════════════════════════════
-  async cancelOrder(orderId) {
-    if (!confirm('Отменить ордер #' + orderId + '?')) return;
-    this.setLoading(true, 'Отмена ордера...');
-    try {
-      const p2p = await app?.getSignedContract?.('P2PEscrow');
-      const tx = await p2p.cancelOrder(orderId, { gasLimit: 200000 });
-      await tx.wait();
-      app?.showNotification?.('✅ Ордер отменён', 'success');
-      await this.loadAll();
-    } catch (err) {
-      app?.showNotification?.('❌ ' + this.parseError(err), 'error');
-    } finally { this.setLoading(false); }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // SWAP (быстрый обмен — исполняет лучший ордер)
-  // ═══════════════════════════════════════════════════════════════
-  async executeSwap() {
-    if (!this.state.userAddress) { app?.showNotification?.('Подключите кошелёк', 'error'); return; }
-    const fromAmount = parseFloat(document.getElementById('swapFromAmount')?.value || 0);
-    if (!fromAmount || fromAmount <= 0) { app?.showNotification?.('Укажите сумму', 'error'); return; }
-
-    const ZERO = '0x0000000000000000000000000000000000000000';
-    const gwtAddr = this.state.GWT_ADDRESS?.toLowerCase();
-
-    if (this._swapPair.from === 'BNB') {
-      // Покупаем GWT — ищем ордер продажи GWT (sellToken = GWT, buyToken = 0x0)
-      const sellOrders = this.state.orders
-        .filter(o => (o.sellToken || '').toLowerCase() === gwtAddr &&
-                     ((o.buyToken || '').toLowerCase() === ZERO))
-        .sort((a, b) => {
-          const priceA = parseFloat(this.fmt(a.buyAmount)) / parseFloat(this.fmt(a.sellAmount));
-          const priceB = parseFloat(this.fmt(b.buyAmount)) / parseFloat(this.fmt(b.sellAmount));
-          return priceA - priceB; // Лучшая цена первая
-        });
-
-      if (!sellOrders.length) { app?.showNotification?.('Нет ордеров на продажу GWT', 'warning'); return; }
-
-      // Берём первый подходящий
-      const best = sellOrders[0];
-      const needed = parseFloat(this.fmt(best.buyAmount));
-      if (fromAmount < needed) { app?.showNotification?.(`Минимум ${needed.toFixed(6)} BNB для этого ордера`, 'warning'); return; }
-
-      await this.acceptOrder(best.id);
-    } else {
-      // Продаём GWT — ищем ордер покупки GWT (sellToken = 0x0/BNB, buyToken = GWT)
-      const buyOrders = this.state.orders
-        .filter(o => (o.buyToken || '').toLowerCase() === gwtAddr &&
-                     ((o.sellToken || '').toLowerCase() === ZERO))
-        .sort((a, b) => {
-          const priceA = parseFloat(this.fmt(a.sellAmount)) / parseFloat(this.fmt(a.buyAmount));
-          const priceB = parseFloat(this.fmt(b.sellAmount)) / parseFloat(this.fmt(b.buyAmount));
-          return priceB - priceA; // Лучшая цена первая
-        });
-
-      if (!buyOrders.length) { app?.showNotification?.('Нет ордеров на покупку GWT', 'warning'); return; }
-
-      const best = buyOrders[0];
-      await this.acceptOrder(best.id);
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // RENDER
-  // ═══════════════════════════════════════════════════════════════
-  render() {
-    const container = document.getElementById('exchange');
-    if (!container) return;
-
-    container.innerHTML = `
-<div class="exchange-page">
-  <div class="exch-header">
-    <h2 data-translate="exchange.title">💱 Обменник & P2P</h2>
-    <p class="exch-subtitle" data-translate="exchange.subtitle">On-chain P2P торговля GWT токенами</p>
-  </div>
-
-  <!-- Статистика -->
-  <div class="exch-stats">
-    <div class="exch-stat-card">
-      <span class="exch-stat-val" id="exchStatOrders">0</span>
-      <span class="exch-stat-label" data-translate="exchange.totalOrders">Ордеров</span>
-    </div>
-    <div class="exch-stat-card">
-      <span class="exch-stat-val" id="exchStatCompleted">0</span>
-      <span class="exch-stat-label" data-translate="exchange.completed">Завершено</span>
-    </div>
-    <div class="exch-stat-card">
-      <span class="exch-stat-val" id="exchStatVolume">0</span>
-      <span class="exch-stat-label" data-translate="exchange.volume">Объём BNB</span>
-    </div>
-    <div class="exch-stat-card">
-      <span class="exch-stat-val" id="exchStatFee">0.5%</span>
-      <span class="exch-stat-label" data-translate="exchange.fee">Комиссия</span>
-    </div>
-  </div>
-
-  <!-- Табы -->
-  <div class="exch-mode-tabs">
-    <button class="exch-tab active" data-mode="swap">🔄 Быстрый обмен</button>
-    <button class="exch-tab" data-mode="p2p">📋 Стакан ордеров</button>
-    <button class="exch-tab" data-mode="create">➕ Создать ордер</button>
-    <button class="exch-tab" data-mode="my">👤 Мои ордера</button>
-  </div>
-
-  <!-- ═══ SWAP ═══ -->
-  <div class="exch-section" id="exchSwapSection">
-    <div class="exch-balances">
-      <div class="exch-balance-card">
-        <span class="bal-label">GWT</span>
-        <span class="bal-value" id="exchGwtBalance">0.00</span>
-        <span class="bal-usd">Token</span>
-      </div>
-      <div class="exch-balance-card">
-        <span class="bal-label">BNB</span>
-        <span class="bal-value" id="exchBnbBalance">0.000000</span>
-        <span class="bal-usd">opBNB</span>
-      </div>
-      <div class="exch-balance-card exch-price-card">
-        <span class="bal-label" data-translate="exchange.gwtPrice">Цена GWT</span>
-        <span class="bal-value" id="exchGwtPrice">0.001</span>
-        <span class="bal-usd">BNB</span>
-      </div>
-    </div>
-
-    <div class="exch-swap-form">
-      <div class="exch-swap-card">
-        <div class="swap-from">
-          <div class="swap-header">
-            <span data-translate="exchange.youPay">Отдаёте</span>
-            <span class="swap-max" id="swapMaxBtn">MAX</span>
-          </div>
-          <div class="swap-input-row">
-            <input type="number" id="swapFromAmount" placeholder="0.00" class="swap-input" step="any">
-            <div class="swap-token-select" id="swapFromToken">
-              <span class="token-icon">💎</span>
-              <span class="token-name" id="swapFromName">BNB</span>
-            </div>
-          </div>
-          <div class="swap-balance-hint">Balance: <span id="swapFromBalance">0.00</span></div>
-        </div>
-        <div class="swap-switch-btn" id="swapSwitchBtn"><span>⇅</span></div>
-        <div class="swap-to">
-          <div class="swap-header"><span data-translate="exchange.youGet">Получаете (примерно)</span></div>
-          <div class="swap-input-row">
-            <input type="number" id="swapToAmount" placeholder="0.00" class="swap-input" readonly>
-            <div class="swap-token-select" id="swapToToken">
-              <span class="token-icon">🪙</span>
-              <span class="token-name" id="swapToName">GWT</span>
-            </div>
-          </div>
-          <div class="swap-rate-info">Курс: <span id="swapRateDisplay">—</span></div>
-        </div>
-      </div>
-      <div class="swap-details">
-        <div class="swap-detail-row"><span data-translate="exchange.buyCommission">Комиссия:</span><span>${this.state.feeBP / 100}% с каждой стороны</span></div>
-        <div class="swap-detail-row"><span data-translate="exchange.slippage">Исполнение:</span><span>Через лучший ордер в стакане</span></div>
-      </div>
-      <button class="exch-swap-btn" id="exchSwapBtn">🔄 Обменять</button>
-      <div class="exch-swap-info">
-        <p>Быстрый обмен автоматически находит лучший ордер в стакане и исполняет его.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ ORDER BOOK ═══ -->
-  <div class="exch-section" id="exchP2PSection" style="display:none;">
-    <div class="orderbook">
-      <div class="orderbook-side orderbook-sells">
-        <h4 class="orderbook-title sell-title">🔴 Продажа GWT (Ask)</h4>
-        <div class="orderbook-header">
-          <span>Цена (BNB)</span><span>Кол-во GWT</span><span>Итого BNB</span><span></span>
-        </div>
-        <div class="orderbook-list" id="orderbookSells">
-          <div class="orderbook-empty">Нет ордеров на продажу</div>
-        </div>
-      </div>
-      <div class="orderbook-spread">
-        <span class="spread-price" id="spreadPrice">—</span>
-        <span class="spread-label">Средняя цена</span>
-      </div>
-      <div class="orderbook-side orderbook-buys">
-        <h4 class="orderbook-title buy-title">🟢 Покупка GWT (Bid)</h4>
-        <div class="orderbook-header">
-          <span>Цена (BNB)</span><span>Кол-во GWT</span><span>Итого BNB</span><span></span>
-        </div>
-        <div class="orderbook-list" id="orderbookBuys">
-          <div class="orderbook-empty">Нет ордеров на покупку</div>
-        </div>
-      </div>
-    </div>
-    <button class="exch-refresh-btn" id="refreshOrderbook">🔄 Обновить</button>
-  </div>
-
-  <!-- ═══ CREATE ORDER ═══ -->
-  <div class="exch-section" id="exchCreateSection" style="display:none;">
-    <div class="p2p-create">
-      <h3 data-translate="exchange.createOrder">📝 Создать ордер (on-chain)</h3>
-      <p class="exch-hint">Токены блокируются на контракте до покупки или отмены. Комиссия P2P: ${this.state.feeBP / 100}%.</p>
-      <div class="p2p-form">
-        <div class="p2p-type-selector">
-          <button class="p2p-type-btn active" data-type="sell">🔴 Продаю GWT</button>
-          <button class="p2p-type-btn" data-type="buy">🟢 Покупаю GWT</button>
-        </div>
-        <div class="p2p-form-row">
-          <label data-translate="exchange.amountGWT">Количество GWT</label>
-          <input type="number" id="p2pAmount" placeholder="100" class="p2p-input" step="any">
-          <button class="p2p-max-btn" id="p2pMaxBtn">MAX</button>
-        </div>
-        <div class="p2p-form-row">
-          <label data-translate="exchange.pricePerGWT">Цена за 1 GWT (BNB)</label>
-          <input type="number" id="p2pPrice" placeholder="0.001" class="p2p-input" step="any">
-          <button class="p2p-cur-btn" id="p2pCurBtn" data-translate="exchange.current">Текущая</button>
-        </div>
-        <div class="p2p-total-info">
-          <span data-translate="exchange.total">Итого получите</span> — <strong id="p2pTotalCalc">0</strong> <span>BNB</span>
-          <span class="p2p-fee-hint">(минус ${this.state.feeBP / 100}% комиссия)</span>
-        </div>
-        <button class="p2p-create-btn" id="p2pCreateBtn" data-translate="exchange.createOnChain">Создать ордер (on-chain)</button>
-      </div>
-    </div>
-    <div class="p2p-user-rating" id="p2pUserRating">
-      <span>Ваш рейтинг: </span>
-      <span class="rating-good" id="ratingCompleted">0</span> завершено /
-      <span class="rating-bad" id="ratingCancelled">0</span> отменено
-    </div>
-  </div>
-
-  <!-- ═══ MY ORDERS ═══ -->
-  <div class="exch-section" id="exchMySection" style="display:none;">
-    <h3 data-translate="exchange.myOrders">👤 Мои ордера</h3>
-    <div id="myOrdersList" class="my-orders-list">
-      <div class="orderbook-empty">Нет ордеров</div>
-    </div>
-  </div>
-
-  <!-- Loading -->
-  <div class="exch-loading" id="exchLoading" style="display:none;">
-    <div class="exch-loading-spinner"></div>
-    <p id="exchLoadingText">Загрузка...</p>
-  </div>
-</div>`;
-
-    if (window.i18n?.translatePage) window.i18n.translatePage();
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // BIND EVENTS
-  // ═══════════════════════════════════════════════════════════════
-  bindEvents() {
-    // Табы
-    document.querySelectorAll('.exch-tab').forEach(tab => {
-      tab.addEventListener('click', () => this.switchMode(tab.dataset.mode));
-    });
-
-    // Swap
-    document.getElementById('swapFromAmount')?.addEventListener('input', () => this.calculateSwap());
-    document.getElementById('swapMaxBtn')?.addEventListener('click', () => this.setMaxAmount());
-    document.getElementById('swapSwitchBtn')?.addEventListener('click', () => this.switchPair());
-    document.getElementById('exchSwapBtn')?.addEventListener('click', () => this.executeSwap());
-
-    // P2P type toggle
-    document.querySelectorAll('.p2p-type-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.p2p-type-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this._updateCreateTotal();
-      });
-    });
-
-    // P2P inputs
-    document.getElementById('p2pAmount')?.addEventListener('input', () => this._updateCreateTotal());
-    document.getElementById('p2pPrice')?.addEventListener('input', () => this._updateCreateTotal());
-    document.getElementById('p2pMaxBtn')?.addEventListener('click', () => {
-      const input = document.getElementById('p2pAmount');
-      if (input) { input.value = parseFloat(this.state.gwtBalance).toFixed(2); this._updateCreateTotal(); }
-    });
-    document.getElementById('p2pCurBtn')?.addEventListener('click', () => {
-      const input = document.getElementById('p2pPrice');
-      if (input) { input.value = this.state.gwtPrice; this._updateCreateTotal(); }
-    });
-
-    // Create button
-    document.getElementById('p2pCreateBtn')?.addEventListener('click', () => {
-      const type = document.querySelector('.p2p-type-btn.active')?.dataset.type || 'sell';
-      if (type === 'sell') this.createSellGWT();
-      else this.createBuyGWT();
-    });
-
-    // Refresh
-    document.getElementById('refreshOrderbook')?.addEventListener('click', () => this.loadAll());
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // UI HELPERS
-  // ═══════════════════════════════════════════════════════════════
-  switchMode(mode) {
-    this.state.mode = mode;
-    document.querySelectorAll('.exch-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
-    ['exchSwapSection', 'exchP2PSection', 'exchCreateSection', 'exchMySection'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-    const map = { swap: 'exchSwapSection', p2p: 'exchP2PSection', create: 'exchCreateSection', my: 'exchMySection' };
-    const el = document.getElementById(map[mode]);
-    if (el) el.style.display = 'block';
-  },
-
-  updateBalancesUI() {
-    const s = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-    s('exchGwtBalance', parseFloat(this.state.gwtBalance).toFixed(2));
-    s('exchBnbBalance', parseFloat(this.state.bnbBalance).toFixed(6));
-    s('exchGwtPrice', this.state.gwtPrice);
-    s('exchStatOrders', this.state.totalOrders);
-    s('exchStatCompleted', this.state.totalCompleted);
-    s('exchStatVolume', parseFloat(this.state.totalVolumeBNB).toFixed(4));
-    s('exchStatFee', (this.state.feeBP / 100) + '%');
-    s('ratingCompleted', this.state.userRating.completed);
-    s('ratingCancelled', this.state.userRating.cancelled);
-
-    // Swap balance
-    const fromBal = document.getElementById('swapFromBalance');
-    if (fromBal) {
-      fromBal.textContent = this._swapPair.from === 'GWT'
-        ? parseFloat(this.state.gwtBalance).toFixed(2)
-        : parseFloat(this.state.bnbBalance).toFixed(6);
-    }
-  },
-
-  calculateSwap() {
-    const fromVal = parseFloat(document.getElementById('swapFromAmount')?.value || 0);
-    const toEl = document.getElementById('swapToAmount');
-    const rateEl = document.getElementById('swapRateDisplay');
-    const price = parseFloat(this.state.gwtPrice) || 0.001;
-
-    if (!fromVal || fromVal <= 0) {
-      if (toEl) toEl.value = '';
-      if (rateEl) rateEl.textContent = '—';
-      return;
-    }
-    let result;
-    if (this._swapPair.from === 'BNB') {
-      result = fromVal / price;
-      if (rateEl) rateEl.textContent = `1 GWT = ${price} BNB`;
-    } else {
-      result = fromVal * price;
-      if (rateEl) rateEl.textContent = `1 GWT = ${price} BNB`;
-    }
-    if (toEl) toEl.value = result.toFixed(4);
-  },
-
-  switchPair() {
-    const t = this._swapPair.from;
-    this._swapPair.from = this._swapPair.to;
-    this._swapPair.to = t;
-    const fn = document.getElementById('swapFromName');
-    const tn = document.getElementById('swapToName');
-    const fi = document.querySelector('#swapFromToken .token-icon');
-    const ti = document.querySelector('#swapToToken .token-icon');
-    const icons = { GWT: '🪙', BNB: '💎' };
-    if (fn) fn.textContent = this._swapPair.from;
-    if (tn) tn.textContent = this._swapPair.to;
-    if (fi) fi.textContent = icons[this._swapPair.from];
-    if (ti) ti.textContent = icons[this._swapPair.to];
-    this.updateBalancesUI();
-    this.calculateSwap();
-  },
-
-  setMaxAmount() {
-    const input = document.getElementById('swapFromAmount');
-    if (!input) return;
-    input.value = this._swapPair.from === 'GWT'
-      ? parseFloat(this.state.gwtBalance).toFixed(4)
-      : parseFloat(this.state.bnbBalance).toFixed(6);
-    this.calculateSwap();
-  },
-
-  _updateCreateTotal() {
-    const amt = parseFloat(document.getElementById('p2pAmount')?.value || 0);
-    const price = parseFloat(document.getElementById('p2pPrice')?.value || 0);
-    const total = (amt * price);
-    const fee = total * this.state.feeBP / 10000;
-    const el = document.getElementById('p2pTotalCalc');
-    if (el) el.textContent = total > 0 ? (total - fee).toFixed(6) : '0';
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // ORDER BOOK RENDER
-  // ═══════════════════════════════════════════════════════════════
-  renderOrderBook() {
-    const ZERO = '0x0000000000000000000000000000000000000000';
-    const gwtAddr = this.state.GWT_ADDRESS?.toLowerCase();
-    if (!gwtAddr) return;
-
-    // Sell orders: sellToken=GWT, buyToken=BNB(0x0)
-    const sells = this.state.orders.filter(o =>
-      (o.sellToken || '').toLowerCase() === gwtAddr &&
-      ((o.buyToken || '').toLowerCase() === ZERO)
-    ).map(o => ({
-      ...o,
-      gwtAmount: parseFloat(this.fmt(o.sellAmount)),
-      bnbAmount: parseFloat(this.fmt(o.buyAmount)),
-      price: parseFloat(this.fmt(o.buyAmount)) / parseFloat(this.fmt(o.sellAmount))
-    })).sort((a, b) => a.price - b.price);
-
-    // Buy orders: sellToken=BNB(0x0), buyToken=GWT
-    const buys = this.state.orders.filter(o =>
-      ((o.sellToken || '').toLowerCase() === ZERO) &&
-      (o.buyToken || '').toLowerCase() === gwtAddr
-    ).map(o => ({
-      ...o,
-      bnbAmount: parseFloat(this.fmt(o.sellAmount)),
-      gwtAmount: parseFloat(this.fmt(o.buyAmount)),
-      price: parseFloat(this.fmt(o.sellAmount)) / parseFloat(this.fmt(o.buyAmount))
-    })).sort((a, b) => b.price - a.price);
-
-    // Render sells
-    const sellsEl = document.getElementById('orderbookSells');
-    if (sellsEl) {
-      if (!sells.length) { sellsEl.innerHTML = '<div class="orderbook-empty">Нет ордеров на продажу</div>'; }
-      else {
-        sellsEl.innerHTML = sells.map(o => {
-          const isMine = o.seller?.toLowerCase() === this.state.userAddress?.toLowerCase();
-          return `<div class="orderbook-row sell-row">
-            <span class="ob-price">${o.price.toFixed(6)}</span>
-            <span class="ob-amount">${o.gwtAmount.toFixed(2)}</span>
-            <span class="ob-total">${o.bnbAmount.toFixed(6)}</span>
-            <span class="ob-action">${isMine
-              ? `<button class="ob-cancel-btn" onclick="exchangeModule.cancelOrder(${o.id})">✕</button>`
-              : `<button class="ob-buy-btn" onclick="exchangeModule.acceptOrder(${o.id})">Купить</button>`
-            }</span>
-          </div>`;
-        }).join('');
-      }
-    }
-
-    // Render buys
-    const buysEl = document.getElementById('orderbookBuys');
-    if (buysEl) {
-      if (!buys.length) { buysEl.innerHTML = '<div class="orderbook-empty">Нет ордеров на покупку</div>'; }
-      else {
-        buysEl.innerHTML = buys.map(o => {
-          const isMine = o.seller?.toLowerCase() === this.state.userAddress?.toLowerCase();
-          return `<div class="orderbook-row buy-row">
-            <span class="ob-price">${o.price.toFixed(6)}</span>
-            <span class="ob-amount">${o.gwtAmount.toFixed(2)}</span>
-            <span class="ob-total">${o.bnbAmount.toFixed(6)}</span>
-            <span class="ob-action">${isMine
-              ? `<button class="ob-cancel-btn" onclick="exchangeModule.cancelOrder(${o.id})">✕</button>`
-              : `<button class="ob-sell-btn" onclick="exchangeModule.acceptOrder(${o.id})">Продать</button>`
-            }</span>
-          </div>`;
-        }).join('');
-      }
-    }
-
-    // Spread
-    const spreadEl = document.getElementById('spreadPrice');
-    if (spreadEl) {
-      if (sells.length && buys.length) {
-        const mid = ((sells[0].price + buys[0].price) / 2).toFixed(6);
-        spreadEl.textContent = mid + ' BNB';
-      } else if (sells.length) { spreadEl.textContent = sells[0].price.toFixed(6) + ' BNB'; }
-      else { spreadEl.textContent = this.state.gwtPrice + ' BNB'; }
-    }
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // MY ORDERS RENDER
-  // ═══════════════════════════════════════════════════════════════
-  renderMyOrders() {
-    const el = document.getElementById('myOrdersList');
-    if (!el) return;
-    const gwtAddr = this.state.GWT_ADDRESS?.toLowerCase();
-    const ZERO = '0x0000000000000000000000000000000000000000';
-    const STATUS = ['🟢 Активный', '🔗 Matched', '✅ Завершён', '❌ Отменён', '⚠️ Спор', '✅ Решён'];
-
-    const my = this.state.myOrders.sort((a, b) => b.createdAt - a.createdAt);
-    if (!my.length) { el.innerHTML = '<div class="orderbook-empty">У вас нет ордеров</div>'; return; }
-
-    el.innerHTML = my.map(o => {
-      const isSeller = o.seller?.toLowerCase() === this.state.userAddress?.toLowerCase();
-      const isGWTSell = (o.sellToken || '').toLowerCase() === gwtAddr;
-      const gwtAmt = isGWTSell ? this.fmt(o.sellAmount) : this.fmt(o.buyAmount);
-      const bnbAmt = isGWTSell ? this.fmt(o.buyAmount) : this.fmt(o.sellAmount);
-      const type = (isSeller && isGWTSell) || (!isSeller && !isGWTSell) ? 'sell' : 'buy';
-      const date = new Date(o.createdAt * 1000).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-      const canCancel = isSeller && o.status === 0;
-
-      return `<div class="my-order-card ${type}">
-        <div class="my-order-header">
-          <span class="my-order-id">#${o.id}</span>
-          <span class="my-order-status">${STATUS[o.status] || '?'}</span>
-        </div>
-        <div class="my-order-body">
-          <span class="my-order-type ${type}">${type === 'sell' ? '🔴 Продажа' : '🟢 Покупка'}</span>
-          <span class="my-order-amount">${parseFloat(gwtAmt).toFixed(2)} GWT</span>
-          <span class="my-order-price">${parseFloat(bnbAmt).toFixed(6)} BNB</span>
-          <span class="my-order-date">${date}</span>
-        </div>
-        ${canCancel ? `<button class="my-order-cancel" onclick="exchangeModule.cancelOrder(${o.id})">❌ Отменить</button>` : ''}
-      </div>`;
-    }).join('');
-  },
-
-  // ═══════════════════════════════════════════════════════════════
-  // HELPERS
-  // ═══════════════════════════════════════════════════════════════
-  setLoading(on, text) {
-    const el = document.getElementById('exchLoading');
-    const txt = document.getElementById('exchLoadingText');
-    if (el) el.style.display = on ? 'flex' : 'none';
-    if (txt && text) txt.textContent = text;
-  },
-
-  fmt(val) {
-    try {
-      if (window.ethers?.utils?.formatEther) return window.ethers.utils.formatEther(val);
-      return (parseInt(val.toString()) / 1e18).toString();
-    } catch (e) { return '0'; }
-  },
-
-  parseError(err) {
-    const msg = err?.reason || err?.data?.message || err?.message || 'Error';
-    if (msg.includes('Token not allowed')) return 'Токен не разрешён на P2P';
-    if (msg.includes('Invalid')) return 'Неверные параметры';
-    if (msg.includes('Cannot cancel')) return 'Нельзя отменить';
-    if (msg.includes('Not expired')) return 'Ордер ещё активен';
-    if (msg.includes('user rejected') || msg.includes('denied')) return 'Отменено';
-    if (msg.includes('insufficient')) return 'Недостаточно средств';
-    return msg.length > 80 ? msg.slice(0, 80) + '...' : msg;
-  },
-
-  async refresh() {
-    if (app?.state?.userAddress) {
-      this.state.userAddress = app.state.userAddress;
-      await this.loadAll();
-    }
-  }
-};
-
-window.exchangeModule = exchangeModule;
+/* ═══════════════════════════════════════════════════════════════
+   Exchange & P2P v3.0 — Order Book + On-chain UI
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══ Статистика ═══ */
+.exch-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.exch-stat-card {
+  background: rgba(0, 26, 51, 0.9);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.exch-stat-val {
+  color: #ffd700;
+  font-size: 18px;
+  font-weight: 700;
+}
+.exch-stat-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+}
+
+/* ═══ Табы ═══ */
+.exch-mode-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.exch-mode-tabs::-webkit-scrollbar { display: none; }
+.exch-tab {
+  flex: 1;
+  padding: 10px 8px;
+  background: rgba(0, 26, 51, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.exch-tab:hover { border-color: rgba(255, 215, 0, 0.4); color: #fff; }
+.exch-tab.active {
+  background: rgba(255, 215, 0, 0.12);
+  border-color: #ffd700;
+  color: #ffd700;
+  font-weight: 600;
+}
+
+/* ═══ Секции ═══ */
+.exch-section {
+  background: rgba(0, 26, 51, 0.92);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 14px;
+  padding: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ═══ Балансы ═══ */
+.exch-balances {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.exch-balance-card {
+  background: rgba(0, 20, 45, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bal-label { color: rgba(255, 255, 255, 0.6); font-size: 12px; }
+.bal-value { color: #fff; font-size: 20px; font-weight: 700; font-family: monospace; }
+.bal-usd { color: rgba(255, 255, 255, 0.4); font-size: 11px; }
+
+/* ═══ Swap форма ═══ */
+.exch-swap-form { margin-top: 12px; }
+.exch-swap-card {
+  background: rgba(0, 15, 35, 0.7);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  border-radius: 14px;
+  padding: 16px;
+}
+.swap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+.swap-max {
+  color: #ffd700;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+}
+.swap-max:hover { text-decoration: underline; }
+.swap-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.swap-input {
+  flex: 1;
+  background: rgba(0, 10, 25, 0.9);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  color: #fff;
+  font-size: 20px;
+  font-family: monospace;
+  outline: none;
+}
+.swap-input:focus { border-color: #ffd700; }
+.swap-input::placeholder { color: rgba(255, 255, 255, 0.25); }
+.swap-token-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 90px;
+}
+.token-icon { font-size: 18px; }
+.token-name { color: #fff; font-weight: 600; font-size: 14px; }
+.swap-balance-hint, .swap-rate-info {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.swap-switch-btn {
+  text-align: center;
+  margin: 10px 0;
+  cursor: pointer;
+}
+.swap-switch-btn span {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+  font-size: 18px;
+  transition: all 0.2s;
+}
+.swap-switch-btn:hover span {
+  background: rgba(255, 215, 0, 0.2);
+  transform: rotate(180deg);
+}
+.swap-details {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(0, 15, 35, 0.5);
+  border-radius: 10px;
+}
+.swap-detail-row {
+  display: flex;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  padding: 4px 0;
+}
+.exch-swap-btn {
+  width: 100%;
+  padding: 14px;
+  margin-top: 12px;
+  background: linear-gradient(135deg, #ffd700, #f0c000);
+  border: none;
+  border-radius: 12px;
+  color: #000;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.exch-swap-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); }
+.exch-swap-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.exch-swap-info {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ═══ ORDER BOOK ═══ */
+.orderbook {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.orderbook-side { margin-bottom: 0; }
+.orderbook-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 8px 0;
+}
+.sell-title { color: #ff4444; }
+.buy-title { color: #00cc66; }
+.orderbook-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 70px;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+}
+.orderbook-list { max-height: 200px; overflow-y: auto; }
+.orderbook-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 70px;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: monospace;
+  align-items: center;
+  transition: background 0.15s;
+}
+.orderbook-row:hover { background: rgba(255, 255, 255, 0.05); }
+.sell-row .ob-price { color: #ff5555; }
+.buy-row .ob-price { color: #00dd77; }
+.ob-amount, .ob-total { color: rgba(255, 255, 255, 0.8); }
+.ob-action { text-align: right; }
+.ob-buy-btn, .ob-sell-btn, .ob-cancel-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+}
+.ob-buy-btn { background: #00cc66; color: #000; }
+.ob-sell-btn { background: #ff4444; color: #fff; }
+.ob-cancel-btn { background: rgba(255, 255, 255, 0.1); color: #ff4444; }
+.ob-buy-btn:hover { background: #00ee77; }
+.ob-sell-btn:hover { background: #ff5555; }
+
+.orderbook-spread {
+  text-align: center;
+  padding: 12px;
+  margin: 4px 0;
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+.spread-price { color: #ffd700; font-size: 18px; font-weight: 700; font-family: monospace; }
+.spread-label { display: block; color: rgba(255, 255, 255, 0.4); font-size: 11px; margin-top: 2px; }
+
+.orderbook-empty {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+}
+
+.exch-refresh-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  color: #ffd700;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+}
+.exch-refresh-btn:hover { background: rgba(255, 215, 0, 0.15); }
+
+/* ═══ CREATE ORDER ═══ */
+.p2p-create h3 { color: #ffd700; margin-bottom: 8px; }
+.exch-hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.p2p-form { display: flex; flex-direction: column; gap: 12px; }
+.p2p-type-selector { display: flex; gap: 8px; }
+.p2p-type-btn {
+  flex: 1;
+  padding: 10px;
+  background: rgba(0, 20, 45, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.p2p-type-btn:hover { border-color: rgba(255, 215, 0, 0.3); }
+.p2p-type-btn.active[data-type="sell"] {
+  border-color: #ff4444;
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.08);
+}
+.p2p-type-btn.active[data-type="buy"] {
+  border-color: #00cc66;
+  color: #00cc66;
+  background: rgba(0, 204, 102, 0.08);
+}
+.p2p-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+.p2p-form-row label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+.p2p-input {
+  background: rgba(0, 10, 25, 0.9);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  padding-right: 80px;
+  color: #fff;
+  font-size: 16px;
+  font-family: monospace;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.p2p-input:focus { border-color: #ffd700; }
+.p2p-input::placeholder { color: rgba(255, 255, 255, 0.25); }
+.p2p-max-btn, .p2p-cur-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 10px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 6px;
+  color: #ffd700;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+}
+.p2p-max-btn:hover, .p2p-cur-btn:hover { background: rgba(255, 215, 0, 0.2); }
+.p2p-total-info {
+  background: rgba(255, 215, 0, 0.05);
+  padding: 10px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+.p2p-total-info strong { color: #ffd700; font-size: 16px; }
+.p2p-fee-hint { color: rgba(255, 255, 255, 0.35); font-size: 11px; }
+.p2p-create-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #ffd700, #f0c000);
+  border: none;
+  border-radius: 12px;
+  color: #000;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.p2p-create-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); }
+
+/* User rating */
+.p2p-user-rating {
+  margin-top: 16px;
+  padding: 10px;
+  background: rgba(0, 20, 45, 0.7);
+  border-radius: 10px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+.rating-good { color: #00cc66; font-weight: 700; }
+.rating-bad { color: #ff4444; font-weight: 700; }
+
+/* ═══ MY ORDERS ═══ */
+.my-orders-list { display: flex; flex-direction: column; gap: 8px; }
+.my-order-card {
+  background: rgba(0, 20, 45, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+}
+.my-order-card.sell { border-left: 3px solid #ff4444; }
+.my-order-card.buy { border-left: 3px solid #00cc66; }
+.my-order-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.my-order-id { color: rgba(255, 255, 255, 0.4); font-size: 12px; }
+.my-order-status { font-size: 12px; }
+.my-order-body {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.my-order-type.sell { color: #ff4444; font-weight: 600; }
+.my-order-type.buy { color: #00cc66; font-weight: 600; }
+.my-order-amount { color: #fff; font-family: monospace; }
+.my-order-price { color: rgba(255, 255, 255, 0.7); font-family: monospace; }
+.my-order-date { color: rgba(255, 255, 255, 0.4); font-size: 11px; }
+.my-order-cancel {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ff4444;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+}
+.my-order-cancel:hover { background: rgba(255, 68, 68, 0.2); }
+
+/* ═══ Loading ═══ */
+.exch-loading {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(5px);
+}
+.exch-loading-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid rgba(255, 215, 0, 0.2);
+  border-top-color: #ffd700;
+  border-radius: 50%;
+  animation: exchSpin 0.8s linear infinite;
+}
+@keyframes exchSpin { to { transform: rotate(360deg); } }
+.exch-loading p { color: #ffd700; margin-top: 12px; font-size: 14px; }
+
+/* ═══ Responsive ═══ */
+@media (max-width: 600px) {
+  .exch-stats { grid-template-columns: repeat(2, 1fr); }
+  .exch-balances { grid-template-columns: 1fr; }
+  .exch-mode-tabs { gap: 3px; }
+  .exch-tab { font-size: 11px; padding: 8px 4px; }
+  .orderbook-header, .orderbook-row { grid-template-columns: 1fr 1fr 1fr 60px; font-size: 11px; }
+  .my-order-body { grid-template-columns: 1fr 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUY WITH CARD — Fiat On-Ramp
+   ═══════════════════════════════════════════════════════════════ */
+.exch-buy-card-container {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.exch-buy-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.exch-buy-header h3 {
+  color: #ffd700;
+  font-size: 1.3em;
+  margin: 0 0 8px;
+}
+
+.exch-buy-options {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(0, 212, 255, 0.03));
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.exch-buy-label {
+  color: #aaa;
+  font-size: 13px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.exch-buy-presets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.exch-preset-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 215, 0, 0.08);
+  color: #e0e0e0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+.exch-preset-btn.active,
+.exch-preset-btn:hover {
+  background: linear-gradient(135deg, #ffd700, #ff9500);
+  color: #000;
+  border-color: #ffd700;
+}
+
+.exch-buy-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.exch-buy-input {
+  flex: 1;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+}
+.exch-buy-input:focus {
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.15);
+}
+.exch-buy-currency {
+  color: #ffd700;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.exch-buy-info {
+  margin-bottom: 20px;
+}
+.exch-buy-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+}
+.exch-buy-info-row span:first-child {
+  color: #888;
+}
+.exch-buy-info-row strong {
+  color: #e0e0e0;
+}
+
+.exch-buy-main-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffd700, #ff9500);
+  color: #000;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  margin-bottom: 16px;
+}
+.exch-buy-main-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.35);
+}
+.exch-buy-main-btn:active {
+  transform: translateY(0);
+}
+.buy-btn-icon {
+  font-size: 22px;
+}
+
+.exch-buy-methods {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #666;
+}
+.pay-method {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Widget container */
+.exch-buy-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 215, 0, 0.2);
+}
+.exch-buy-widget-header span {
+  color: #ffd700;
+  font-weight: 600;
+}
+.exch-buy-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.exch-buy-widget {
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 600px;
+}
+
+.exch-buy-footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 12px;
+  color: #555;
+  line-height: 1.6;
+}
+.exch-buy-footer a {
+  color: #00d4ff;
+  text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  .exch-buy-presets { gap: 6px; }
+  .exch-preset-btn { padding: 10px 4px; font-size: 13px; }
+  .exch-buy-main-btn { font-size: 15px; padding: 14px; }
+}
