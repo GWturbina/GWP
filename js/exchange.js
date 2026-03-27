@@ -528,7 +528,7 @@ const exchangeModule = {
 
       <div class="exch-buy-footer">
         <p>🔒 Безопасно. Ваши данные карты обрабатывает лицензированный платёжный провайдер. GlobalWay не хранит и не видит данные вашей карты.</p>
-        <p>Powered by <a href="https://transak.com" target="_blank" rel="noopener">Transak</a></p>
+        <p>Powered by <a href="https://onramper.com" target="_blank" rel="noopener">Onramper</a> — 30+ провайдеров, 190+ стран</p>
       </div>
     </div>
   </div>
@@ -926,14 +926,13 @@ const exchangeModule = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // FIAT ON-RAMP (Transak)
+  // FIAT ON-RAMP (Onramper — агрегатор 30+ провайдеров)
+  // Работает в 190+ странах без гео-блокировок
   // ═══════════════════════════════════════════════════════════════
   
-  // ⚠️ ЗАМЕНИ НА СВОЙ API КЛЮЧ после регистрации на https://transak.com/dashboard
-  TRANSAK_API_KEY: 'YOUR_TRANSAK_API_KEY',
-  // Для тестирования используй staging: https://global-stg.transak.com
-  // Для продакшена: https://global.transak.com
-  TRANSAK_ENV: 'production',
+  // Бесплатный публичный ключ Onramper (замени на свой для партнёрских комиссий)
+  // Регистрация: https://onramper.com
+  ONRAMP_API_KEY: 'pk_prod_01JPPN7P5QVESQFR18NKHB6XBZ',
 
   _updateBuyWallet() {
     const el = document.getElementById('buyWalletAddr');
@@ -959,90 +958,35 @@ const exchangeModule = {
       return;
     }
 
-    // Если API ключ не настроен — открываем Transak напрямую в новом окне
-    if (this.TRANSAK_API_KEY === 'YOUR_TRANSAK_API_KEY') {
-      this._openTransakDirect(amount);
-      return;
-    }
-
-    // С API ключом — показываем iframe внутри DApp
-    this._openTransakIframe(amount);
-  },
-
-  _openTransakDirect(amount) {
-    const baseUrl = this.TRANSAK_ENV === 'production'
-      ? 'https://global.transak.com'
-      : 'https://global-stg.transak.com';
-
-    const params = new URLSearchParams({
-      apiKey: this.TRANSAK_API_KEY !== 'YOUR_TRANSAK_API_KEY' ? this.TRANSAK_API_KEY : '',
-      cryptoCurrencyCode: 'BNB',
-      network: 'opbnb',
-      defaultCryptoCurrency: 'BNB',
-      walletAddress: this.state.userAddress,
-      fiatAmount: amount,
-      fiatCurrency: 'USD',
-      defaultFiatCurrency: 'USD',
-      themeColor: 'ffd700',
-      hideMenu: 'true',
-      exchangeScreenTitle: 'Купить BNB для GlobalWay'
-    });
-
-    // Если нет ключа — открываем Transak как есть (пользователь сам введёт кошелёк)
-    if (this.TRANSAK_API_KEY === 'YOUR_TRANSAK_API_KEY') {
-      const simpleParams = new URLSearchParams({
-        cryptoCurrencyCode: 'BNB',
-        network: 'opbnb',
-        walletAddress: this.state.userAddress,
-        fiatAmount: amount,
-        fiatCurrency: 'USD',
-        themeColor: 'ffd700'
-      });
-      window.open(`${baseUrl}?${simpleParams.toString()}`, '_blank');
-      app?.showNotification?.('Transak открыт в новом окне. Завершите покупку там.', 'info');
-      return;
-    }
-
-    window.open(`${baseUrl}?${params.toString()}`, '_blank');
-    app?.showNotification?.('Transak открыт в новом окне. Завершите покупку там.', 'info');
-  },
-
-  _openTransakIframe(amount) {
     const container = document.getElementById('transakWidgetContainer');
     const widgetDiv = document.getElementById('transakWidget');
     if (!container || !widgetDiv) return;
 
-    const baseUrl = this.TRANSAK_ENV === 'production'
-      ? 'https://global.transak.com'
-      : 'https://global-stg.transak.com';
-
     const params = new URLSearchParams({
-      apiKey: this.TRANSAK_API_KEY,
-      cryptoCurrencyCode: 'BNB',
-      network: 'opbnb',
-      defaultCryptoCurrency: 'BNB',
-      walletAddress: this.state.userAddress,
-      fiatAmount: amount,
-      fiatCurrency: 'USD',
-      defaultFiatCurrency: 'USD',
-      themeColor: 'ffd700',
-      hideMenu: 'true',
-      disableWalletAddressForm: 'true',
-      exchangeScreenTitle: 'Купить BNB для GlobalWay'
+      apiKey: this.ONRAMP_API_KEY,
+      defaultCrypto: 'BNB_OPBNB',
+      defaultFiat: 'USD',
+      defaultAmount: amount,
+      wallets: 'BNB_OPBNB:' + this.state.userAddress,
+      onlyCryptos: 'BNB_OPBNB,BNB',
+      themeName: 'dark',
+      containerColor: '0d1117',
+      primaryColor: 'ffd700',
+      secondaryColor: '00d4ff',
+      cardColor: '1a1f2e',
+      primaryTextColor: 'ffffff',
+      secondaryTextColor: 'aaaaaa',
+      borderRadius: '0.75'
     });
 
     widgetDiv.innerHTML = `<iframe 
-      src="${baseUrl}?${params.toString()}"
-      style="width:100%;height:600px;border:none;border-radius:12px;"
-      allow="camera;microphone;payment"
-      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
+      src="https://buy.onramper.com?${params.toString()}"
+      style="width:100%;height:630px;border:none;border-radius:12px;"
+      title="Купить BNB"
+      allow="accelerometer;autoplay;camera;gyroscope;payment"
     ></iframe>`;
 
     container.style.display = 'block';
-    
-    // Скрываем основную форму
-    const options = container.previousElementSibling;
-    // Прокручиваем к виджету
     container.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },
 
