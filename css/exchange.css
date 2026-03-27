@@ -482,3 +482,201 @@
   .orderbook-header, .orderbook-row { grid-template-columns: 1fr 1fr 1fr 60px; font-size: 11px; }
   .my-order-body { grid-template-columns: 1fr 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BUY WITH CARD — Fiat On-Ramp
+   ═══════════════════════════════════════════════════════════════ */
+.exch-buy-card-container {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.exch-buy-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.exch-buy-header h3 {
+  color: #ffd700;
+  font-size: 1.3em;
+  margin: 0 0 8px;
+}
+
+.exch-buy-options {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(0, 212, 255, 0.03));
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.exch-buy-label {
+  color: #aaa;
+  font-size: 13px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.exch-buy-presets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.exch-preset-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 215, 0, 0.08);
+  color: #e0e0e0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+.exch-preset-btn.active,
+.exch-preset-btn:hover {
+  background: linear-gradient(135deg, #ffd700, #ff9500);
+  color: #000;
+  border-color: #ffd700;
+}
+
+.exch-buy-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.exch-buy-input {
+  flex: 1;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+}
+.exch-buy-input:focus {
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.15);
+}
+.exch-buy-currency {
+  color: #ffd700;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.exch-buy-info {
+  margin-bottom: 20px;
+}
+.exch-buy-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+}
+.exch-buy-info-row span:first-child {
+  color: #888;
+}
+.exch-buy-info-row strong {
+  color: #e0e0e0;
+}
+
+.exch-buy-main-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffd700, #ff9500);
+  color: #000;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  margin-bottom: 16px;
+}
+.exch-buy-main-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.35);
+}
+.exch-buy-main-btn:active {
+  transform: translateY(0);
+}
+.buy-btn-icon {
+  font-size: 22px;
+}
+
+.exch-buy-methods {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #666;
+}
+.pay-method {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Widget container */
+.exch-buy-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 215, 0, 0.2);
+}
+.exch-buy-widget-header span {
+  color: #ffd700;
+  font-weight: 600;
+}
+.exch-buy-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.exch-buy-widget {
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 600px;
+}
+
+.exch-buy-footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 12px;
+  color: #555;
+  line-height: 1.6;
+}
+.exch-buy-footer a {
+  color: #00d4ff;
+  text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  .exch-buy-presets { gap: 6px; }
+  .exch-preset-btn { padding: 10px 4px; font-size: 13px; }
+  .exch-buy-main-btn { font-size: 15px; padding: 14px; }
+}
