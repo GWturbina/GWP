@@ -1685,7 +1685,7 @@ const adminModule = {
         resultEl.classList.add('admin-error');
         resultEl.innerHTML = `
           <h4>❌ Пользователь не найден</h4>
-          <p>Запрос: <code>${query}</code></p>
+          <p>Запрос: <code>${escapeHtml(query)}</code></p>
         `;
         return;
       }
@@ -1696,7 +1696,7 @@ const adminModule = {
         resultEl.classList.add('admin-error');
         resultEl.innerHTML = `
           <h4>❌ Не зарегистрирован</h4>
-          <p>Адрес: <code>${address}</code></p>
+          <p>Адрес: <code>${escapeHtml(address)}</code></p>
         `;
         return;
       }
@@ -1737,7 +1737,7 @@ const adminModule = {
       resultEl.classList.add('admin-error');
       resultEl.innerHTML = `
         <h4>❌ Ошибка</h4>
-        <p>${error.message}</p>
+        <p>${escapeHtml(error.message)}</p>
       `;
     }
   },
