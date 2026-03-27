@@ -138,13 +138,35 @@ const safevaultModule = {
   },
   async doChangePIN() {
     const pin = await this.askPin(); if (!pin) return;
-    const newPin = prompt('New PIN:'); if (!newPin || newPin.length < 4) return;
-    const newPin2 = prompt('Confirm:'); if (newPin !== newPin2) return;
+    const newPin = await this.askInput('New PIN:', true); if (!newPin || newPin.length < 4) return;
+    const newPin2 = await this.askInput('Confirm PIN:', true); if (newPin !== newPin2) { app?.showNotification?.('PIN mismatch', 'error'); return; }
     this.setLoading(true);
     try { const { proof } = await this.generateProof(pin); const newPinHash = window.ethers.utils.keccak256(window.ethers.utils.toUtf8Bytes(newPin)); const sv = await app?.getSignedContract?.('SafeVaultGW'); const tx = await sv.changePIN(proof, newPinHash, { gasLimit: 200000 }); await tx.wait(); app?.showNotification?.('✅ PIN OK', 'success'); }
     catch (err) { app?.showNotification?.('❌ ' + this.parseError(err), 'error'); } finally { this.setLoading(false); }
   },
-  async askPin() { const pin = prompt('SafeVault PIN:'); return pin || null; },
+  async askPin() { return this.askInput('SafeVault PIN:', true); },
+  askInput(label, isPassword) {
+    return new Promise((resolve) => {
+      const old = document.getElementById('svInputModal'); if (old) old.remove();
+      const m = document.createElement('div'); m.id = 'svInputModal';
+      m.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+      m.innerHTML = `<div style="background:linear-gradient(135deg,#0d1117,#1a1f2e);border:1px solid #ffd70044;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;">
+        <p style="color:#ffd700;font-size:15px;margin:0 0 16px;font-weight:600;">${label}</p>
+        <input id="svModalInput" type="${isPassword ? 'password' : 'text'}" autocomplete="off" style="width:100%;padding:14px;border:1px solid #ffd70044;border-radius:10px;background:#0a0e17;color:#fff;font-size:16px;text-align:center;outline:none;box-sizing:border-box;" />
+        <div style="display:flex;gap:12px;margin-top:16px;">
+          <button id="svModalNo" style="flex:1;padding:14px;border:1px solid #555;border-radius:10px;background:transparent;color:#aaa;font-size:15px;cursor:pointer;">Отмена</button>
+          <button id="svModalYes" style="flex:1;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#ffd700,#ff9500);color:#000;font-weight:700;font-size:15px;cursor:pointer;">OK</button>
+        </div></div>`;
+      document.body.appendChild(m);
+      const inp = document.getElementById('svModalInput');
+      setTimeout(() => inp?.focus(), 100);
+      const done = (v) => { m.remove(); resolve(v); };
+      document.getElementById('svModalYes').onclick = () => { const v = inp.value.trim(); done(v || null); };
+      document.getElementById('svModalNo').onclick = () => done(null);
+      m.onclick = (e) => { if (e.target === m) done(null); };
+      inp.onkeydown = (e) => { if (e.key === 'Enter') { const v = inp.value.trim(); done(v || null); } };
+    });
+  },
 
   render() {
     const container = document.getElementById('safevault');
