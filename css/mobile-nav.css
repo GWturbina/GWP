@@ -57,9 +57,9 @@
     justify-content: space-around !important;
     align-items: center !important;
     gap: 4px !important;
-    /* 20px fallback для SafePal который не знает env() */
-    padding: 6px 4px 20px 4px !important;
-    padding-bottom: max(20px, calc(6px + env(safe-area-inset-bottom, 20px))) !important;
+    /* 8px fallback для SafePal который не знает env() */
+    padding: 6px 4px 8px 4px !important;
+    padding-bottom: max(8px, calc(6px + env(safe-area-inset-bottom, 8px))) !important;
     min-height: 56px !important;
     max-height: none !important;
     height: auto !important;
@@ -77,20 +77,6 @@
     transform: none !important;
     transition: none !important;
     margin: 0 !important;
-  }
-
-  /* Заполняем область ниже навбара */
-  .main-nav::after {
-    content: '' !important;
-    display: block !important;
-    position: absolute !important;
-    bottom: -200px !important;
-    left: -10px !important;
-    right: -10px !important;
-    height: 200px !important;
-    background: #000c1e !important;
-    z-index: 1 !important;
-    pointer-events: none !important;
   }
 
   /* Убираем ::before анимации от main.css/components.css */
@@ -258,10 +244,10 @@
 
   /* ─── Content padding ─── */
   .content {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px)) !important;
+    padding-bottom: calc(65px + env(safe-area-inset-bottom, 8px)) !important;
   }
   #dapp {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px)) !important;
+    padding-bottom: calc(65px + env(safe-area-inset-bottom, 8px)) !important;
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -290,7 +276,7 @@
   .nav-drawer {
     display: block !important;
     position: fixed !important;
-    bottom: calc(60px + env(safe-area-inset-bottom, 20px)) !important;
+    bottom: calc(56px + env(safe-area-inset-bottom, 8px)) !important;
     left: 8px !important;
     right: 8px !important;
     top: auto !important;
