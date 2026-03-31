@@ -289,17 +289,24 @@
     margin: 0 !important;
     transform: translateY(calc(100% + 20px)) !important;
     opacity: 0 !important;
-    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease !important;
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease, visibility 0s 0.3s !important;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5) !important;
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
+    /* ✅ FIX: невидимый drawer НЕ должен перехватывать касания */
+    pointer-events: none !important;
+    visibility: hidden !important;
   }
 
   .nav-drawer.active {
     transform: translateY(0) !important;
     opacity: 1 !important;
+    /* ✅ FIX: активный drawer принимает касания */
+    pointer-events: auto !important;
+    visibility: visible !important;
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease, visibility 0s 0s !important;
   }
 
   .nav-drawer-handle {
