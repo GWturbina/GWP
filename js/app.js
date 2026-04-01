@@ -16,6 +16,25 @@ function escapeHtml(str) {
 }
 window.escapeHtml = escapeHtml;
 
+// ═══ SECURITY: Глобальный rate limiter ═══
+// Использование: if (!rateLimiter.allow('loadLevels', 5000)) return;
+const rateLimiter = {
+  _timestamps: {},
+  allow(key, cooldownMs) {
+    const now = Date.now();
+    if (this._timestamps[key] && (now - this._timestamps[key] < cooldownMs)) {
+      console.log(`⚠️ Rate limit: ${key} (${Math.ceil((cooldownMs - (now - this._timestamps[key])) / 1000)}s remaining)`);
+      return false;
+    }
+    this._timestamps[key] = now;
+    return true;
+  },
+  reset(key) {
+    delete this._timestamps[key];
+  }
+};
+window.rateLimiter = rateLimiter;
+
 const app = {
   // ═══════════════════════════════════════════════════════════════
   // STATE
@@ -106,6 +125,11 @@ const app = {
   async connectWallet() {
     const connectBtn = document.getElementById('connectBtn');
     
+    // ✅ SECURITY: Rate limiting — не чаще 1 раза в 3 секунды
+    if (!rateLimiter.allow('connectWallet', 3000)) {
+      return;
+    }
+
     // ✅ ИСПРАВЛЕНО: блокируем кнопку сразу — предотвращаем двойное нажатие
     if (connectBtn) {
       if (connectBtn._connecting) {
@@ -1091,6 +1115,11 @@ const app = {
   },
 
   async showPage(pageName) {
+    // ✅ SECURITY: Rate limiting — не чаще 1 раза в 1 секунду
+    if (!rateLimiter.allow('showPage', 1000)) {
+      return;
+    }
+    
     console.log(`📄 Loading page: ${pageName}`);
     
     try {
