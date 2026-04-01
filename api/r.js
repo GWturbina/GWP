@@ -25,6 +25,20 @@ export default function handler(req, res) {
     return;
   }
 
+  // ✅ SECURITY: Жёсткая валидация входных данных
+  // Код: только буквы и цифры, макс 20 символов
+  if (code.length > 20 || !/^[a-zA-Z0-9]+$/.test(code)) {
+    res.writeHead(302, { Location: '/' });
+    res.end();
+    return;
+  }
+  // Слоган: макс 200 символов
+  const safeSlogan = s ? String(s).slice(0, 200) : null;
+  // Имя: макс 50 символов
+  const safeName = n ? String(n).slice(0, 50) : null;
+  // Preview index: только число 0-20
+  const safePreviewIndex = Math.min(Math.max(parseInt(p) || 0, 0), 20);
+
   // ═══ БЕЗОПАСНОСТЬ: whitelist хостов ═══
   const ALLOWED_HOSTS = [
     'gwp-navy.vercel.app'
@@ -61,7 +75,7 @@ export default function handler(req, res) {
 
   const userId = parseInt(userIdBase36, 36);
 
-  if (isNaN(userId) || userId < 1) {
+  if (isNaN(userId) || userId < 1 || userId > 100000000) {
     res.writeHead(302, { Location: '/' });
     res.end();
     return;
@@ -87,9 +101,9 @@ export default function handler(req, res) {
   };
 
   const dir = dirConfig[direction];
-  const previewIndex = parseInt(p) || 0;
-  const slogan = s ? decodeURIComponent(s) : dir.desc;
-  const inviterName = n ? decodeURIComponent(n) : '';
+  const previewIndex = safePreviewIndex;
+  const slogan = safeSlogan ? decodeURIComponent(safeSlogan) : dir.desc;
+  const inviterName = safeName ? decodeURIComponent(safeName) : '';
 
   // baseUrl уже определён выше через whitelist
 
@@ -160,6 +174,10 @@ a{color:#ffd700;text-decoration:none}
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, s-maxage=3600, max-age=600');
+  // ✅ SECURITY: Дополнительные заголовки для API
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.status(200).send(html);
 }
 
