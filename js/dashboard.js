@@ -18,6 +18,12 @@ const dashboardModule = {
   },
 
     allEvents: [],
+
+  // ✅ SECURITY: Rate limiting state
+  _isLoading: false,
+  _lastLoadTime: 0,
+  _lastBuyTime: 0,
+  _loadCooldown: 5000,  // минимум 5 сек между полными загрузками
   
   userData: {
     address: null,
@@ -90,14 +96,32 @@ const dashboardModule = {
   // ЗАГРУЗКА ДАННЫХ
   // ═══════════════════════════════════════════════════════════════
   async loadAllData() {
-    await Promise.all([
-      this.loadPersonalInfo(),
-      this.loadQuarterlyInfo(),
-      this.loadBalances(),
-      this.loadLevels(),
-      this.loadTokenInfo(),
-      this.loadTransactionHistory()
-    ]);
+    // ✅ SECURITY: Предотвращение параллельных загрузок и спама
+    const now = Date.now();
+    if (this._isLoading) {
+      console.log('⚠️ loadAllData already in progress, skipping');
+      return;
+    }
+    if (now - this._lastLoadTime < this._loadCooldown) {
+      console.log('⚠️ loadAllData cooldown active, skipping');
+      return;
+    }
+    
+    this._isLoading = true;
+    this._lastLoadTime = now;
+    
+    try {
+      await Promise.all([
+        this.loadPersonalInfo(),
+        this.loadQuarterlyInfo(),
+        this.loadBalances(),
+        this.loadLevels(),
+        this.loadTokenInfo(),
+        this.loadTransactionHistory()
+      ]);
+    } finally {
+      this._isLoading = false;
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -375,14 +399,25 @@ async loadQuarterlyInfo() {
       const levelsContainer = document.getElementById('individualLevels');
       if (!levelsContainer) return;
 
+      // ✅ SECURITY: Проверка что кошелёк подключён
+      if (!address || !app.state.userAddress) {
+        console.log('⚠️ loadLevels: no wallet connected');
+        return;
+      }
+
       console.log('🔘 Loading levels...');
 
-      levelsContainer.innerHTML = '';
-
+      // ✅ FIX: Атомарный рендер — сначала загружаем ВСЕ статусы, потом рендерим
+      const levelStatuses = [];
       for (let level = 1; level <= 12; level++) {
         const isActive = await this.contracts.globalWay.isLevelActive(address, level);
-        const price = CONFIG.LEVEL_PRICES[level - 1];
+        levelStatuses.push({ level, isActive, price: CONFIG.LEVEL_PRICES[level - 1] });
+      }
 
+      // Если дошли сюда — ВСЕ вызовы успешны, можно рендерить
+      levelsContainer.innerHTML = '';
+
+      for (const { level, isActive, price } of levelStatuses) {
         const levelBtn = document.createElement('button');
         levelBtn.className = `level-btn ${isActive ? 'active' : ''}`;
         levelBtn.innerHTML = `
@@ -449,6 +484,12 @@ async loadQuarterlyInfo() {
 
     } catch (error) {
       console.error('❌ Error loading levels:', error);
+      // ✅ FIX: При ошибке показываем предупреждение вместо пустых/ошибочных кнопок
+      const levelsContainer = document.getElementById('individualLevels');
+      if (levelsContainer) {
+        levelsContainer.innerHTML = '<div style="color:#ff6b6b;text-align:center;padding:16px;font-size:14px;">⚠️ ' + 
+          escapeHtml(_t('notifications.levelsLoadError') || 'Ошибка загрузки уровней. Обновите страницу.') + '</div>';
+      }
     }
   },
 
@@ -544,11 +585,11 @@ async loadQuarterlyInfo() {
     tableBody.innerHTML = filteredEvents.map((event, index) => `
       <tr>
         <td>${index + 1}</td>
-        <td>${event.level || '-'}</td>
-        <td>${event.amount}</td>
-        <td>${event.date}</td>
-        <td><a href="${CONFIG.NETWORK.blockExplorer}/tx/${event.txHash}" target="_blank" rel="noopener">${event.txHash.slice(0, 10)}...</a></td>
-        <td><span class="badge badge-${event.type}">${event.typeLabel}</span></td>
+        <td>${escapeHtml(String(event.level || '-'))}</td>
+        <td>${escapeHtml(String(event.amount))}</td>
+        <td>${escapeHtml(String(event.date))}</td>
+        <td><a href="${escapeHtml(CONFIG.NETWORK.blockExplorer)}/tx/${escapeHtml(event.txHash)}" target="_blank" rel="noopener">${escapeHtml(event.txHash.slice(0, 10))}...</a></td>
+        <td><span class="badge badge-${escapeHtml(event.type)}">${escapeHtml(event.typeLabel)}</span></td>
       </tr>
     `).join('');
   },
@@ -826,6 +867,34 @@ async loadQuarterlyInfo() {
       return;
     }
     
+    // ✅ SECURITY: Кулдаун 30 секунд между покупками
+    const now = Date.now();
+    if (this._lastBuyTime && (now - this._lastBuyTime < 30000)) {
+      const remaining = Math.ceil((30000 - (now - this._lastBuyTime)) / 1000);
+      app.showNotification(`⏳ Подождите ${remaining} сек. перед следующей покупкой`, 'error');
+      return;
+    }
+
+    // ✅ SECURITY: Проверка что кошелёк подключён через web3Manager
+    if (!window.web3Manager || !window.web3Manager.isConnected || !window.web3Manager.signer) {
+      app.showNotification(_t('notifications.connectWalletFirst'), 'error');
+      return;
+    }
+
+    // ✅ SECURITY: Проверка что адрес совпадает
+    try {
+      const signerAddress = await window.web3Manager.signer.getAddress();
+      if (signerAddress.toLowerCase() !== app.state.userAddress.toLowerCase()) {
+        console.error('❌ Address mismatch! Signer:', signerAddress, 'State:', app.state.userAddress);
+        app.showNotification('⚠️ Ошибка: адрес кошелька не совпадает. Переподключите кошелёк.', 'error');
+        return;
+      }
+    } catch (addrErr) {
+      console.error('❌ Cannot verify signer address:', addrErr);
+      app.showNotification('⚠️ Ошибка верификации кошелька. Переподключите.', 'error');
+      return;
+    }
+
     this.buyLevelInProgress = true;
     
     console.log(`=== 🛒 buyLevel() START for level ${level} ===`);
@@ -971,6 +1040,9 @@ async loadQuarterlyInfo() {
         `✅ ${_t('dashboard.levelActivated')}\n🎁 ${_t('dashboard.received')} ${CONFIG.TOKEN_REWARDS[level - 1]} GWT`, 
         'success'
       );
+      
+      // ✅ SECURITY: Обновляем кулдаун после успешной покупки
+      this._lastBuyTime = Date.now();
       
       await this.refresh();
       
