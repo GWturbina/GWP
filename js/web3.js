@@ -26,8 +26,14 @@ class Web3Manager {
     this.signer = null;
     this.address = null;
     this.connected = false;
-    this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // ✅ FIX: iPad (iOS 13+) отправляет десктопный UA "Macintosh", но имеет тач
+    this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+                    (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
     this.isSafePalBrowser = this.detectSafePalBrowser();
+    // ✅ SECURITY: Трекинг провайдера и кулдаун
+    this._providerType = null;  // 'safepal' | 'metamask' | 'unknown'
+    this._lastConnectTime = 0;
+    this._connectCooldown = 3000; // 3 сек между попытками подключения
   }
 
   // ✅ УЛУЧШЕННАЯ детекция SafePal (все варианты включая DApp Browser)
@@ -73,9 +79,14 @@ class Web3Manager {
       }
       
       // SafePal DApp Browser может не показывать себя в UA, но инжектирует провайдер
-      // Если мы на мобильном и есть window.ethereum — скорее всего это браузер кошелька
+      // ✅ FIX: Проверяем что это НЕ MetaMask перед тем как считать SafePal
       if (this.isMobile && window.ethereum) {
-        console.log('✅ Mobile + ethereum provider — treating as wallet browser');
+        // Если это MetaMask — НЕ считаем SafePal
+        if (window.ethereum.isMetaMask && !window.ethereum.isSafePal) {
+          console.log('ℹ️ Mobile + MetaMask detected — NOT SafePal browser');
+          return false;
+        }
+        console.log('✅ Mobile + ethereum provider (non-MetaMask) — treating as wallet browser');
         return true;
       }
       
@@ -176,6 +187,14 @@ class Web3Manager {
   // ✅ ПОЛНОСТЬЮ ПЕРЕПИСАН: быстрое подключение без блокирующих задержек
 async connect() {
     try {
+      // ✅ SECURITY: Кулдаун между попытками подключения
+      const now = Date.now();
+      if (now - this._lastConnectTime < this._connectCooldown) {
+        console.log('⚠️ Connect cooldown active');
+        return;
+      }
+      this._lastConnectTime = now;
+
       console.log('🔌 Starting wallet connection...');
       console.log('📱 Device:', this.isMobile ? 'Mobile' : 'Desktop');
       console.log('🦊 SafePal Browser:', this.isSafePalBrowser);
@@ -224,16 +243,36 @@ async connect() {
           }
         }
       }
-      // Priority 2: Mobile deep link
-      else if (this.isMobile && !this.isSafePalBrowser) {
-        console.log('📱 Mobile but not SafePal browser. Triggering deep-link...');
+      // Priority 2: Mobile — MetaMask или другой кошелёк с window.ethereum
+      // ✅ FIX: iPad и другие устройства где SafePal не определился, но есть провайдер
+      else if (this.isMobile && !this.isSafePalBrowser && window.ethereum && typeof window.ethereum.request === 'function') {
+        console.log('📱 Mobile + non-SafePal ethereum provider. Connecting via fallback...');
+        await this.connectSafePal(); // connectSafePal обработает MetaMask через Приоритет 4
         
-        // ✅ ИСПРАВЛЕНО: убрали confirm() — открываем SafePal напрямую
+        if (!this.signer || !this.address) {
+          console.error('❌ Fallback provider connected but signer/address missing');
+          throw new Error('Wallet connection incomplete. Please try again.');
+        }
+        
+        // Стабилизация
+        await new Promise(resolve => setTimeout(resolve, 300));
+        try {
+          const testAddress = await this.signer.getAddress();
+          if (testAddress) this.address = testAddress.toLowerCase();
+          console.log('✅ Fallback provider address verified:', this.address);
+        } catch (verifyError) {
+          console.warn('⚠️ Could not verify address (non-critical):', verifyError.message);
+        }
+      }
+      // Priority 3: Mobile без провайдера — deep link в SafePal
+      else if (this.isMobile && !this.isSafePalBrowser) {
+        console.log('📱 Mobile, no wallet provider. Triggering deep-link...');
+        
         console.log('📱 Opening SafePal deep link...');
         await this.openSafePalApp();
         throw new Error('Please complete connection in SafePal app and return. Then click Connect again.');
       }
-      // Priority 3: Fallback
+      // Priority 4: Fallback
       else {
         let message;
         if (this.isMobile) {
@@ -370,30 +409,56 @@ async connect() {
       if (window.safepal && typeof window.safepal.request === 'function') {
         console.log('🔗 Connecting via window.safepal (EVM)');
         rawProvider = window.safepal;
+        this._providerType = 'safepal';
       }
       // Приоритет 2: ethereum.providers массив
       else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
         console.log('🔗 Connecting via ethereum.providers');
+        // Сначала ищем SafePal
         rawProvider = window.ethereum.providers.find(p => 
           p && (p.isSafePal || p.isSafePalWallet || p.isSafePalProvider)
         );
-        // Если SafePal не найден в массиве — используем первый EVM провайдер
-        if (!rawProvider) {
+        if (rawProvider) {
+          this._providerType = 'safepal';
+        } else {
+          // Если SafePal не найден — используем первый EVM провайдер
           rawProvider = window.ethereum.providers.find(p => 
             p && typeof p.request === 'function'
           );
-          if (rawProvider) console.log('🔗 Using first available EVM provider from providers array');
+          if (rawProvider) {
+            this._providerType = rawProvider.isMetaMask ? 'metamask' : 'unknown';
+            console.log('🔗 Using first available EVM provider from providers array');
+          }
         }
       }
       // Приоритет 3: window.ethereum с флагами SafePal
       else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
         console.log('🔗 Connecting via window.ethereum (SafePal flags)');
         rawProvider = window.ethereum;
+        this._providerType = 'safepal';
       }
       // Приоритет 4: любой window.ethereum на мобильном (DApp browser)
       else if (this.isMobile && window.ethereum && typeof window.ethereum.request === 'function') {
         console.log('🔗 Mobile DApp browser: connecting via window.ethereum');
         rawProvider = window.ethereum;
+        // ✅ SECURITY: Определяем тип провайдера
+        if (window.ethereum.isMetaMask) {
+          this._providerType = 'metamask';
+          console.warn('⚠️ MetaMask detected as fallback provider');
+        } else {
+          this._providerType = 'unknown';
+        }
+      }
+
+      // ✅ SECURITY: Предупреждение при MetaMask
+      if (this._providerType === 'metamask' && rawProvider) {
+        console.warn('⚠️ MetaMask provider — NOT SafePal. Showing warning.');
+        if (window.app && typeof window.app.showNotification === 'function') {
+          window.app.showNotification(
+            '⚠️ Подключён MetaMask. Рекомендуется SafePal для полной совместимости.',
+            'info'
+          );
+        }
       }
 
       // ✅ ИСПРАВЛЕНО: Проверка на Solana провайдер
@@ -470,10 +535,20 @@ async connect() {
       // Ищем SafePal провайдер
       if (window.safepal) {
         rawProvider = window.safepal;
+        this._providerType = 'safepal';
       } else if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
         rawProvider = window.ethereum;
+        this._providerType = 'safepal';
       } else if (window.ethereum && Array.isArray(window.ethereum.providers)) {
         rawProvider = window.ethereum.providers.find(p => p && (p.isSafePal || p.isSafePalWallet));
+        if (rawProvider) this._providerType = 'safepal';
+      }
+
+      // ✅ FIX: Fallback на MetaMask/другой провайдер (для iPad и прочих)
+      if (!rawProvider && this.isMobile && window.ethereum && typeof window.ethereum.request === 'function') {
+        rawProvider = window.ethereum;
+        this._providerType = window.ethereum.isMetaMask ? 'metamask' : 'unknown';
+        console.log('🔗 Auto-connect fallback:', this._providerType);
       }
 
       if (!rawProvider) {
