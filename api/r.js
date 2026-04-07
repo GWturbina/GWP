@@ -41,8 +41,8 @@ export default function handler(req, res) {
 
   // ═══ БЕЗОПАСНОСТЬ: whitelist хостов ═══
   const ALLOWED_HOSTS = [
-    'gwp-navy.vercel.app'
-    // Добавляй новые домены сюда
+    'gway.club',
+    'gwad.ink'
   ];
   const rawHost = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
   const safeHost = ALLOWED_HOSTS.includes(rawHost) ? rawHost : ALLOWED_HOSTS[0];
