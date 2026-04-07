@@ -358,7 +358,7 @@ const referralsModule = {
     const selected = document.querySelector('input[name="refDomain"]:checked');
     if (selected) return selected.value;
 
-    return CONFIG.REFERRAL?.antiBan?.fallbackDomain || 'https://gwp-navy.vercel.app';
+    return CONFIG.REFERRAL?.antiBan?.fallbackDomain || 'https://gway.club';
   },
 
   // ═══════════════════════════════════════════════════════════════
