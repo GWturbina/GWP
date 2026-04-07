@@ -273,7 +273,8 @@ const CONFIG = {
 
     // DApp домены для антибана (добавляй по мере создания)
     domains: [
-      { url: 'https://gwp-navy.vercel.app', active: true, primary: true },
+      { url: 'https://gway.club', active: true, primary: true },
+      { url: 'https://gwad.ink', active: true },
       // Добавь DApp домены после создания:
       // { url: 'https://globalway.on.fleek.co', active: true },
       // { url: 'https://gw-dapp.eth.limo', active: true },
@@ -284,7 +285,7 @@ const CONFIG = {
       enabled: true,
       rotateOnShare: true,
       maxLinksPerDomain: 50,
-      fallbackDomain: 'https://gwp-navy.vercel.app'
+      fallbackDomain: 'https://gway.club'
     },
 
     // OG Preview настройки (для серверной функции api/r.js)
