@@ -57,9 +57,9 @@ const adminModule = {
       }
 
       this.renderAdminUI();
+      this.initEventHandlers();  // ← сразу после рендера, ДО async-вызовов
       await this.loadContracts();
       await this.loadAllData();
-      this.initEventHandlers();
 
       console.log('✅ Панель администратора загружена');
     } catch (error) {
