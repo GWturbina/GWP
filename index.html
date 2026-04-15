@@ -19,7 +19,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192x192.png" />
     
     <!-- Security -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://opbnb-mainnet-rpc.bnbchain.org https://gway.club https://cgift.club https://gws.ink https://gwm.ink https://gwad.ink; img-src 'self' data: blob:; upgrade-insecure-requests;">
+    <!-- Security: CSP управляется через vercel.json -->
 
     <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css" />
@@ -1604,9 +1604,6 @@
     <!-- Библиотеки -->
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
-    
-    <!-- Preload критических ресурсов -->
-    <link rel="preload" href="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js" as="script" crossorigin="anonymous">
     
     <!-- Базовые -->
     <script src="js/i18n.js?v=8"></script>
