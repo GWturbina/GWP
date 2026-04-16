@@ -120,6 +120,17 @@ const projectsModule = {
       statusText: 'projects.statusActive',
       releaseDate: 'Q2 2026',
       requiredLevel: 0
+    },
+    {
+      id: 'adplatform',
+      name: 'AdPlatform',
+      icon: 'AdPlatform.jpg',
+      description: 'projects.adPlatformDesc',
+      url: 'https://gwad.ink/',
+      status: 'active',
+      statusText: 'projects.statusActive',
+      releaseDate: 'Q2 2026',
+      requiredLevel: 0
     }
   ],
 
@@ -629,8 +640,14 @@ const projectsModule = {
       return;
     }
 
+    // Сортируем: active сверху, потом coming, потом planned
+    const statusOrder = { active: 0, coming: 1, planned: 2 };
+    const sorted = [...this.projects].sort((a, b) => {
+      return (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+    });
+
     // Добавляем карточки проектов
-    this.projects.forEach(project => {
+    sorted.forEach(project => {
       const card = this.createProjectCard(project);
       container.appendChild(card);
     });
