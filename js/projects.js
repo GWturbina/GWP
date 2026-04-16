@@ -126,7 +126,7 @@ const projectsModule = {
       name: 'AdPlatform',
       icon: 'AdPlatform.jpg',
       description: 'projects.adPlatformDesc',
-      url: 'https://gwad.ink/',
+      url: 'https://gwad.ink/partner',
       status: 'active',
       statusText: 'projects.statusActive',
       releaseDate: 'Q2 2026',
