@@ -187,7 +187,7 @@ const CONFIG = {
   // ═══════════════════════════════════════════════════════════════
   FEATURES: {
     enableAutoRegister: true,
-    enableQuarterlyPayments: true,
+    enableQuarterlyPayments: false,
     enableTokenRewards: true,
     enableVoting: true,
     enableBridge: true,
