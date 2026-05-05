@@ -4,6 +4,11 @@
 // ПОЛНОСТЬЮ ПЕРЕПИСАН под новые контракты
 // Date: 2025-01-19
 // ═══════════════════════════════════════════════════════════════════
+//
+// ✅ ПАТЧ 05.05.2026: Добавлена корректная обработка отключённой
+// квартальной системы (когда CONFIG.FEATURES.enableQuarterlyPayments = false).
+// Скрываются предупреждения "⚠️ Просрочено" и блокируется кнопка оплаты.
+// ═══════════════════════════════════════════════════════════════════
 
 const dashboardModule = {
   // ═══════════════════════════════════════════════════════════════
@@ -45,6 +50,13 @@ const dashboardModule = {
   
   quarterlyTimer: null,
   buyLevelInProgress: false,
+
+  // ═══════════════════════════════════════════════════════════════
+  // ВСПОМОГАТЕЛЬНОЕ: проверка отключения квартальных
+  // ═══════════════════════════════════════════════════════════════
+  isQuarterlyDisabled() {
+    return !!(CONFIG.FEATURES && CONFIG.FEATURES.enableQuarterlyPayments === false);
+  },
 
   // ═══════════════════════════════════════════════════════════════
   // ИНИЦИАЛИЗАЦИЯ
@@ -202,7 +214,39 @@ async loadQuarterlyInfo() {
   try {
     const { address } = this.userData;
     console.log('📅 Loading quarterly info...');
-    
+
+    // ═══════════════════════════════════════════════════════════════
+    // ✅ ПАТЧ 05.05.2026: Если квартальная система отключена флагом —
+    // не пугаем пользователя статусом "просрочено", показываем нейтрально
+    // ═══════════════════════════════════════════════════════════════
+    if (this.isQuarterlyDisabled()) {
+      console.log('ℹ️ Quarterly payments are temporarily disabled via feature flag');
+
+      // Пенсию всё равно подгружаем — она в реальном контракте, не в стабе
+      let pensionBalance = '0';
+      try {
+        const pension = await this.contracts.quarterlyPayments.getPensionBalance(address);
+        pensionBalance = ethers.utils.formatEther(pension);
+      } catch (e) {
+        console.warn('⚠️ Could not get pension:', e.message);
+      }
+
+      this.userData.quarterlyInfo = {
+        canPay: false,
+        quarter: '-',
+        lastPayment: 0,
+        nextPayment: 0,
+        daysRemaining: 0,
+        status: '⏸ ' + (window._t ? _t('dashboard.quarterlyDisabled') || 'Квартальные временно не требуются' : 'Квартальные временно не требуются'),
+        cost: CONFIG.QUARTERLY_COST || '0.075',
+        pensionBalance,
+        disabled: true
+      };
+
+      this.updateQuarterlyUI();
+      return;
+    }
+
     const info = await this.contracts.quarterlyPayments.quarterlyInfo(address);
     const lastPayment = Number(info[0] || 0);
     const quartersPaid = Number(info[1] || 0);
@@ -769,7 +813,8 @@ async loadQuarterlyInfo() {
   },
 
   updateQuarterlyUI() {
-    const { quarter, lastPayment, nextPayment, canPay, daysRemaining, cost } = this.userData.quarterlyInfo;
+    const info = this.userData.quarterlyInfo || {};
+    const { quarter, lastPayment, nextPayment, canPay, daysRemaining, cost, status, disabled } = info;
 
     const currentQuarter = document.getElementById('currentQuarter');
     const quarterlyCost = document.getElementById('quarterlyCost');
@@ -781,6 +826,25 @@ async loadQuarterlyInfo() {
 
     if (currentQuarter) currentQuarter.textContent = quarter || '1';
     if (quarterlyCost) quarterlyCost.textContent = `${cost} BNB`;
+
+    // ═══════════════════════════════════════════════════════════════
+    // ✅ ПАТЧ 05.05.2026: Если квартальная система отключена —
+    // показываем нейтральное состояние без предупреждений и активной кнопки
+    // ═══════════════════════════════════════════════════════════════
+    if (disabled) {
+      if (lastPaymentEl) lastPaymentEl.textContent = '—';
+      if (nextPaymentEl) nextPaymentEl.textContent = status || '⏸ Временно не требуется';
+      if (warningEl) warningEl.style.display = 'none';
+
+      if (payBtn) {
+        payBtn.disabled = true;
+        payBtn.textContent = '⏸ ' + ((window._t && _t('dashboard.temporarilyDisabled')) || 'Временно недоступно');
+        payBtn.style.opacity = '0.45';
+        payBtn.style.cursor = 'not-allowed';
+        payBtn.title = (window._t && _t('dashboard.quarterlyDisabledTooltip')) || 'Квартальная активность временно отключена. Покупка пакетов работает без ограничений.';
+      }
+      return;
+    }
 
     if (lastPayment > 0) {
       const lastDate = new Date(lastPayment * 1000).toLocaleDateString('ru-RU');
@@ -1071,7 +1135,20 @@ async loadQuarterlyInfo() {
 
   async payQuarterly() {
     console.log('=== 💳 PAY QUARTERLY START ===');
-    
+
+    // ═══════════════════════════════════════════════════════════════
+    // ✅ ПАТЧ 05.05.2026: Если квартальные отключены — мягкий выход
+    // без отправки транзакции и без пугающих сообщений
+    // ═══════════════════════════════════════════════════════════════
+    if (this.isQuarterlyDisabled()) {
+      app.showNotification(
+        '⏸ ' + ((window._t && _t('dashboard.quarterlyDisabledNotice')) ||
+        'Квартальная активность временно не требуется. Покупка пакетов доступна.'),
+        'info'
+      );
+      return;
+    }
+
     if (!app.state.userAddress) {
       app.showNotification(_t('notifications.connectWalletFirst'), 'error');
       return;
