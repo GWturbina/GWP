@@ -121,7 +121,7 @@ const CONFIG = {
   // ADMIN
   // ═══════════════════════════════════════════════════════════════
   ADMIN: {
-    owner: '0x2dac0b8bf4846CcC44258a23AcB4f2B1Dd6Db5cE',
+    owner: '0x9f0be44d0e9945a034836fc16d6c6b8a3a22dd0d',
     
     guardians: [
       '0x7bCD1753868895971E12448412cB3216d47884c8',
@@ -142,7 +142,7 @@ const CONFIG = {
     
     // Основатели (имеют полный доступ как owner)
     founders: [
-      '0x2dac0b8bf4846CcC44258a23AcB4f2B1Dd6Db5cE'
+      '0x9f0be44d0e9945a034836fc16d6c6b8a3a22dd0d'
     ],
     
     treasury: '0x11dac11d92147b70b03e43a9c02fffe4ec366bc7',
