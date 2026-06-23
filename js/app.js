@@ -1588,7 +1588,7 @@ function setupProviderListeners() {
   
   provider.on('accountsChanged', async (accounts) => {
     console.log('👤 Account changed:', accounts);
-    if (accounts.length === 0) {
+    if (!accounts || accounts.length === 0 || !accounts[0]) {
       app.state.userAddress = null;
       app.state.isRegistered = false;
       app.updateWalletUI();
