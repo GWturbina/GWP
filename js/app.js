@@ -1528,16 +1528,39 @@ const app = {
   },
 
   async checkNetwork() {
-    if (!window.web3Manager) return false;
-    
-    const network = await window.web3Manager.provider.getNetwork();
-    const chainId = network.chainId;
-    
-    if (chainId !== CONFIG.NETWORK.chainId) {
-      this.showNotification('Неправильная сеть! Переключитесь на opBNB', 'error');
+    // ✅ FIX 22.07.2026: раньше функция была без try/catch — при ошибке
+    // провайдера исключение улетало наверх и молча ломало покупку уровней.
+    // Теперь: защита от ошибок + автоматическая попытка переключить сеть.
+    try {
+      if (!window.web3Manager || !window.web3Manager.provider) {
+        this.showNotification('⚠️ Кошелёк не подключён', 'error');
+        return false;
+      }
+      
+      let network = await window.web3Manager.provider.getNetwork();
+      
+      if (network.chainId !== CONFIG.NETWORK.chainId) {
+        console.log('⚠️ Wrong network:', network.chainId, '— trying auto-switch to opBNB...');
+        try {
+          await window.web3Manager.switchNetwork();
+          // Провайдер после смены сети обновлён — перечитываем
+          network = await window.web3Manager.provider.getNetwork();
+        } catch (switchErr) {
+          console.warn('⚠️ Auto-switch failed:', switchErr);
+        }
+        
+        if (network.chainId !== CONFIG.NETWORK.chainId) {
+          this.showNotification('Неправильная сеть! Переключитесь на opBNB', 'error');
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ checkNetwork error:', error);
+      this.showNotification('⚠️ Ошибка связи с кошельком. Переподключите кошелёк и обновите страницу.', 'error');
       return false;
     }
-    return true;
   },
 
   async refreshUserData() {
