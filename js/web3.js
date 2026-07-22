@@ -473,8 +473,12 @@ async connect() {
       }
 
       // Создаём ethers провайдер
+      // ✅ FIX 22.07.2026: 'any' — провайдер переживает смену сети
+      // (без 'any' ethers v5 бросает "underlying network changed" после переключения на opBNB)
       try {
-        provider = new ethers.providers.Web3Provider(rawProvider);
+        provider = new ethers.providers.Web3Provider(rawProvider, 'any');
+        this.rawProvider = rawProvider;
+        this._attachProviderListeners(rawProvider);
       } catch (providerError) {
         if (providerError.code === 'INVALID_ARGUMENT' || 
             providerError.message.includes('unsupported provider')) {
@@ -563,8 +567,11 @@ async connect() {
       }
 
       // Создаём ethers провайдер только если это EVM
+      // ✅ FIX 22.07.2026: 'any' — провайдер переживает смену сети
       try {
-        provider = new ethers.providers.Web3Provider(rawProvider);
+        provider = new ethers.providers.Web3Provider(rawProvider, 'any');
+        this.rawProvider = rawProvider;
+        this._attachProviderListeners(rawProvider);
       } catch (providerError) {
         if (providerError.code === 'INVALID_ARGUMENT' || 
             providerError.message.includes('unsupported provider')) {
@@ -656,6 +663,65 @@ async connect() {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // ✅ FIX 22.07.2026: Живучесть при смене сети/аккаунта
+  // Раньше: провайдер создавался без 'any', chainChanged не слушался.
+  // После переключения SafePal на opBNB ethers бросал
+  // "underlying network changed" на каждый вызов — регистрация и
+  // покупка уровней молча умирали. Теперь: слушаем события кошелька,
+  // обновляем signer и сбрасываем кэш контрактов.
+  // ═══════════════════════════════════════════════════════════════
+  _attachProviderListeners(rawProvider) {
+    try {
+      if (!rawProvider || typeof rawProvider.on !== 'function') return;
+      if (rawProvider._gwListenersAttached) return;
+      rawProvider._gwListenersAttached = true;
+
+      rawProvider.on('chainChanged', (chainIdHex) => {
+        console.log('🔄 chainChanged:', chainIdHex);
+        this._refreshAfterChainChange();
+        const newChainId = parseInt(chainIdHex, 16);
+        if (newChainId !== Number(CONFIG.NETWORK.chainId)) {
+          if (window.app?.showNotification) {
+            window.app.showNotification('⚠️ Кошелёк переключился на другую сеть. Вернитесь на opBNB.', 'error');
+          }
+        }
+      });
+
+      rawProvider.on('accountsChanged', (accounts) => {
+        console.log('🔄 accountsChanged:', accounts);
+        if (!accounts || accounts.length === 0) {
+          this.disconnect?.();
+          return;
+        }
+        this.address = accounts[0].toLowerCase();
+        if (window.app?.state) window.app.state.userAddress = this.address;
+        this._refreshAfterChainChange();
+      });
+
+      console.log('✅ Provider listeners attached (chainChanged, accountsChanged)');
+    } catch (e) {
+      console.warn('⚠️ Cannot attach provider listeners:', e);
+    }
+  }
+
+  _refreshAfterChainChange() {
+    try {
+      if (this.rawProvider) {
+        this.provider = new ethers.providers.Web3Provider(this.rawProvider, 'any');
+        this.signer = this.provider.getSigner();
+      }
+      // Сброс кэша контрактов app — они были привязаны к старому провайдеру
+      if (window.app?.state) {
+        window.app.state.contracts = {};
+        window.app.state._contractPromises = {};
+      }
+      console.log('✅ Provider/signer refreshed, contract cache cleared');
+    } catch (e) {
+      console.error('❌ _refreshAfterChainChange error:', e);
+    }
+  }
+
   // ✅ ФИНАЛ: Улучшенная смена сети
   async switchNetwork() {
     try {
@@ -665,6 +731,9 @@ async connect() {
 
       await this.provider.send('wallet_switchEthereumChain', [{ chainId: chainIdHex }]);
       console.log('✅ Network switched successfully');
+      // ✅ FIX 22.07.2026: после смены сети обновляем signer и сбрасываем кэш контрактов,
+      // чтобы все дальнейшие вызовы шли через актуальную сеть
+      this._refreshAfterChainChange();
     } catch (error) {
       if (error && error.code === 4902) {
         // Сеть не найдена - добавляем
