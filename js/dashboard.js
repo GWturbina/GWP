@@ -963,27 +963,30 @@ async loadQuarterlyInfo() {
     
     console.log(`=== 🛒 buyLevel() START for level ${level} ===`);
     
-    if (!app.state.userAddress) {
-      console.log('❌ No user address');
-      app.showNotification(_t('notifications.connectWalletFirst'), 'error');
-      this.buyLevelInProgress = false;
-      return;
-    }
-    
-    console.log('✅ User address OK:', app.state.userAddress);
-    
-    const networkCheck = await app.checkNetwork();
-    console.log('🌐 Network check result:', networkCheck);
-    
-    if (!networkCheck) {
-      console.log('❌ Network check failed');
-      this.buyLevelInProgress = false;
-      return;
-    }
-    
-    console.log('✅ Network check passed');
-    
+    // ✅ FIX 22.07.2026: ВЕСЬ код после установки флага — внутри try/finally.
+    // Раньше app.checkNetwork() стоял ДО try без защиты: при ошибке провайдера
+    // ("underlying network changed") исключение никем не ловилось, флаг
+    // buyLevelInProgress зависал в true НАВСЕГДА — и все следующие нажатия
+    // молча выходили. Кнопка желтела, кошелёк не открывался.
     try {
+      if (!app.state.userAddress) {
+        console.log('❌ No user address');
+        app.showNotification(_t('notifications.connectWalletFirst'), 'error');
+        return;
+      }
+      
+      console.log('✅ User address OK:', app.state.userAddress);
+      
+      const networkCheck = await app.checkNetwork();
+      console.log('🌐 Network check result:', networkCheck);
+      
+      if (!networkCheck) {
+        console.log('❌ Network check failed');
+        return;
+      }
+      
+      console.log('✅ Network check passed');
+      
       console.log('1️⃣ Checking registration...');
       
       // 🔥 FIX: Используем app.state.isRegistered (он корректно загружается в app.js)
