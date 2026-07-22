@@ -925,6 +925,40 @@ async loadQuarterlyInfo() {
   // ДЕЙСТВИЯ
   // ═══════════════════════════════════════════════════════════════
   
+  // ═══════════════════════════════════════════════════════════════
+  // ✅ 22.07.2026: Модал «Недостаточно BNB» — заметный, с суммами
+  // и подсказкой, что баланс нужен именно на сети opBNB
+  // ═══════════════════════════════════════════════════════════════
+  showInsufficientBalanceModal(priceStr, balanceWei, priceWei) {
+    const existing = document.getElementById('insufficientBalanceModal');
+    if (existing) existing.remove();
+
+    const haveBNB = parseFloat(ethers.utils.formatEther(balanceWei)).toFixed(4);
+    const needMoreWei = priceWei.sub(balanceWei);
+    const needMoreBNB = parseFloat(ethers.utils.formatEther(needMoreWei)).toFixed(4);
+
+    const modal = document.createElement('div');
+    modal.id = 'insufficientBalanceModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+    modal.innerHTML = `
+      <div style="background:linear-gradient(135deg,#0d1117,#1a1f2e);border:1px solid #ffd70044;border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 0 40px #ffd70022;">
+        <div style="font-size:40px;margin-bottom:10px">💰</div>
+        <h3 style="color:#ffd700;margin:0 0 14px;font-size:19px">Недостаточно BNB</h3>
+        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:14px;margin-bottom:14px;text-align:left">
+          <p style="color:#ccc;margin:4px 0;font-size:14px;display:flex;justify-content:space-between"><span>Нужно:</span> <strong style="color:#fff">${priceStr} BNB</strong></p>
+          <p style="color:#ccc;margin:4px 0;font-size:14px;display:flex;justify-content:space-between"><span>На кошельке:</span> <strong style="color:#fff">${haveBNB} BNB</strong></p>
+          <p style="color:#ccc;margin:4px 0;font-size:14px;display:flex;justify-content:space-between"><span>Не хватает:</span> <strong style="color:#ff6b6b">${needMoreBNB} BNB</strong></p>
+        </div>
+        <p style="color:#ffd700;font-size:13px;line-height:1.5;margin:0 0 8px;text-align:left">⚠️ Важно: баланс нужен именно на сети <strong>opBNB</strong>, а не на BNB Chain (BSC). Это разные сети!</p>
+        <p style="color:#aaa;font-size:13px;line-height:1.5;margin:0 0 18px;text-align:left">Как пополнить: в SafePal при отправке BNB выберите сеть opBNB. Либо переведите с биржи, выбрав сеть opBNB.</p>
+        <button id="insufBalOk" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#ffd700,#ff9500);color:#000;font-weight:700;font-size:15px;cursor:pointer;">Понятно</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById('insufBalOk').onclick = () => modal.remove();
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  },
+
   async buyLevel(level) {
     if (this.buyLevelInProgress) {
       console.log('⚠️ Buy level already in progress');
@@ -1037,8 +1071,9 @@ async loadQuarterlyInfo() {
       
       if (balance.lt(priceWei)) {
         console.log('❌ Insufficient balance');
-        app.showNotification(_t('notifications.insufficientBNB'), 'error');
-        this.buyLevelInProgress = false;
+        // ✅ 22.07.2026: вместо исчезающего уведомления — заметный модал
+        // с суммами и подсказкой про сеть opBNB
+        this.showInsufficientBalanceModal(price, balance, priceWei);
         return;
       }
       
